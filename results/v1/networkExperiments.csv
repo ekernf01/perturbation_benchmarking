@@ -1,0 +1,7 @@
+,network,p,threshold_number,pruning,index
+0,encodeDNase,0.001,2000,harsh,0
+1,encodeDNase,1.0,100000,lax,1
+2,cellOracle,0.001,2000,harsh,2
+3,cellOracle,1.0,100000,lax,3
+4,dense,0.001,2000,harsh,4
+5,dense,1.0,100000,lax,5
