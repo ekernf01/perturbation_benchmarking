@@ -1,0 +1,11 @@
+,network,p,threshold_number,pruning,index
+0,dense,0.001,2000,harsh,0
+1,random0.1,1.0,102313295,none,1
+2,cellOracle,0.001,2000,harsh,2
+3,fantom5,1.0,102313295,none,3
+4,cellnet,0.001,2000,harsh,4
+5,dense,1.0,102313295,none,5
+6,random0.1,0.001,2000,harsh,6
+7,cellOracle,1.0,102313295,none,7
+8,fantom5,0.001,2000,harsh,8
+9,cellnet,1.0,102313295,none,9
