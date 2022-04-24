@@ -10,7 +10,58 @@ import seaborn as sns
 import gc
 from scipy.stats import spearmanr as spearmanr
 
-def evaluateCausalModel(expression, predictedExpression, baseline, doPlots=False, classifier = None):
+def evaluateCausalModel(heldout, predictions, baseline, experiments, experiment_name, factor_varied, classifier = None):
+    """Compile plots and tables comparing heldout data and predictions for same. Saves output to f"results/{experiment_name}".
+
+    Args:
+        heldout (AnnData): Test data in the format specified by the complementary collection of perturbation data.
+        predictions (Dict): Keys are perturbation names; values are np arrays of predicted expression or np.nan if no prediction made. 
+        baseline (np.Array): Control expression for use in calculating fold change. 
+        classifier (sklearn.LogisticRegression): Optional, to judge results on cell type accuracy. 
+        experiments (pd.DataFrame): Metadata for the different combinations used in this experiment. 
+        factor_varied (String): Plots are automatically stratified based on this column of "experiments". 
+        experiment_name (String): Saves output to f"results/{experiment_name}".
+    """
+    # Get spearman and classifier accuracy 
+    evaluationResults = {}
+    for i in predictions:
+        evaluationResults[i] = \
+            evaluateOnePrediction(heldout, 
+                                  predictions,   
+                                  baseline = baseline,     
+                                  doPlots=False, 
+                                  classifier=classifier)[0]
+        evaluationResults[i]["index"] = i
+    evaluationResults = pd.concat(evaluationResults)
+    evaluationResults = evaluationResults.merge(experiments, how = "left")
+    evaluationResults = pd.DataFrame(evaluationResults.to_dict())
+    # Mark anything where predictions were unavailable
+    noPredictionMade = evaluationResults.iloc[[x==0 for x in evaluationResults["spearman"]],:]['perturbation']
+    noPredictionMade = set(noPredictionMade)
+    noPredictionMade
+    evaluationResults["somePredictionRefused"] = evaluationResults["perturbation"].isin(noPredictionMade) 
+    # Save main results
+    evaluationResults.to_csv("results/"+ experiment_name +"/evaluationResults.csv")
+    stripchartMainFig = sns.stripplot(y = "spearman", 
+                                                x=factor_varied, 
+                                                data = evaluationResults)
+    stripchartMainFig.set(ylabel="Spearman correlation \npredicted log fold change vs observed")
+    stripchartMainFig.figure.savefig(f'results/{EXPERIMENT_NAME}/stripchart.pdf')
+    plt.show()
+    for readout in "spearman", "cell_fate_correct":
+        meanSEPlot = sns.pointplot(factor_varied, y=readout, data=evaluationResults, dodge=True, join=False)
+        meanSEPlot.set(title="Mean and SE of " + readout)
+        meanSEPlot.figure.savefig(f'results/{EXPERIMENT_NAME}/MeanSEPlot{readout}.pdf')
+        plt.show()
+        plt.figure()
+    # Which genes are best/worst?
+    hardest = evaluationResults[evaluationResults["spearman"].idxmax(),"perturbation"]
+    easiest = evaluationResults[evaluationResults["spearman"].idxmin(),"perturbation"]
+    evaluationResults.loc[evaluationResults["perturbation"]==hardest,:].to_csv("results/"+ experiment_name +"/hardest.csv")
+    evaluationResults.loc[evaluationResults["perturbation"]==easiest,:].to_csv("results/"+ experiment_name +"/easiest.csv")
+    return
+
+def evaluateOnePrediction(expression, predictedExpression, baseline, doPlots=False, classifier = None):
     '''Compare observed against predicted, for expression, fold-change, or cell type.
 
             Parameters:
@@ -53,6 +104,8 @@ def evaluateCausalModel(expression, predictedExpression, baseline, doPlots=False
     metrics["perturbation"] = metrics.index
     return metrics, plots                
     
+
+
     
 def trainCausalModelAndPredict(expression, 
                                baseNetwork, 
