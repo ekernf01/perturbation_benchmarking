@@ -1,18 +1,16 @@
 ## To do
 
-- Describe the appeal to GWAS interpretation and CNA interpretation
-- Add git remotes and gitignore files for 3 main repos
 - Include some single-gene plots to illustrate spearman = 0.2 vs spearman = 0.3
-- Finish unit tests
-- Speed up unit tests
+- Get more test datasets??
+- Update unit tests oh gawd
 - **Why are some genes easier to predict than others? What makes them easier?**
-- **Plan and run more experiments.** Speed up networks experiment. 
-- **How are these tools are used for GWAS?**
+- **How are these tools used for GWAS or genetics?**
+- **How are these tools used for CFE?**
 
 ### Current experiments
 
 - **baseNetwork**: people have published big fat lists of TF-target or gene-gene relationships, often for GWAS interpretation or reprogramming. Existing benchmarks have limited information content and seldom compared these published network structures directly without introducing confounding factors. For instance, one might ask whether the networks used by CellNet, Mogrify, Irene, and CellOracle are of comparable value in predicting reprogramming outcomes. Those methods have been compared, but they each involve many other components that may also affect the outcome, confounding the effect of network structure. 
-- **cellTypeSpecific**: Do networks inferred for the cell type of interest work better than global networks or networks from the wrong cell types?
+- **cellTypeSpecific**: Do networks inferred for the cell type of interest work better than global networks or networks from the wrong cell types? We try this with CellNet and ANANSE cell-type-specific networks, ESC versus others.
 - **clusterSpecific**: CellOracle fits separate linear models on each cluster. Competitors like Dynamo fit a single model across all input data. Which approach works best? How many clusters should be used? The answer may depend on both dataset size and biological diversity, so it'll hard be to extract general lessons, but I still want to know the answer to this. 
 - **pruning**: Some models use sparse network structures and some dense. Preliminary experiments indicate that restrictive sparse structures (pre-specified by the user) are not competitive in terms of predicting held-out perturbations. 
 - **datasetSize** Does the sparse versus dense tradeoff come out differently on smaller datasets? Alexis posits that sparse models may perform better on smaller networks. Take a good performer from the sparse models and test it against dense on a variety of sizes of training dataset. 
