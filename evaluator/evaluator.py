@@ -10,7 +10,35 @@ import seaborn as sns
 import gc
 from scipy.stats import spearmanr as spearmanr
 
-def evaluateCausalModel(heldout, predictions, baseline, experiments, experiment_name, factor_varied, classifier = None):
+def remakeMainPlots(experiment_name, factor_varied, default_level, evaluationResults=None):
+    """Redo the main plots summarizing an experiment.
+
+    Args:
+        experiment_name (String): Loads results from and save plots to f'results/{experiment_name}'.
+        factor_varied (String): Plots are automatically stratified based on this column of "experiments". 
+        evaluationResults (pd.DataFrame, optional): By default, looks for results saved as a csv.
+        default_level: a value found in evaluationResults.loc[:,factor_varied] to compare all others against. This is for use in repeated-measures analyses to remove the variation from gene to gene. 
+    """
+    if evaluationResults is None:
+        evaluationResults = pd.read_csv("results/"+ experiment_name +"/evaluationResults.csv")
+    stripchartMainFig = sns.stripplot(y = "spearman", 
+                                                x=factor_varied, 
+                                                data = evaluationResults)
+    stripchartMainFig.set(ylabel="Spearman correlation \npredicted log fold change vs observed")
+    stripchartMainFig.set_xticklabels(stripchartMainFig.get_xticklabels(), rotation=90)
+    stripchartMainFig.figure.savefig(f'results/{experiment_name}/stripchart.pdf', bbox_inches="tight")
+    plt.show()
+    meanSEPlot = {}
+    for readout in "spearman", "cell_fate_correct":
+        meanSEPlot[readout] = sns.pointplot(factor_varied, y=readout, data=evaluationResults, dodge=True, join=False)
+        meanSEPlot[readout].set(title="Mean and SE of " + readout)
+        meanSEPlot[readout].set_xticklabels(meanSEPlot[readout].get_xticklabels(), rotation=90)
+        meanSEPlot[readout].figure.savefig(f'results/{experiment_name}/MeanSEPlot{readout}.pdf', bbox_inches="tight")
+        plt.show()
+        plt.figure()
+    return
+
+def evaluateCausalModel(heldout, predictions, baseline, experiments, experiment_name, factor_varied, default_level, classifier = None):
     """Compile plots and tables comparing heldout data and predictions for same. Saves output to f"results/{experiment_name}".
 
     Args:
@@ -20,6 +48,7 @@ def evaluateCausalModel(heldout, predictions, baseline, experiments, experiment_
         classifier (sklearn.LogisticRegression): Optional, to judge results on cell type accuracy. 
         experiments (pd.DataFrame): Metadata for the different combinations used in this experiment. 
         factor_varied (String): Plots are automatically stratified based on this column of "experiments". 
+        default_level: a value found in experiments.loc[:,factor_varied] to compare all others against. This is for use in repeated-measures analyses to remove the variation from gene to gene. 
         experiment_name (String): Saves output to f"results/{experiment_name}".
     """
     # Get spearman and classifier accuracy 
@@ -27,7 +56,7 @@ def evaluateCausalModel(heldout, predictions, baseline, experiments, experiment_
     for i in predictions:
         evaluationResults[i] = \
             evaluateOnePrediction(heldout, 
-                                  predictions,   
+                                  predictions[i],   
                                   baseline = baseline,     
                                   doPlots=False, 
                                   classifier=classifier)[0]
@@ -35,6 +64,8 @@ def evaluateCausalModel(heldout, predictions, baseline, experiments, experiment_
     evaluationResults = pd.concat(evaluationResults)
     evaluationResults = evaluationResults.merge(experiments, how = "left")
     evaluationResults = pd.DataFrame(evaluationResults.to_dict())
+    # TO DO: Estimate a per-gene fixed effect 
+    # evaluationResults["spearman_gene_effect"] = 
     # Mark anything where predictions were unavailable
     noPredictionMade = evaluationResults.iloc[[x==0 for x in evaluationResults["spearman"]],:]['perturbation']
     noPredictionMade = set(noPredictionMade)
@@ -42,24 +73,13 @@ def evaluateCausalModel(heldout, predictions, baseline, experiments, experiment_
     evaluationResults["somePredictionRefused"] = evaluationResults["perturbation"].isin(noPredictionMade) 
     # Save main results
     evaluationResults.to_csv("results/"+ experiment_name +"/evaluationResults.csv")
-    stripchartMainFig = sns.stripplot(y = "spearman", 
-                                                x=factor_varied, 
-                                                data = evaluationResults)
-    stripchartMainFig.set(ylabel="Spearman correlation \npredicted log fold change vs observed")
-    stripchartMainFig.figure.savefig(f'results/{EXPERIMENT_NAME}/stripchart.pdf')
-    plt.show()
-    for readout in "spearman", "cell_fate_correct":
-        meanSEPlot = sns.pointplot(factor_varied, y=readout, data=evaluationResults, dodge=True, join=False)
-        meanSEPlot.set(title="Mean and SE of " + readout)
-        meanSEPlot.figure.savefig(f'results/{EXPERIMENT_NAME}/MeanSEPlot{readout}.pdf')
-        plt.show()
-        plt.figure()
+    remakeMainPlots(experiment_name, factor_varied)
     # Which genes are best/worst?
-    hardest = evaluationResults[evaluationResults["spearman"].idxmax(),"perturbation"]
-    easiest = evaluationResults[evaluationResults["spearman"].idxmin(),"perturbation"]
+    hardest = evaluationResults.loc[evaluationResults["spearman"].idxmax(),"perturbation"]
+    easiest = evaluationResults.loc[evaluationResults["spearman"].idxmin(),"perturbation"]
     evaluationResults.loc[evaluationResults["perturbation"]==hardest,:].to_csv("results/"+ experiment_name +"/hardest.csv")
     evaluationResults.loc[evaluationResults["perturbation"]==easiest,:].to_csv("results/"+ experiment_name +"/easiest.csv")
-    return
+    return evaluationResults, stripchartMainFig, meanSEPlot
 
 def evaluateOnePrediction(expression, predictedExpression, baseline, doPlots=False, classifier = None):
     '''Compare observed against predicted, for expression, fold-change, or cell type.
