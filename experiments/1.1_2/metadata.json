@@ -1,0 +1,14 @@
+{
+    "unique_id": "1.1_2",
+    "nickname": "datasetSize",
+    "readme": "Does the sparse versus dense tradeoff come out differently on smaller datasets? Due to stronger regularization, sparse models may perform better on smaller networks. Here, we take a good performer from the sparse models and test it against dense on a variety of sizes of training dataset.",
+    "question": "1.1",
+    "factor_varied": "training_set_size",
+    "default_level": null,
+    "perturbation_dataset": "nakatake",
+    "network_datasets": [
+        "dense", 
+        "celloracle_human"
+    ]
+}
+

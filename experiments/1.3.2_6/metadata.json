@@ -1,0 +1,12 @@
+{
+    "unique_id": "1.3.2_6",
+    "nickname": "cellTypeSpecificFANTOM5Replogle1",
+    "readme": "This experiment uses the same logic as experiment <refers_to>, with different networks and perturbation data.",
+    "refers_to": "1.3.2_1",
+    "perturbation_dataset": "replogle1",
+    "network_datasets": [
+        "dense",
+        "magnum_compendium_394"
+    ]
+}
+

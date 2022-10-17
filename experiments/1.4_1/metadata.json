@@ -1,0 +1,27 @@
+{
+    "unique_id": "1.4_1",
+    "nickname": "base_network",
+    "readme": "people have published big fat lists of TF-target or gene-gene relationships, often for GWAS interpretation or reprogramming. Existing benchmarks have limited information content and seldom compared these published network structures directly without introducing confounding factors. For instance, one might ask whether the networks used by CellNet, Mogrify, Irene, and CellOracle are of comparable value in predicting reprogramming outcomes. Those methods have been compared, but they each involve many other components that may also affect the outcome, confounding the effect of network structure. This benchmark many networks to see how much they help predict held-out perturbations.",
+    "question": "1.4",
+    "factor_varied": "network",
+    "default_level": "dense",
+    "perturbation_dataset": "nakatake",
+    "network_datasets": [
+        "dense",
+        "random0.1",
+        "random0.01",
+        "celloracle_human",
+        "gtex_rna",
+        "magnum_compendium_32",   
+        "magnum_compendium_394", 
+        "magnum_compendium_ppi",
+        "humanbase",
+        "cellnet_human_Hg1332",
+        "cellnet_human_Hugene",
+        "MARA_FANTOM4",
+        "STRING",    
+        "ANANSE_0.5",
+        "ANANSE_tissue_0.5"
+    ]
+}
+

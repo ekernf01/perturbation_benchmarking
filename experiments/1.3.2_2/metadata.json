@@ -1,0 +1,12 @@
+{
+    "unique_id": "1.3.2_2",
+    "nickname": "cellTypeSpecificCellNetHg1332",
+    "readme": "This experiment uses the same logic as experiment <refers_to>, with different networks and perturbation data.",
+    "refers_to": "1.3.2_1",
+    "perturbation_dataset": "nakatake",
+    "network_datasets": [
+        "dense",
+        "cellnet_human_Hg1332"
+    ]
+}
+

@@ -1,0 +1,27 @@
+{
+    "unique_id": "Usually question id . number",
+    "nickname": "????",
+    "readme": "This experiment ???? ",
+    "question": "????",
+    "factor_varied": "????",
+    "default_level": "????",
+    "perturbation_dataset": "nakatake",
+    "network_datasets": [
+        "dense",
+        "random0.1",
+        "random0.01",
+        "cellOracle",
+        "gtex_rna",
+        "magnum_compendium_32",   
+        "magnum_compendium_394", 
+        "magnum_compendium_ppi",
+        "humanbase",
+        "cellnet_human_Hg1332",
+        "cellnet_human_Hugene",
+        "MARA_FANTOM4",
+        "STRING",    
+        "ANANSE_0.5",
+        "ANANSE_tissue_0.5"
+    ]
+}
+

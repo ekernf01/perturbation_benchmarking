@@ -1,0 +1,12 @@
+{
+    "unique_id": "????",
+    "nickname": "????",
+    "readme": "This experiment uses the same logic as experiment <refers_to>, with different networks and perturbation data.",
+    "refers_to": "????",
+    "perturbation_dataset": "cmap",
+    "network_datasets": [
+        "dense",
+        "magnum_compendium_394"
+    ]
+}
+
