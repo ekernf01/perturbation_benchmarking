@@ -1,1 +1,8 @@
 *.oracle
+*.parquet
+*.csv
+*.pdf
+err.txt
+out.txt
+start_time.txt
+finish_time.txt
