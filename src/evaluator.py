@@ -28,6 +28,7 @@ def makeMainPlots(evaluationResults, factor_varied:str, outputs: str, default_le
     stripchartMainFig.set_xticklabels(stripchartMainFig.get_xticklabels(), rotation=90)
     stripchartMainFig.figure.savefig(f'{outputs}/stripchart.pdf', bbox_inches="tight")
     plt.show()
+    plt.figure()
     meanSEPlot = {}
     for readout in "spearman", "cell_fate_correct":
         meanSEPlot[readout] = sns.pointplot(factor_varied, y=readout, data=evaluationResults, dodge=True, join=False)
@@ -63,7 +64,7 @@ def evaluateCausalModel(
     """
     # Get spearman and classifier accuracy 
     evaluationResults = {}
-    shared_var_names = set.intersection(predictions[experiment].var_names for experiment in predictions.keys())
+    shared_var_names = list(set.intersection(*[set(predictions[experiment].var_names) for experiment in predictions.keys()]))
     for experiment in predictions.keys(): 
         evaluationResults[experiment] = \
             evaluateOnePrediction(
@@ -94,8 +95,7 @@ def evaluateCausalModel(
     evaluationResults.loc[evaluationResults["perturbation"]==easiest,:].to_csv(outputs +"/easiest.csv")
     return evaluationResults, stripchartMainFig, meanSEPlot
 
-
-def evaluateOnePrediction(expression: anndata.AnnData, predictedExpression: anndata.AnnData, baseline: anndata.AnnData, doPlots=False, classifier = None):
+def evaluateOnePrediction(expression: anndata.AnnData, predictedExpression: anndata.AnnData, baseline: anndata.AnnData, doPlots=False, classifier = None, do_careful_checks = True):
     '''Compare observed against predicted, for expression, fold-change, or cell type.
 
             Parameters:
@@ -104,11 +104,15 @@ def evaluateOnePrediction(expression: anndata.AnnData, predictedExpression: annd
                     predictedExpression (AnnData): 
                         the cellOracle prediction (log-scale). Elements of predictedExpression.X may be np.nan for 
                         missing predictions, often one gene missing from all samples or one sample missing for all genes.
+                        predictedExpression.obs must contain columns "perturbation" (symbol of targeted gene) 
+                        and "expression_level_after_perturbation" (e.g. 0 for knockouts). 
                     baseline (AnnData): 
                         control expression level (log-scale)
                     classifier (sklearn logistic regression classifier): 
                         optional machine learning classifier to assign cell fate. 
                         Must have a predict() method capable of taking a value from expression or predictedExpression and returning a single class label. 
+                    do_careful_checks (bool): check gene name and expression level associated with each perturbation.
+                        They must match between expression and predictionExpression.
             Returns:
                     Pandas DataFrame with Spearman correlation between predicted and observed 
                     log fold change over control.
@@ -116,16 +120,21 @@ def evaluateOnePrediction(expression: anndata.AnnData, predictedExpression: annd
     "log fold change using Spearman correlation and (optionally) cell fate classification."""
     if not expression.X.shape == predictedExpression.X.shape:
         raise ValueError("expression and predictedExpression must have the same shape.")
+    if not all(expression.obs.index == predictedExpression.obs.index):
+        raise ValueError("expression and predictedExpression must have the same sample names.")
     if not expression.X.shape[1] == baseline.X.shape[1]:
         raise ValueError("expression and baseline must have the same number of genes.")
-    baseline = baseline.X.mean(axis=0)
+    baseline = baseline.X.mean(axis=0).squeeze()
     plots = {}
     metrics = pd.DataFrame(index = predictedExpression.obs.index, columns = ["spearman", "spearmanp", "cell_fate_correct"])
     for pert in predictedExpression.obs.index:
-        if not any(pert == expression.obs["perturbation"]):
-            raise KeyError(f"Perturbation {pert} not found in validation data.")
-        observed = expression[expression.obs["perturbation"]==pert,:].X.mean(axis=0)
-        predicted = predictedExpression.X[pert,:]
+        if do_careful_checks:
+            assert all(
+                                 expression.obs.loc[pert, ["perturbation", "expression_level_after_perturbation"]] == \
+                        predictedExpression.obs.loc[pert, ["perturbation", "expression_level_after_perturbation"]] 
+                    )
+        observed  = expression[         pert,:].X.squeeze()
+        predicted = predictedExpression[pert,:].X.squeeze()
         if type(predicted) is float and np.isnan(predicted):
             metrics.loc[pert,["spearman","spearmanp", "cell_fate_correct"]] = 0,1,np.nan
         else:
@@ -156,7 +165,8 @@ def trainCausalModelAndPredict(expression,
     Args:
         expression (AnnData): AnnData object; training data as described in this project's collection of perturbation data.
         baseNetwork (pd.DataFrame): Base GRN in the format expected by CellOracle.
-        perturbations (list): List of tuples [(gene, expression_level)] where the gene is fixed at the expression level.
+        perturbations (pd.DataFrame): DF with columns [("perturbation", "expression_level_after_perturbation")] where the
+            gene symbol in the first column is fixed at the (log) expression level in the second column.
         clusterColumnName (_type_): Categorical column from AnnData input to use as cluster labels. 
         memoizationName (_type_, optional): Defaults to None.
         pruningParameters (dict, optional): Defaults to {"p":0.001, "threshold_number":2000}.
@@ -168,16 +178,13 @@ def trainCausalModelAndPredict(expression,
     if memoizationName:
         print("Working on " + memoizationName)
 
-    obs = pd.DataFrame(perturbations)
-    obs.columns = ['perturbation', 'expression_level_after_perturbation']
-    obs.index = [p[0] + "__" + str(p[1]) for p in perturbations]
     output = anndata.AnnData(
         X = np.full(
                 (len(perturbations), expression.X.shape[1]), 
                 np.nan
             ),
         var = expression.var,
-        obs = obs,
+        obs = perturbations,
         )
         
     # Memoization
@@ -189,7 +196,7 @@ def trainCausalModelAndPredict(expression,
         
         # Object setup
         oracle = co.Oracle()
-        oracle.import_anndata_as_raw_count(adata=expression,
+        oracle.import_anndata_as_raw_count(adata=expression,#.raw[:,expression.var_names], # import raw counts but use only previously selected variable genes
                                        cluster_column_name=clusterColumnName,
                                        embedding_name="X_pca")
         baseNetwork = makeNetworkDense(baseNetwork)        
@@ -297,7 +304,7 @@ def makeNetworkDense(X):
     return X
 
 
-def splitData(adata, allowedRegulators, minTestSetSize = 250, perturbationColName = "perturbation"):
+def splitData(adata, allowedRegulators, minTestSetSize = 250):
     """Determine a train-test split satisfying constraints imposed by base networks and available data.
     
 A few factors complicate the training-test split. 
@@ -318,26 +325,21 @@ parameters:
     allowedRegulators = allowedRegulators.intersection(adata.uns["perturbed_and_measured_genes"])
     if len(allowedRegulators) <= minTestSetSize:
         raise ValueError(f"minTestSetSize was set to {minTestSetSize} but only {len(allowedRegulators)} perturbed conditions are available.")
-    testSetPerturbations     = set(adata.obs[perturbationColName]).intersection(allowedRegulators)
-    trainingSetPerturbations = set(adata.obs[perturbationColName]).difference(allowedRegulators)
+    testSetPerturbations     = set(adata.obs["perturbation"]).intersection(allowedRegulators)
+    trainingSetPerturbations = set(adata.obs["perturbation"]).difference(allowedRegulators)
     if len(trainingSetPerturbations) < minTestSetSize:
         swap = np.random.default_rng(seed=0).choice(list(testSetPerturbations), 
                                                minTestSetSize - len(trainingSetPerturbations), 
                                                replace = False)
         testSetPerturbations = testSetPerturbations.difference(swap)
         trainingSetPerturbations = trainingSetPerturbations.union(swap)
-    adata_heldout  = adata[adata.obs[perturbationColName].isin(testSetPerturbations),    :]
-    adata_train    = adata[adata.obs[perturbationColName].isin(trainingSetPerturbations),:]
-    adata_train.obs['perturbation'].unique()
-    perturbationsToPredict = [(gene, adata_heldout[sample, gene].X[0,0]) for sample,gene in 
-                              enumerate(adata_heldout.obs[perturbationColName])] 
-    print("Example perturbations formatted as \n (gene, expression after perturbation)")
-    print(perturbationsToPredict[0:5])
+    adata_train    = adata[adata.obs["perturbation"].isin(trainingSetPerturbations),:]
+    adata_heldout  = adata[adata.obs["perturbation"].isin(testSetPerturbations),    :]
     print("Test set size:")
     print(len(testSetPerturbations))
     print("Training set size:")
     print(len(trainingSetPerturbations))
-    return adata_train, adata_heldout, perturbationsToPredict
+    return adata_train, adata_heldout
 
 
 def downsample(adata: anndata.AnnData, proportion: float, seed = None, proportion_genes = 1):
