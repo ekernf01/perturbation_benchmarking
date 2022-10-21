@@ -1,8 +1,8 @@
 conda activate cell_type_grn_transfer
-for experiment in `ls experiments -1 | grep ^1` 
+for experiment in `ls experiments -1` 
 do
-    bash -c "exec -a $experiment python src/experimenter.py --experiment_name $experiment --amount_to_do models --test_mode" \
-    > experiments/$experiment/out.txt 2> experiments/$experiment/err.txt &
+    bash -c "exec -a $experiment python src/experimenter.py --experiment_name $experiment --amount_to_do models" \
+        > experiments/$experiment/out.txt 2> experiments/$experiment/err.txt 
 done
 
 echo "Useful commands:
