@@ -3,11 +3,12 @@
     "nickname": "pruning_nakatake",
     "readme": "Some models use sparse network structures and some dense. Preliminary experiments indicate that restrictive sparse structures (pre-specified by the user) are not competitive in terms of predicting held-out perturbations.",
     "question": "1.1",
+    "is_active": true,
     "factor_varied": "log10_n_edges",
     "default_level": null,
     "perturbation_dataset": "nakatake",
-    "network_datasets": [
-        "dense"
-    ]
+    "network_datasets": {
+        "dense":{}
+    }
 }
 

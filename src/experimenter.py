@@ -49,32 +49,58 @@ sys.path.append(os.path.expanduser(os.path.join(PROJECT_PATH, 'perturbations', '
 sys.path.append(os.path.expanduser(os.path.join(PROJECT_PATH, 'benchmarking', 'src'))) 
 import evaluator
 import load_networks
-import load_perturbations #not used yet, but soon
+import load_perturbations
 importlib.reload(evaluator)
 importlib.reload(load_networks)
+importlib.reload(load_perturbations)
 os.environ["GRN_PATH"]           = PROJECT_PATH + "networks/networks"
 os.environ["PERTURBATION_PATH"]  = PROJECT_PATH + "perturbations/perturbations"
 
 # Parse experiment metadata
-with open(os.path.join("experiments", args.experiment_name, "metadata.json")) as f:
-    metadata = json.load(f)
-assert args.experiment_name == metadata["unique_id"]
-outputs = os.path.join("experiments", args.experiment_name, "outputs")
-print("\n\n Running experiment " + args.experiment_name + ":\n")
-print(yaml.dump(metadata))
+def validate_metadata():
+    with open(os.path.join("experiments", args.experiment_name, "metadata.json")) as f:
+        metadata = json.load(f)
+    if not metadata["is_active"]:
+        raise ValueError("This experiment is marked as inactive. If you really want to run it, edit its metadata.json.")
+    outputs = os.path.join("experiments", args.experiment_name, "outputs")
+    print("\n\n Running experiment " + args.experiment_name + ":\n")
+    print(yaml.dump(metadata))
 
-# If metadata refers to another experiment, go find code and missing metadata there.
-# Otherwise, get the experiment-specific code from here.
-if "refers_to" in metadata.keys():
-    with open(os.path.join("experiments", metadata["refers_to"], "metadata.json")) as f:
-        other_metadata = json.load(f)
-    sys.path.append(os.path.expanduser(os.path.join('experiments', other_metadata["unique_id"]))) 
-    for key in other_metadata.keys():
-        if key not in metadata.keys():
-            metadata[key] = other_metadata[key]
-else:
-    sys.path.append(os.path.expanduser(os.path.join('experiments', args.experiment_name))) 
+    # If metadata refers to another experiment, go find code and missing metadata there.
+    # Otherwise, get the experiment-specific code from here.
+    if "refers_to" in metadata.keys():
+        with open(os.path.join("experiments", metadata["refers_to"], "metadata.json")) as f:
+            other_metadata = json.load(f)
+        code_location = os.path.expanduser(os.path.join('experiments', other_metadata["unique_id"]))
+        for key in other_metadata.keys():
+            if key not in metadata.keys():
+                metadata[key] = other_metadata[key]
+    else:
+        code_location = os.path.expanduser(os.path.join('experiments', args.experiment_name))
 
+    # network handling is complex; add some default behavior to reduce metadata boilerplate
+    for netName in metadata["network_datasets"].keys():
+        if not "subnets" in metadata["network_datasets"][netName].keys():
+            metadata["network_datasets"][netName]["subnets"] = ["all"]
+        if not "do_aggregate_subnets" in metadata["network_datasets"][netName].keys():
+            metadata["network_datasets"][netName]["do_aggregate_subnets"] = False
+    
+    # Check basics on metadata
+    assert args.experiment_name == metadata["unique_id"], "Experiment is labeled right"
+    assert metadata["perturbation_dataset"] in set(load_perturbations.load_perturbation_metadata().query("is_ready=='yes'")["name"]), "perturbation data exist as named"
+    for netName in metadata["network_datasets"].keys():
+        assert netName in set(load_networks.load_grn_metadata()["name"]).union({"dense"}) or "random" in netName, "Networks exist as named"
+        assert "subnets" in metadata["network_datasets"][netName].keys(), "Optional metadata fields filled correctly"
+        assert "do_aggregate_subnets" in metadata["network_datasets"][netName].keys(), "Optional metadata fields filled correctly"
+
+    print("\nFully parsed metadata:\n")
+    print(yaml.dump(metadata))
+
+    return metadata, code_location
+
+# Load experiment code
+metadata, code_location = validate_metadata()
+sys.path.append(code_location)
 import this_experiment
 importlib.reload(this_experiment)
 
@@ -82,8 +108,22 @@ importlib.reload(this_experiment)
 with open(os.path.join(outputs, "..", "start_time.txt"), 'w') as f:
     f.write(str(datetime.datetime.now()) + "\n")
 
+# Delete any existing models if models are to be re-fitted
+if args.amount_to_do == "models":
+    [os.unlink(os.path.join(outputs, model_file)) for model_file in os.listdir(outputs) if re.search(".celloracle.oracle", model_file)]
+
 # load networks
-def get_subnets(netName):
+def get_subnets(netName:str, subnets:list, test_mode: bool = args.test_mode) -> dict:
+    """Get gene regulatory networks.
+
+    Args:
+        netName (str): Name of network to pull from collection, or "dense" or e.g. "random0.123" for random with density 12.3%. 
+        subnets (list, optional): List of cell type- or tissue-specific subnetworks to include. 
+        test_mode (bool, optional): Lighten the load during testing. Defaults to args.test_mode.
+
+    Returns:
+        dict: A dict containing base GRN's in the format expected by CO.
+    """
     print("Getting network '" + netName + "'")
     gc.collect()
     if "random" in netName:
@@ -91,40 +131,42 @@ def get_subnets(netName):
     elif "dense" in netName:
         return {"": evaluator.makeRandomNetwork(density = 1.0)}
     else:
+        if subnets[0]=="all":
+            subnets = load_networks.list_subnetworks(netName)
+        if test_mode:
+            subnets = subnets[0:1]
         return {
             subnet: evaluator.networkEdgesToMatrix(load_networks.load_grn_by_subnetwork(netName, subnet))
-            for subnet in load_networks.list_subnetworks(netName)
+            for subnet in subnets
         }
 
-
-networks = {}
-for netName in metadata["network_datasets"]:
-    all_subnets = get_subnets(netName)
-    for subnet_name in all_subnets.keys():
-        new_key = netName + " " + subnet_name if not subnet_name == "" else netName 
-        networks[new_key] = all_subnets[subnet_name]
-    
-# load & split perturbation data
-print("Loading & splitting perturbation data.")
-perturbed_expression_data = sc.read_h5ad(os.path.join(os.environ["PERTURBATION_PATH"], metadata["perturbation_dataset"], "test.h5ad"))
-if args.test_mode:
-    perturbed_expression_data = evaluator.downsample(perturbed_expression_data, proportion = 0.2, proportion_genes = 0.01)
-allowedRegulators = set.union(*[set(networks[key].columns) for key in networks])
-perturbed_expression_data_train, perturbed_expression_data_heldout, perturbationsToPredict = \
-    evaluator.splitData(perturbed_expression_data, allowedRegulators, minTestSetSize=5 if args.test_mode else 250)
-
-# Delete any existing models
-if args.amount_to_do == "models":
-    [os.unlink(os.path.join(outputs, model_file)) for model_file in os.listdir(outputs) if re.search(".celloracle.oracle", model_file)]
-
-# Train or retrieve models (this is memoized)
 if args.amount_to_do in {"models", "evaluations"}:
+    # Get networks
+    networks = {}
+    for netName in metadata["network_datasets"].keys():
+        all_subnets = get_subnets(netName, subnets = metadata["network_datasets"][netName]["subnets"] )
+        if metadata["network_datasets"][netName]["do_aggregate_subnets"]:
+            raise NotImplementedError("Sorry, still haven't found the code to union network edge sets. Set do_aggregate_subnets to false.")
+        else:
+            for subnet_name in all_subnets.keys():
+                new_key = netName + " " + subnet_name if not subnet_name == "" else netName 
+                networks[new_key] = all_subnets[subnet_name]
+
+    # load & split perturbation data
+    print("Loading & splitting perturbation data.")
+    perturbed_expression_data = load_perturbations.load_perturbation(metadata["perturbation_dataset"])
+    if args.test_mode:
+        perturbed_expression_data = evaluator.downsample(perturbed_expression_data, proportion = 0.2, proportion_genes = 0.01)
+    allowedRegulators = set.union(*[set(networks[key].columns) for key in networks])
+    perturbed_expression_data_train, perturbed_expression_data_heldout = \
+        evaluator.splitData(perturbed_expression_data, allowedRegulators, minTestSetSize=5 if args.test_mode else 250)
+
     # Experiment-specific code goes elsewhere
     print("Running experiment")
-    experiments, predictions, target_genes, other = this_experiment.run(
+    experiments, predictions, other = this_experiment.run(
         train_data = perturbed_expression_data_train, 
         test_data  = perturbed_expression_data_heldout,
-        perturbationsToPredict = perturbationsToPredict,
+        perturbationsToPredict = perturbed_expression_data_heldout.obs[["perturbation", "expression_level_after_perturbation"]],
         networks = networks, 
         outputs = outputs
     )    
@@ -139,17 +181,18 @@ if args.amount_to_do in {"models", "evaluations"}:
         default_level = metadata["default_level"], 
         classifier = None
     )
-    #TODO: save predictions?
-    stripchartMainFig.figure.savefig(      os.path.join(outputs, "stripchart.pdf"))
-    meanSEPlot["spearman"].figure.savefig( os.path.join(outputs, "meanSEPlot.pdf"))
     evaluationResults.to_parquet(          os.path.join(outputs, "networksExperimentEvaluation.parquet"))
     experiments.to_csv(                    os.path.join(outputs, "experiments.csv"))
-else: 
-    evaluationResults = pd.read_parquet(os.path.join(outputs, "networksExperimentEvaluation.parquet"))
 
-# TODO: remake plots here
-if args.amount_to_do in {"plots"}:
-    raise NotImplementedError("Remaking just the plots is not yet supported, sorry.")
+if args.amount_to_do in {"plots", "models", "evaluations"}:
+    evaluationResults = pd.read_parquet(os.path.join(outputs, "networksExperimentEvaluation.parquet"))
+    evaluator.makeMainPlots(
+        evaluationResults, 
+        factor_varied = metadata["factor_varied"],
+        outputs = outputs, 
+        default_level=metadata["default_level"],
+    )
+
 
 this_experiment.plot(evaluationResults, outputs)
 

@@ -1,0 +1,13 @@
+{
+    "unique_id": "1.3.1_2",
+    "nickname": "CellTypeSpecificRegressionCMAP",
+    "readme": "This experiment uses the same logic as experiment <refers_to>, with different networks and perturbation data.",
+    "refers_to": "1.3.1_1",
+    "is_active": false,
+    "perturbation_dataset": "cmap",
+    "network_datasets": {
+        "dense":{}, 
+        "celloracle_human":{}
+    }
+}
+

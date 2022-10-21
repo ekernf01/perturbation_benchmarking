@@ -3,10 +3,11 @@
     "nickname": "cellTypeSpecificCellNetHugene",
     "readme": "This experiment uses the same logic as experiment <refers_to>, with different networks and perturbation data.",
     "refers_to": "1.3.2_1",
+    "is_active": true,
     "perturbation_dataset": "nakatake",
-    "network_datasets": [
-        "dense",
-        "cellnet_human_Hugene"
-    ]
+    "network_datasets": {
+        "dense":{},
+        "cellnet_human_Hugene":{}
+    }
 }
 

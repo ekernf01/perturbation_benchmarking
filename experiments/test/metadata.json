@@ -1,13 +1,28 @@
 {
-    "unique_id": "1.1_1",
+    "unique_id": "test",
     "nickname": "pruning_nakatake",
     "readme": "Some models use sparse network structures and some dense. Preliminary experiments indicate that restrictive sparse structures (pre-specified by the user) are not competitive in terms of predicting held-out perturbations.",
     "question": "1.1",
+    "is_active": true,
     "factor_varied": "log10_n_edges",
     "default_level": null,
     "perturbation_dataset": "nakatake",
-    "network_datasets": [
-        "dense"
-    ]
+    "network_datasets": {
+        "dense": {},
+        "magnum_compendium_394": {
+            "subnets": [
+                "retinal_pigment_epithelial_cells.parquet",
+                "chronic_myelogenous_leukemia_cml_cell_line.parquet",
+                "teratocarcinoma_cell_line.parquet",
+                "lung_adenocarcinoma_cell_line.parquet",
+                "breast_carcinoma_cell_line.parquet",
+                "embryonic_kidney_cell_line.parquet",
+                "hepatocellular_carcinoma_cell_line.parquet",
+                "epitheloid_cancer_cell_line.parquet",
+                "acute_myeloid_leukemia_fab_m5_cell_line.parquet"
+            ],
+            "do_aggregate_subnets": false
+        }
+    }
 }
 

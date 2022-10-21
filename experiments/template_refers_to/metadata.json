@@ -3,10 +3,24 @@
     "nickname": "????",
     "readme": "This experiment uses the same logic as experiment <refers_to>, with different networks and perturbation data.",
     "refers_to": "????",
+    "is_active": false,
     "perturbation_dataset": "cmap",
-    "network_datasets": [
-        "dense",
-        "magnum_compendium_394"
-    ]
+    "network_datasets": {
+        "dense": {},
+        "magnum_compendium_394": {
+            "subnets": [
+                "retinal_pigment_epithelial_cells.parquet",
+                "chronic_myelogenous_leukemia_cml_cell_line.parquet",
+                "teratocarcinoma_cell_line.parquet",
+                "lung_adenocarcinoma_cell_line.parquet",
+                "breast_carcinoma_cell_line.parquet",
+                "embryonic_kidney_cell_line.parquet",
+                "hepatocellular_carcinoma_cell_line.parquet",
+                "epitheloid_cancer_cell_line.parquet",
+                "acute_myeloid_leukemia_fab_m5_cell_line.parquet"
+            ],
+            "do_aggregate_subnets": false
+        }
+    }
 }
 

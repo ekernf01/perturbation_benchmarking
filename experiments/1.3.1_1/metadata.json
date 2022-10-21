@@ -1,14 +1,15 @@
 {
     "unique_id": "1.3.1_1",
-    "nickname": "????",
-    "readme": "this metadata got nuked :( and I have to remember what I meant to do.",
+    "nickname": "CellTypeSpecificRegression",
+    "readme": "Q1.3 is about bias versus variance: does it work best to treat cell types as identical (high bias), separate (high variance), or similar (compromise)? This experiment and (sequels that refer to it) investigate the two extreme options by training one regression per cluster with either lots of clusters, or all data in one cluster.",
     "question": "1.3.1",
-    "factor_varied": "????",
-    "default_level": ????,
+    "is_active": true,
+    "factor_varied": "num_clusters",
+    "default_level": null,
     "perturbation_dataset": "nakatake",
-    "network_datasets": [
-        "dense", 
-        "cellOracle"
-    ]
+    "network_datasets": {
+        "dense":{}, 
+        "celloracle_human":{}
+    }
 }
 

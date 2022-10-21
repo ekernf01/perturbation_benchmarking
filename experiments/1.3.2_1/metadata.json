@@ -3,12 +3,13 @@
     "nickname": "cellTypeSpecific",
     "readme": "Do networks inferred for the cell type of interest work better than global networks or networks from the wrong cell types? Tested here with ANANSE cell-type-specific networks, ESC versus others, on the nakatake ESC perturbation data",
     "question": "1.3.2",
+    "is_active": true,
     "factor_varied": "network",
     "default_level": "dense",
     "perturbation_dataset": "nakatake",
-    "network_datasets": [
-        "dense",
-        "ANANSE_0.5"
-    ]
+    "network_datasets": {
+        "dense":{},
+        "ANANSE_0.5":{}
+    }
 }
 
