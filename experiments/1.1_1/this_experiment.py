@@ -15,7 +15,7 @@ def run(train_data, test_data, perturbationsToPredict, networks, outputs):
   Return: 
     - experiments: metadata on the different conditions in this experiment
     - predictions: dictionary with keys equal to index of experiments. 
-        Each value is an AnnData object.
+        Each value is an AnnData object, and its .obs must have the same index, "perturbation", and "expression_level_after_perturbation" as test_data.
     - other: can be anything
   """
   network_sizes = pd.DataFrame({bn:evaluator.countMatrixEdges(networks[bn]) for bn in networks}, index = ["numEdges"])
