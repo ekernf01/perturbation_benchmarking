@@ -1,6 +1,6 @@
 ### Benchmarking predictions of transcription following genetic perturbations
 
-This repo contains (the beginnings of) tools for benchmarking various strategies for predicting in detail the outcome of perturbation experiments. For more information, see the [project rundown](https://docs.google.com/document/d/1vvZi5c0nU3VTvKiWpEka8AtDORxJ3Ymv0ZzoFQwoDoI/edit).
+This repo contains (the beginnings of) tools for benchmarking various strategies for predicting in detail the outcome of perturbation experiments. For more context, see the [project rundown](https://docs.google.com/document/d/1vvZi5c0nU3VTvKiWpEka8AtDORxJ3Ymv0ZzoFQwoDoI/edit).
 
 ### Environment
 
@@ -11,6 +11,7 @@ The project is so far written in Python with the main dependencies being Scanpy 
 The benchmarks in this project are composed of small, structured folders ("Experiments"). Code and metadata supporting each Experiment resides in a folder in `experiments`.
 
 - `metadata.json`: experimental metadata in a strictly structured format. Each metadata file must have the exact same fields as one of the templates, and those fields must have the same types. The most important stuff in the metadata is:
+    - An explanatory "README" field
     - the associated question (from the "guiding questions")
     - ONE associated perturbation dataset (from the perturbation dataset repo)
     - ONE OR MORE associated networks (from the network collection repo). 
