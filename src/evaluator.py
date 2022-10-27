@@ -13,6 +13,12 @@ import gc
 import anndata
 from scipy.stats import spearmanr as spearmanr
 
+import sys
+import importlib
+sys.path.append("src")
+import predict
+importlib.reload(predict)
+
 def makeMainPlots(evaluationResults, factor_varied:str, outputs: str, default_level=None):
     """Redo the main plots summarizing an experiment.
     Args:
@@ -151,100 +157,7 @@ def evaluateOnePrediction(expression: anndata.AnnData, predictedExpression: annd
             plots[pert].plot()
             plt.figure()
     metrics["perturbation"] = metrics.index
-    return metrics, plots                
-    
-
-def trainCausalModelAndPredict(expression, 
-                               baseNetwork, 
-                               perturbations,
-                               clusterColumnName,
-                               memoizationName=None,
-                               pruningParameters = {"p":0.001, "threshold_number":2000}):
-    """Train a causal model and predict outcomes of unseen perturbations.
-
-    Args:
-        expression (AnnData): AnnData object; training data as described in this project's collection of perturbation data.
-        baseNetwork (pd.DataFrame): Base GRN in the format expected by CellOracle.
-        perturbations (pd.DataFrame): DF with columns [("perturbation", "expression_level_after_perturbation")] where the
-            gene symbol in the first column is fixed at the (log) expression level in the second column.
-        clusterColumnName (_type_): Categorical column from AnnData input to use as cluster labels. 
-        memoizationName (_type_, optional): Defaults to None.
-        pruningParameters (dict, optional): Defaults to {"p":0.001, "threshold_number":2000}.
-
-    Returns:
-        AnnData, predicted expression per gene and per perturbation. Missing values are np.nan. 
-    """
-    sc.pl.umap(expression, color = clusterColumnName)
-    if memoizationName:
-        print("Working on " + memoizationName)
-
-    output = anndata.AnnData(
-        X = np.full(
-                (len(perturbations), expression.X.shape[1]), 
-                np.nan
-            ),
-        var = expression.var,
-        obs = perturbations,
-        )
-        
-    # Memoization
-    try:         
-        oracle = co.load_hdf5(file_path=memoizationName)
-        print("Memoized results found.")
-    except (ValueError, AttributeError) as e:
-        print("Memoized results not found with error " + str(e))
-        
-        # Object setup
-        oracle = co.Oracle()
-        oracle.import_anndata_as_raw_count(adata=expression,#.raw[:,expression.var_names], # import raw counts but use only previously selected variable genes
-                                       cluster_column_name=clusterColumnName,
-                                       embedding_name="X_pca")
-        baseNetwork = makeNetworkDense(baseNetwork)        
-        oracle.import_TF_data(TF_info_matrix=baseNetwork)
-        oracle.perform_PCA()
-        n_comps = 50
-        k = 1
-        oracle.knn_imputation(n_pca_dims=n_comps, k=k, balanced=True, b_sight=k*8,
-                              b_maxl=k*4, n_jobs=4)
-        
-        # Training
-        try:
-            links = oracle.get_links(cluster_name_for_GRN_unit=clusterColumnName, 
-                                     alpha=10, 
-                                     model_method = "bayesian_ridge",
-                                     verbose_level=10,    
-                                     test_mode=False, 
-                                     n_jobs=14)
-            links.filter_links(p=pruningParameters["p"], 
-                               weight="coef_abs", 
-                               threshold_number=pruningParameters["threshold_number"])
-            
-            links.links_dict = links.filtered_links.copy()
-            oracle.get_cluster_specific_TFdict_from_Links(links_object=links)
-            oracle.fit_GRN_for_simulation(alpha=10, use_cluster_specific_TFdict=True)
-            if memoizationName:
-                oracle.to_hdf5(file_path=memoizationName)
-        except Exception as e: #LinAlgError: SVD did not converge?
-            print("Training failed with error " + str(e))
-            return output
-    
-    # Prediction
-    print("\nMaking predictions...\n")
-    for pert in output.obs.index:
-        goi = output.obs.loc[pert, "perturbation"]
-        level = output.obs.loc[pert, "expression_level_after_perturbation"]
-        print(goi, end=' ')
-        try:
-            oracle.simulate_shift(perturb_condition={goi: level}, n_propagation=3, ignore_warning = True)
-            output[pert, oracle.adata.var_names] = oracle.adata[oracle.adata.obs["is_control"],:].layers['simulated_count'].squeeze().mean(axis=0)
-        except ValueError as e:
-            print("\nPrediction failed for " + goi + " with error " + str(e))
-    
-    # Free memory & return
-    del oracle
-    gc.collect()
-    return output
-    
+    return metrics, plots                 
     
 def networkEdgesToMatrix(networkEdges, regulatorColumn=0, targetColumn=1):
     """Reformat a network from a two-column dataframe to the way that celloracle needs its input."""

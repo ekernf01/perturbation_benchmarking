@@ -44,17 +44,17 @@ PROJECT_PATH = '/home/ekernf01/Desktop/jhu/research/projects/perturbation_predic
 os.chdir(PROJECT_PATH + "benchmarking")
 import importlib
 import sys
-sys.path.append(os.path.expanduser(os.path.join(PROJECT_PATH, 'networks', 'load_networks'))) 
-sys.path.append(os.path.expanduser(os.path.join(PROJECT_PATH, 'perturbations', 'load_perturbations'))) 
-sys.path.append(os.path.expanduser(os.path.join(PROJECT_PATH, 'benchmarking', 'src'))) 
+sys.path.append(os.path.expanduser(os.path.join(PROJECT_PATH, 'network_collection', 'load_networks'))) 
+sys.path.append(os.path.expanduser(os.path.join(PROJECT_PATH, 'perturbation_data', 'load_perturbations'))) 
+sys.path.append(os.path.expanduser(os.path.join(PROJECT_PATH, 'perturbation_benchmarking', 'src'))) 
 import evaluator
 import load_networks
 import load_perturbations
 importlib.reload(evaluator)
 importlib.reload(load_networks)
 importlib.reload(load_perturbations)
-os.environ["GRN_PATH"]           = PROJECT_PATH + "networks/networks"
-os.environ["PERTURBATION_PATH"]  = PROJECT_PATH + "perturbations/perturbations"
+os.environ["GRN_PATH"]           = PROJECT_PATH + "network_collection/networks"
+os.environ["PERTURBATION_PATH"]  = PROJECT_PATH + "perturbation_data/perturbations"
 
 # Parse experiment metadata
 def validate_metadata():
@@ -113,6 +113,7 @@ if args.amount_to_do == "models":
     [os.unlink(os.path.join(outputs, model_file)) for model_file in os.listdir(outputs) if re.search(".celloracle.oracle", model_file)]
 
 # load networks
+# TODO: move this to the network collection loader module
 def get_subnets(netName:str, subnets:list, test_mode: bool = args.test_mode) -> dict:
     """Get gene regulatory networks.
 

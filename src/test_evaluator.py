@@ -10,18 +10,18 @@ import shutil
 # Deal with various modules specific to this project
 import importlib
 PROJECT_PATH = '/home/ekernf01/Desktop/jhu/research/projects/perturbation_prediction/cell_type_knowledge_transfer/'
-os.chdir(PROJECT_PATH + "benchmarking/")
-sys.path.append(os.path.expanduser(PROJECT_PATH + 'networks/load_networks'))
-sys.path.append(os.path.expanduser(PROJECT_PATH + 'perturbations/load_perturbations')) 
-sys.path.append(os.path.expanduser(PROJECT_PATH + 'benchmarking/src')) 
+os.chdir(PROJECT_PATH + "perturbation_benchmarking/")
+sys.path.append(os.path.expanduser(PROJECT_PATH + 'network_collection/load_networks'))
+sys.path.append(os.path.expanduser(PROJECT_PATH + 'perturbation_data/load_perturbations')) 
+sys.path.append(os.path.expanduser(PROJECT_PATH + 'perturbation_benchmarking/src')) 
 import evaluator
 import load_networks
 import load_perturbations
 importlib.reload(evaluator) 
 importlib.reload(load_networks) 
 importlib.reload(load_perturbations)
-os.environ["GRN_PATH"]           = PROJECT_PATH + "networks/networks"
-os.environ["PERTURBATION_PATH"]  = PROJECT_PATH + "perturbations/perturbations"
+os.environ["GRN_PATH"]           = PROJECT_PATH + "network_collection/networks"
+os.environ["PERTURBATION_PATH"]  = PROJECT_PATH + "perturbation_data/perturbations"
 test_expression = sc.read_h5ad(os.environ["PERTURBATION_PATH"] + "/software_test/" + "test.h5ad")
 test_network = co.data.load_human_promoter_base_GRN()
 test_perturbations = pd.DataFrame(
