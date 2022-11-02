@@ -51,86 +51,9 @@ class GRN:
             method (str, optional): How to extract features. Defaults to "tf_rna", which uses the mRNA level of the TF.
         """
         if method == "tf_rna":
-            self.features = self.train[:,self.tf_list].X.copy()
+            self.features = self.train[:,self.tf_list].X
         else:
             raise NotImplementedError("Only 'tf_rna' feature extraction is so far available.")
-
-    def get_regulators(self, network_prior: str, g: str, network_structure = None):
-        """_summary_
-
-        Args:
-            network_prior (str): see GRN.fit docs
-            g (str): target gene
-
-        Returns:
-            (list of str): candidate regulators currently included in the model for predicting g.
-        """
-        assert g in self.train.var_names, "This target is not in the training data!"
-        if network_prior == "ignore":
-            selected_features = self.tf_list.copy()
-        elif network_prior == "restrictive":
-            if network_structure is None:
-                network_structure = self.network
-            assert network_structure is not None, "For restrictive network priors, you must provide the network as a pandas dataframe."
-            selected_features = set(self.network.loc[self.network["target"]==g,"regulator"]).intersection(self.tf_list)
-        else:
-            raise ValueError("network_prior must be one of 'ignore' and 'restrictive'. ")
-
-        if not self.predict_self:
-            try:
-                selected_features.remove(g)
-            except (KeyError, ValueError) as e:
-                pass
-        if len(selected_features)==0:
-            return ["NO_REGULATORS"]
-        else:
-            return selected_features
-
-    def _apply_supervised_ml_one_gene(
-        self, 
-        FUN, 
-        network_prior: str,
-        target: str,
-        network_structure = None,
-        ):
-        """Apply a supervised ML method to predict target expression from TF activity (one target gene only).
-
-        Args:
-            FUN (Callable): See GRN.apply_supervised_ml docs.
-            network_prior (str): see GRN.fit docs.
-            target (str): target gene
-
-        Returns:
-            _type_: dict with cell types as keys and with values containing result of FUN. see GRN.fit docs.
-        """
-        if network_structure is None:
-            network_structure = self.network
-        if self.training_args["cell_type_sharing_strategy"] == "distinct":            
-            assert self.training_args["cell_type_labels"] in self.train.obs.columns, "cell_type_labels must name a column in .obs of training data."
-            assert pd.api.types.is_string_dtype(self.train.obs[self.training_args["cell_type_labels"]]), "cell_type_labels must name a string column in .obs of training data."
-        elif self.training_args["cell_type_sharing_strategy"] == "similar":
-            raise NotImplementedError("cell_type_sharing_strategy 'similar' is not implemented yet.")
-        elif self.training_args["cell_type_sharing_strategy"] == "identical":
-            assert self.training_args["cell_type_labels"] == "one_giant_cell_type"
-            assert all(self.train.obs.loc[:,self.training_args["cell_type_labels"]] == "all")
-        else:
-            raise ValueError("cell_type_sharing_strategy must be 'distinct' or 'identical' or 'similar'.")
-        
-        models = {}
-        for cell_type in self.train.obs[self.training_args["cell_type_labels"]].unique():
-            if "cell_type" in network_structure.keys():
-                cell_type_subnetwork = network_structure.loc[network_structure["cell_type"]==cell_type,:]
-            else:
-                cell_type_subnetwork = network_structure
-            rrrelevant_rrregulators = self.get_regulators(network_prior, target, cell_type_subnetwork)
-            is_in_model = [tf in rrrelevant_rrregulators for tf in self.tf_list]
-            is_in_cell_type = self.train.obs[self.training_args["cell_type_labels"]]==cell_type
-            if not any(is_in_model):
-                X = 1 + 0*self.features[:,[0]]
-            else:
-                X = self.features[:,is_in_model]
-            models[cell_type] = FUN(X = X[is_in_cell_type,:], y = self.train[is_in_cell_type,target].X)
-        return models
         
     def apply_supervised_ml(
         self, 
@@ -150,8 +73,15 @@ class GRN:
             raise NotImplementedError("lasso pruning not implemented yet.")
         elif pruning_strategy == "prune_and_refit":
             # Fit
-            self.models = Parallel(n_jobs=cpu_count()-1, verbose = verbose)(
-                delayed(self._apply_supervised_ml_one_gene)(  
+            self.models = Parallel(n_jobs=cpu_count()-1, verbose = verbose, prefer="threads")(
+                delayed(apply_supervised_ml_one_gene)(
+                    train_obs = self.train.obs,
+                    target_expr = self.train[:,g].X,
+                    features = self.features,
+                    network = self.network,
+                    training_args = self.training_args,
+                    tf_list = self.tf_list, 
+                    predict_self = self.predict_self, 
                     FUN=FUN, 
                     network_prior=network_prior,
                     target = g,
@@ -159,57 +89,76 @@ class GRN:
                 for g in self.train.var_names
             )
             # Prune
-            pruned_network = pd.concat(
-                [
-                    pd.concat(
-                        [
-                            pd.DataFrame(
+            chunks = []
+            for cell_type in self.train.obs[self.training_args["cell_type_labels"]].unique():
+                for i in range(len(self.train.var_names)):
+                    chunks.append(
+                        pd.DataFrame(
                                 {
-                                    "regulator": self.get_regulators(network_prior, self.train.var_names[i]), 
+                                    "regulator": list(get_regulators(
+                                            tf_list = self.tf_list, 
+                                            predict_self = self.predict_self, 
+                                            network_prior = network_prior,
+                                            g = self.train.var_names[i], 
+                                            network = self.network,
+                                         )), 
                                     "target": self.train.var_names[i], 
                                     "weight": self.models[i][cell_type].coef_.squeeze(),
                                     "cell_type": cell_type,
                                 } 
                             )
-                            for i in range(len(self.train.var_names)) 
-                        ], 
-                        axis = 0
-                    ) 
-                    for cell_type in self.train.obs[self.training_args["cell_type_labels"]]
-                ])
+                        )
+            pruned_network = pd.concat(chunks)
             pruned_network = pruned_network.query("regulator != 'NO_REGULATORS'")
             pruned_network.loc[:, "abs_weight"] = np.abs(pruned_network["weight"])
             pruned_network = pruned_network.groupby("cell_type")
             pruned_network = pruned_network.apply(lambda grp: grp.nlargest(pruning_parameter, "abs_weight"))
             # Refit
-            self.models = Parallel(n_jobs=cpu_count()-1, verbose = verbose)(
-                delayed(self._apply_supervised_ml_one_gene)(  
+            self.models = Parallel(n_jobs=cpu_count()-1, verbose = verbose, prefer="threads")(
+                delayed(apply_supervised_ml_one_gene)(  
+                    train_obs = self.train.obs,
+                    target_expr = self.train[:,g].X,
+                    features = self.features,
+                    network = pruned_network,
+                    training_args = self.training_args,
+                    tf_list = self.tf_list, 
+                    predict_self = self.predict_self, 
                     FUN=FUN, 
                     network_prior=network_prior,
                     target = g,
-                    network_structure = pruned_network,
                 )                
                 for g in self.train.var_names
             )
             
         elif pruning_strategy == "none":
-            # self.models = Parallel(n_jobs=cpu_count()-1, verbose = verbose)(
-            #     delayed(self._apply_supervised_ml_one_gene)(  
-            #         FUN=FUN, 
-            #         network_prior=network_prior,
-            #         target = g,
-            #     )                
-            #     for g in self.train.var_names
-            # )
-            # This can help with debugging -- better backtrace than you get with parallel code.
-            self.models = [
-                self._apply_supervised_ml_one_gene(    
+            self.models = Parallel(n_jobs=cpu_count()-1, verbose = verbose, prefer="threads")(
+                delayed(apply_supervised_ml_one_gene)(  
+                    train_obs = self.train.obs,
+                    target_expr = self.train[:,g].X,
+                    features = self.features,
+                    network = self.network,
+                    training_args = self.training_args,
+                    tf_list = self.tf_list, 
+                    predict_self = self.predict_self, 
                     FUN=FUN, 
                     network_prior=network_prior,
                     target = g,
-                 )
+                )                
                 for g in self.train.var_names
-            ]
+            )
+            # # This can help with debugging -- better backtrace than you get with parallel code.
+            # self.models = [
+            #   apply_supervised_ml_one_gene(    
+                    # train = self.train,
+                    # features = self.features,
+                    # network = self.network,
+                    # training_args = self.training_args,
+                    # FUN=FUN, 
+                    # network_prior=network_prior,
+                    # target = g,            
+            #      )
+            #     for g in self.train.var_names
+            # ]
         else:
             raise NotImplementedError("pruning_strategy should be one of 'none', 'lasso', 'prune_and_refit' ")
                 
@@ -217,7 +166,7 @@ class GRN:
     def fit(
         self,
         method: str, 
-        confounders: list, 
+        confounders: list = [], 
         cell_type_sharing_strategy: str = "distinct",   
         cell_type_labels: str = None,
         network_prior: str = "restrictive",    
@@ -230,8 +179,9 @@ class GRN:
         Args:
             method (str): Regression method to use. Defaults to "linear", which uses sklearn.linear_model.RidgeCV. Others not implemented yet. 
             confounders (list): Not implemented yet.
-            cell_type_sharing_strategy (str, optional): Not implemented yet. Defaults to "distinct".
-            cell_type_labels (str): Not implemented yet.
+            cell_type_sharing_strategy (str, optional): Whether to fit one model across all training data ('identical') 
+                or fit separate ones ('distinct'). Defaults to "distinct".
+            cell_type_labels (str): Name of column in self.train.obs to use for cell type labels.
             network_prior (str, optional): How to incorporate user-provided network structure. 
                 - "ignore": don't use it. 
                 - "restrictive" (default): allow only user-specified regulators for each target.
@@ -271,6 +221,7 @@ class GRN:
         self,
         perturbations,
         starting_states = None,
+        aggregation = "before",
     ):
         """Predict expression after new perturbations.
 
@@ -278,7 +229,23 @@ class GRN:
             perturbations (iterable of tuples): Iterable of tuples with gene and its expression after 
                 perturbation, e.g. {("POU5F1", 0.0), ("NANOG", 0.0)}.
             starting_states: indices of observations in self.train to use as initial conditions. Defaults to self.train.obs["is_control"].
+            aggregation: one of "before", "after", or "none". If there are multiple starting states
         """
+
+        if starting_states is None:
+            starting_states = self.train.obs["is_control"].copy()
+            
+        if aggregation == "before":
+            features          = self.features[starting_states,:].mean(axis=0, keepdims = True)
+            metadata_template = self.train[starting_states,:][0,:]
+        elif aggregation == "none":
+            features = self.features[starting_states,:]
+            metadata_template = self.train[starting_states,:]
+        elif aggregation == "after":
+            raise NotImplementedError("aggregation after simulation is not implemented yet, sorry.")
+        else:
+            raise ValueError("aggregation must be 'none', 'before', or 'after'.")
+
         def perturb_features(features, gene, expression_level_after_perturbation):
             features[:, self.tf_list == gene] = expression_level_after_perturbation
             return features
@@ -286,23 +253,32 @@ class GRN:
             adata.obs.loc[:,"perturbation"]                        = gene
             adata.obs.loc[:,"expression_level_after_perturbation"] = expression_level_after_perturbation
             return adata
-
-        if starting_states is None:
-            starting_states = self.train.obs["is_control"].copy()
-            
         features = np.concatenate([
-            perturb_features(self.features[starting_states,:].copy(), p[0], p[1])
+            perturb_features(features.copy(), p[0], p[1])
             for p in perturbations
         ])
         predictions = anndata.concat(
-            perturb_metadata(self.train[   starting_states,:].copy(), p[0], p[1])
-            for p in perturbations
+            keys = [
+                p[0] + "_" + str(p[1])
+                for p in perturbations
+            ],
+            adatas = [
+                perturb_metadata(metadata_template.copy(), p[0], p[1])
+                for p in perturbations
+            ], 
+            index_unique = "_",
         )
         for i in range(len(self.models)):
             g = self.train.var_names[i]
             for cell_type in      predictions.obs[self.training_args["cell_type_labels"]].unique():
                 is_in_cell_type = predictions.obs[self.training_args["cell_type_labels"]]==cell_type
-                regulators = self.get_regulators(self.training_args["network_prior"], g)
+                regulators = get_regulators(
+                    tf_list = self.tf_list, 
+                    predict_self = self.predict_self, 
+                    network_prior = self.training_args["network_prior"],
+                    g = g, 
+                    network = self.network,
+                )
                 is_in_model = [g in regulators for g in self.tf_list]
                 if not any(is_in_model):
                     X = 1 + 0*features[:,[0]]
@@ -313,3 +289,94 @@ class GRN:
                 Y = M.predict(X = X).squeeze()
                 predictions.X[is_in_cell_type, i] = Y
         return predictions
+
+
+def apply_supervised_ml_one_gene(
+    train_obs,
+    features,
+    network,
+    training_args, 
+    tf_list, 
+    predict_self, 
+    FUN, 
+    network_prior: str,
+    target: str,
+    target_expr
+    ):
+    """Apply a supervised ML method to predict target expression from TF activity (one target gene only).
+
+    Args:
+        train_obs: self.train.obs, but we avoid passing self because it would have to get serialized & sent to another process.
+        features: self.features, but we avoid passing self so that we can treat this as memory-mapped. 
+        network: self.network (usually), but we avoid passing self because it would have to get serialized & sent to another process.
+        training_args: self.training_args, but we avoid passing self because it would have to get serialized & sent to another process.
+        FUN (Callable): See GRN.apply_supervised_ml docs.
+        network_prior (str): see GRN.fit docs.
+        target (str): target gene symbol
+        target_expr: target gene expression levels
+
+    Returns:
+        _type_: dict with cell types as keys and with values containing result of FUN. see GRN.fit docs.
+    """
+    if training_args["cell_type_sharing_strategy"] == "distinct":            
+        assert training_args["cell_type_labels"] in train_obs.columns, "cell_type_labels must name a column in .obs of training data."
+        assert pd.api.types.is_string_dtype(train_obs[training_args["cell_type_labels"]]), "cell_type_labels must name a string column in .obs of training data."
+    elif training_args["cell_type_sharing_strategy"] == "similar":
+        raise NotImplementedError("cell_type_sharing_strategy 'similar' is not implemented yet.")
+    elif training_args["cell_type_sharing_strategy"] == "identical":
+        assert training_args["cell_type_labels"] == "one_giant_cell_type"
+        assert all(train_obs.loc[:,training_args["cell_type_labels"]] == "all")
+    else:
+        raise ValueError("cell_type_sharing_strategy must be 'distinct' or 'identical' or 'similar'.")
+    
+    models = {}
+    for cell_type in train_obs[training_args["cell_type_labels"]].unique():
+        if network is not None and "cell_type" in network.keys():
+            cell_type_subnetwork = network.loc[network["cell_type"]==cell_type,:]
+        else:
+            cell_type_subnetwork = network
+        rrrelevant_rrregulators = get_regulators(
+                                            tf_list       = tf_list, 
+                                            predict_self  = predict_self, 
+                                            network_prior = network_prior,
+                                            g             = target, 
+                                            network       = cell_type_subnetwork,
+            )
+        is_in_model = [tf in rrrelevant_rrregulators for tf in tf_list]
+        is_in_cell_type = train_obs[training_args["cell_type_labels"]]==cell_type
+        if not any(is_in_model):
+            X = np.ones(shape=features[:,[0]].shape)
+        else:
+            X = features[:,is_in_model]
+        models[cell_type] = FUN(X = X[is_in_cell_type,:], y = target_expr[is_in_cell_type])
+    return models
+
+def get_regulators(tf_list, predict_self, network_prior: str, g: str, network = None):
+    """_summary_
+
+    Args:
+        tf_list: list of all candidate regulators
+        predict_self: Should a candidate regulator be used to predict itself? 
+        network_prior (str): see GRN.fit docs
+        g (str): target gene
+
+    Returns:
+        (list of str): candidate regulators currently included in the model for predicting g.
+    """
+    if network_prior == "ignore":
+        selected_features = tf_list.copy()
+    elif network_prior == "restrictive":
+        assert network is not None, "For restrictive network priors, you must provide the network as a pandas dataframe."
+        selected_features = set(network.loc[network["target"]==g,"regulator"]).intersection(tf_list)
+    else:
+        raise ValueError("network_prior must be one of 'ignore' and 'restrictive'. ")
+
+    if not predict_self:
+        try:
+            selected_features.remove(g)
+        except (KeyError, ValueError) as e:
+            pass
+    if len(selected_features)==0:
+        return ["NO_REGULATORS"]
+    else:
+        return selected_features

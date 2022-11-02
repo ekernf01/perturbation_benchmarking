@@ -20,17 +20,28 @@ class TestModelInstantiation(unittest.TestCase):
         self.assertIsInstance(
             predict.GRN(train, network = network), predict.GRN
         )
+        self.assertIsInstance(
+            predict.GRN(train), predict.GRN
+        )
     def test_validate_input(self):
         self.assertTrue(
             predict.GRN(train, network = network).check_perturbation_dataset() 
+        )    
+        self.assertTrue(
+            predict.GRN(train).check_perturbation_dataset() 
         )    
     def test_extract_features(self):
         grn    = predict.GRN(train, network = network)
         self.assertIsNone(
             grn.extract_features(method = "tf_rna")
         )    
+        grn    = predict.GRN(train)
+        self.assertIsNone(
+            grn.extract_features(method = "tf_rna")
+        )    
+
     def test_simple_fit_and_predict(self):
-        grn    = predict.GRN(train[0:100, 0:100].copy(), network = network, validate_immediately=False)
+        grn    = predict.GRN(train[0:100, 0:100].copy(), validate_immediately=False)
         grn.extract_features(method = "tf_rna")
         self.assertIsNone(
             grn.fit(
