@@ -126,10 +126,9 @@ def evaluateOnePrediction(expression: anndata.AnnData, predictedExpression: annd
     "log fold change using Spearman correlation and (optionally) cell fate classification."""
     if not expression.X.shape == predictedExpression.X.shape:
         raise ValueError("expression and predictedExpression must have the same shape.")
-    if not all(expression.obs.index == predictedExpression.obs.index):
-        raise ValueError("expression and predictedExpression must have the same sample names.")
     if not expression.X.shape[1] == baseline.X.shape[1]:
         raise ValueError("expression and baseline must have the same number of genes.")
+    predictedExpression.obs_names = expression.obs_names
     baseline = baseline.X.mean(axis=0).squeeze()
     plots = {}
     metrics = pd.DataFrame(index = predictedExpression.obs.index, columns = ["spearman", "spearmanp", "cell_fate_correct"])
@@ -179,6 +178,21 @@ def countMatrixEdges(network):
 humanTFs = pd.read_csv("../accessory_data/humanTFs.csv")
 targetGenes = co.data.load_human_promoter_base_GRN()["gene_short_name"]
 
+def pivotNetworkWideToLong(network_wide: pd.DataFrame):
+    """Convert from CellOracle's preferred format to a triplet format
+
+    Args:
+        network_wide (pd.DataFrame): GRN structure in CellOracle's usual format
+    """
+    network_long = pd.concat([
+        pd.DataFrame({
+            "regulator": tf,
+            "target": network_wide.loc[network_wide[tf]==1, "gene_short_name"],
+            "weight": 1,
+        })
+        for tf in network_wide.columns[2:]
+    ])
+    return network_long
 
 def makeRandomNetwork(density = 0, seed = 0, TFs = humanTFs['HGNC symbol'], targetGenes = targetGenes ):
     """Generate a random network formatted the way that celloracle needs its input."""
@@ -248,6 +262,10 @@ parameters:
         trainingSetPerturbations = trainingSetPerturbations.union(swap)
     adata_train    = adata[adata.obs["perturbation"].isin(trainingSetPerturbations),:]
     adata_heldout  = adata[adata.obs["perturbation"].isin(testSetPerturbations),    :]
+    adata_train.uns[  "perturbed_and_measured_genes"] = adata_train.uns[  "perturbed_and_measured_genes"].intersection(trainingSetPerturbations)
+    adata_heldout.uns["perturbed_and_measured_genes"] = adata_heldout.uns["perturbed_and_measured_genes"].intersection(testSetPerturbations)
+    adata_train.uns[  "perturbed_but_not_measured_genes"] = adata_train.uns[  "perturbed_but_not_measured_genes"].intersection(trainingSetPerturbations)
+    adata_heldout.uns["perturbed_but_not_measured_genes"] = adata_heldout.uns["perturbed_but_not_measured_genes"].intersection(testSetPerturbations)
     print("Test set size:")
     print(len(testSetPerturbations))
     print("Training set size:")

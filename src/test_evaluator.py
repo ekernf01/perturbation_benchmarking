@@ -46,29 +46,26 @@ class TestNetworkHandling(unittest.TestCase):
         X = evaluator.makeNetworkDense(
             evaluator.makeRandomNetwork(density=1,  TFs=["AATF", "ALX3", "MYOD1"])
         )
-
-class TestModelTraining(unittest.TestCase):
-
-    def test_trainCausalModelAndPredict(self):
-        self.assertIsNotNone(
-            evaluator.trainCausalModelAndPredict(
-                test_expression, 
-                test_network, 
-                memoizationName = None,
-                perturbations = test_perturbations,
-                clusterColumnName = "fake_cluster"
+    
+    def test_pivotNetworkWideToLong(self):
+        tallified = evaluator.pivotNetworkWideToLong(
+                pd.DataFrame({
+                    "gene_short_name": ["a", "b", "c"],
+                    "peak": "blerghhh",
+                    "A": [1, 0, 0],
+                    "B": [1, 1, 0],
+                    "C": [1, 0, 1],
+                })
             )
+        tallified.index = range(5)
+        pd.testing.assert_frame_equal(
+            tallified,
+            pd.DataFrame({
+                "regulator": ['A', 'B', 'B', 'C', 'C'],
+                "target":    ['a', 'a', 'b', 'a', 'c'],
+                "weight": 1,
+            })
         )
-    def test_sparseBaseNetwork(self):
-        self.assertIsNotNone(
-            evaluator.trainCausalModelAndPredict(
-                test_expression, 
-                evaluator.makeRandomNetwork(density=1, TFs=["AATF", "ALX3", "MYOD1"]), 
-                memoizationName = None,
-                perturbations = test_perturbations,
-                clusterColumnName = "fake_cluster"
-            )
-        )            
 
 class TestEvaluation(unittest.TestCase):
 
