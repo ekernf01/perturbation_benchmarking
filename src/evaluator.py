@@ -234,16 +234,16 @@ def makeNetworkDense(X):
 def splitData(adata, allowedRegulators, minTestSetSize = 250):
     """Determine a train-test split satisfying constraints imposed by base networks and available data.
     
-A few factors complicate the training-test split. 
+    A few factors complicate the training-test split. 
 
-- Perturbed genes may be absent from most base GRN's due to lack of motif information or ChIP data. These are excluded from the test data to avoid obvious failure cases.
-- Perturbed genes may not be measured. These are excluded from test data because we don't know to what extent they were overexpressed.
+    - Perturbed genes may be absent from most base GRN's due to lack of motif information or ChIP data. These are excluded from the test data to avoid obvious failure cases.
+    - Perturbed genes may not be measured. These are excluded from test data because we don't know to what extent they were overexpressed.
 
-In both cases, we still use those perturbed profiles as training data, hoping they will provide useful info about attainable cell states and downstream causal effects. 
+    In both cases, we still use those perturbed profiles as training data, hoping they will provide useful info about attainable cell states and downstream causal effects. 
 
-For some collections of base networks, there are many factors ineligible for use as test data -- so many that we use all the eligible ones for test and the only ineligible ones for training. For other cases, such as dense base networks, we have more flexibility, so we send some perturbations to the training set at random even if we would be able to use them in the test set.
+    For some collections of base networks, there are many factors ineligible for use as test data -- so many that we use all the eligible ones for test and the only ineligible ones for training. For other cases, such as dense base networks, we have more flexibility, so we send some perturbations to the training set at random even if we would be able to use them in the test set.
 
-parameters:
+    parameters:
     - adata: AnnData object satisfying the expectations outlined in the accompanying collection of perturbation data.
     - allowedRegulators: list or set of features allowed to be in the test set. In CellOracle, this is usually constrained by motif/chip availability. 
 
@@ -260,6 +260,8 @@ parameters:
                                                replace = False)
         testSetPerturbations = testSetPerturbations.difference(swap)
         trainingSetPerturbations = trainingSetPerturbations.union(swap)
+    adata.uns[  "perturbed_and_measured_genes"]     = set(adata.uns[  "perturbed_and_measured_genes"])
+    adata.uns[  "perturbed_but_not_measured_genes"] = set(adata.uns[  "perturbed_but_not_measured_genes"])
     adata_train    = adata[adata.obs["perturbation"].isin(trainingSetPerturbations),:]
     adata_heldout  = adata[adata.obs["perturbation"].isin(testSetPerturbations),    :]
     adata_train.uns[  "perturbed_and_measured_genes"] = adata_train.uns[  "perturbed_and_measured_genes"].intersection(trainingSetPerturbations)
