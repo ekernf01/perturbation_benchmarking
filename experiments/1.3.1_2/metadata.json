@@ -6,7 +6,6 @@
     "is_active": false,
     "perturbation_dataset": "cmap",
     "network_datasets": {
-        "dense":{}, 
         "celloracle_human":{}
     }
 }

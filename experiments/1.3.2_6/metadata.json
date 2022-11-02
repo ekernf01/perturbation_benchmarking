@@ -5,8 +5,8 @@
     "refers_to": "1.3.2_1",
     "is_active": true,
     "perturbation_dataset": "replogle",
+    "default_level": "chronic_myelogenous_leukemia_cml_cell_line.parquet",
     "network_datasets": {
-        "dense": {},
         "magnum_compendium_394": {
             "subnets": [
                 "retinal_pigment_epithelial_cells.parquet",

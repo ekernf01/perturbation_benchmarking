@@ -8,7 +8,7 @@
     "default_level": null,
     "perturbation_dataset": "nakatake",
     "network_datasets": {
-        "dense": {},
+        "celloracle_human": {},
         "magnum_compendium_394": {
             "subnets": [
                 "retinal_pigment_epithelial_cells.parquet",

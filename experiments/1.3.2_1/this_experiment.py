@@ -3,6 +3,7 @@ import pandas as pd
 import sys
 import os
 import evaluator
+import predict
 
 def run(train_data, test_data, perturbationsToPredict, networks, outputs):
   """Prediction code specific to this experiment.
@@ -22,26 +23,26 @@ def run(train_data, test_data, perturbationsToPredict, networks, outputs):
   network_sizes = pd.DataFrame({bn:evaluator.countMatrixEdges(networks[bn]) for bn in networks}, index = ["numEdges"])
   network_sizes = network_sizes.T.reset_index().rename({"index":"network"}, axis = 1)
 
-  experiments = pd.DataFrame({"network":[n for n in networks.keys()], 
-                              "p":[1]*n_networks,
-                              "threshold_number":[int(network_sizes['numEdges'].max())]*n_networks,
-                              "pruning":["none"]*n_networks})
-  experiments["index"] = experiments.index
-  experiments.to_csv(outputs + "/networkExperiments.csv")
+  experiments = pd.DataFrame({"network":[n for n in networks.keys()]})
 
-  predictions = {
-    i: evaluator.trainCausalModelAndPredict(expression=train_data,
-                                  baseNetwork=networks[experiments.loc[i,'network']],
-                                  memoizationName=outputs + "/" + str(i) + ".celloracle.oracle", 
-                                  perturbations=perturbationsToPredict,
-                                  clusterColumnName = "fake_cluster",
-                                  pruningParameters = {"p":experiments.loc[i,'p'], 
-                                                       "threshold_number":experiments.loc[i,'threshold_number']}) 
-    for i in experiments.index
-}
+  predictions = {}
+  for i in experiments.index:
+    grn = predict.GRN(train=train_data, network=networks[experiments.loc[i,'network']])
+    grn.extract_features(method = "tf_rna")
+    grn.fit(
+        method = "linear", 
+        cell_type_labels = None,
+        cell_type_sharing_strategy = "identical",
+        network_prior = "restrictive",
+        pruning_strategy = "none", 
+        pruning_parameter = None,
+        projection = "none", 
+    )
+    predictions[i] = grn.predict(perturbationsToPredict)   
 
   other = None
   return experiments, predictions, other
+
 
 
 def plot(evaluationResults, output):

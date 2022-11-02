@@ -4,6 +4,7 @@ import sys
 import os
 import numpy as np
 import evaluator
+import predict
 
 def run(train_data, test_data, perturbationsToPredict, networks, outputs):
   """Prediction code specific to this experiment.
@@ -18,32 +19,29 @@ def run(train_data, test_data, perturbationsToPredict, networks, outputs):
         Each value is an AnnData object, and its .obs must have the same index, "perturbation", and "expression_level_after_perturbation" as test_data.
     - other: can be anything
   """
-  network_sizes = pd.DataFrame({bn:evaluator.countMatrixEdges(networks[bn]) for bn in networks}, index = ["numEdges"])
-  network_sizes = network_sizes.T.reset_index().rename({"index":"network"}, axis = 1)
-
-  threshold_number = [int(f) for f in np.logspace(np.log10(20000), np.log10(network_sizes['numEdges'].max()), 10)]
-  n_pruning = len(threshold_number)
-  experiments = pd.DataFrame({"threshold_number":threshold_number,
-                              "network":["dense"]*n_pruning, 
-                              "p":[1]*n_pruning,
-                              "pruning":["none"]*n_pruning})
-
+  grn = predict.GRN(train=train_data)
+  grn.extract_features(method = "tf_rna")
+  print(len(train_data.var_names))
+  print(len(grn.tf_list))
+  size_of_dense_network = len(train_data.var_names)*len(grn.tf_list)
+  threshold_number = [int(f) for f in np.logspace(np.log10(20000), np.log10(size_of_dense_network), 10)]
+  experiments = pd.DataFrame({"threshold_number":threshold_number})
   experiments["log10_n_edges"] = round(np.log10(experiments["threshold_number"]), 2)
   experiments.to_csv(os.path.join(outputs, "networkExperiments.csv"))
-  predictions = {
-      i: evaluator.trainCausalModelAndPredict(
-        expression=train_data,
-        baseNetwork=networks[experiments.loc[i,'network']],
-        memoizationName=os.path.join(outputs, str(i) + ".celloracle.oracle"), 
-        perturbations=perturbationsToPredict,
-        clusterColumnName = "fake_cluster",
-        pruningParameters = {
-          "p":experiments.loc[i,'p'], 
-          "threshold_number":experiments.loc[i,'threshold_number']
-          }
-        ) 
-      for i in experiments.index
-  }
+
+  predictions = {}
+  for i in experiments.index:
+    grn.fit(
+        method = "linear", 
+        cell_type_labels = None,
+        cell_type_sharing_strategy = "identical",
+        network_prior = "ignore",
+        pruning_strategy = "prune_and_refit", 
+        pruning_parameter = experiments.loc[i,'threshold_number'],
+        projection = "none", 
+    )
+    predictions[i] = grn.predict(perturbationsToPredict)   
+
   other = None
   return experiments, predictions, other
 

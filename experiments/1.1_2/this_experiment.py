@@ -7,6 +7,7 @@ import numpy as np
 import anndata
 #sys.path.append(os.path.expanduser(os.path.join(PROJECT_PATH, 'benchmarking', 'src'))) 
 import evaluator
+import predict 
 
 def run(train_data, test_data, perturbationsToPredict, networks, outputs):
   """Prediction code specific to this experiment.
@@ -22,34 +23,34 @@ def run(train_data, test_data, perturbationsToPredict, networks, outputs):
         Each value is an AnnData object, and its .obs must have the same index, "perturbation", and "expression_level_after_perturbation" as test_data.
     - other: can be anything
   """
-  n_networks = len(networks)
-  network_sizes = pd.DataFrame({bn:evaluator.countMatrixEdges(networks[bn]) for bn in networks}, index = ["numEdges"])
-  network_sizes = network_sizes.T.reset_index().rename({"index":"network"}, axis = 1)
   downSampleFactors = [i/10.0 for i in range(3,11,2)]
-  
-  # Train on more or fewer data
-  n_sizes = len(downSampleFactors)
-  experiments = pd.DataFrame({"network":[n for n in networks.keys()]*n_sizes, 
-                            "training_set_size":downSampleFactors*n_networks,
-                            "p":[1]*n_networks*n_sizes,
-                            "threshold_number":[int(network_sizes['numEdges'].max())]*n_networks*n_sizes,
-                            "pruning":["none"]*n_networks*n_sizes})
-  predictions = {
-    i: evaluator.trainCausalModelAndPredict(
-      expression=evaluator.downsample(train_data, experiments.loc[i, "training_set_size"]),
-      baseNetwork=networks[experiments.loc[i,'network']],
-      memoizationName=outputs + "/" + str(i) + ".celloracle.oracle", 
-      perturbations=perturbationsToPredict,
-      clusterColumnName = "fake_cluster",
-      pruningParameters = {
-          "p":experiments.loc[i,'p'], 
-          "threshold_number":experiments.loc[i,'threshold_number']
-        }
-      ) 
-    for i in experiments.index
-  }
+  experiments = pd.DataFrame(
+    {
+      "network":      ([n             for n in networks.keys()] + [list(networks.keys())[0]])*len(downSampleFactors),
+      "network_prior":(["restrictive" for _ in networks.keys()] + ["ignore"]                )*len(downSampleFactors),
+      "training_set_size":[f for f in downSampleFactors for _ in range(len(networks.keys()) + 1) ]
+    }
+  )
+  predictions = {}
+  for i in experiments.index:
+    grn = predict.GRN(
+      train=evaluator.downsample(train_data, experiments.loc[i, "training_set_size"]), 
+      network=networks[experiments.loc[i,'network']]
+    )
+    grn.extract_features(method = "tf_rna")
+    grn.fit(
+        method = "linear", 
+        cell_type_labels = None,
+        cell_type_sharing_strategy = "identical",
+        network_prior = experiments.loc[i, "network_prior"],
+        pruning_strategy = "none", 
+        projection = "none", 
+    )
+    predictions[i] = grn.predict(perturbationsToPredict)   
+
   other = None
   return experiments, predictions, other
+
 
 
 def plot(evaluationResults, output):

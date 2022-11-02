@@ -3,6 +3,7 @@ import pandas as pd
 import scanpy as sc
 import os
 import sys
+import predict
 import evaluator
 
 def run(train_data, test_data, perturbationsToPredict, networks, outputs):
@@ -19,9 +20,6 @@ def run(train_data, test_data, perturbationsToPredict, networks, outputs):
         Each value is an AnnData object, and its .obs must have the same index, "perturbation", and "expression_level_after_perturbation" as test_data.
     - other: can be anything
   """
-  n_networks = len(networks)
-  network_sizes = pd.DataFrame({bn:evaluator.countMatrixEdges(networks[bn]) for bn in networks}, index = ["numEdges"])
-  network_sizes = network_sizes.T.reset_index().rename({"index":"network"}, axis = 1)
   # Redo clustering at different resolutions
   clusterResolutions = []
   num_clusters = []
@@ -36,22 +34,29 @@ def run(train_data, test_data, perturbationsToPredict, networks, outputs):
     train_data.uns[new_name + "_colors"] = train_data.uns["leiden_colors"]
   n_resolutions = len(clusterResolutions)
   # Train on coarser or finer clusters
-  experiments = pd.DataFrame({"network":[n for n in networks.keys()]*n_resolutions, 
-                            "cluster_resolution":clusterResolutions*n_networks,
-                            "num_clusters":num_clusters*n_networks,
-                            "p":[1]*n_networks*n_resolutions,
-                            "threshold_number":[int(network_sizes['numEdges'].max())]*n_networks*n_resolutions,
-                            "pruning":["none"]*n_networks*n_resolutions})
-  predictions = {
-    i: evaluator.trainCausalModelAndPredict(expression=train_data,
-                                  baseNetwork=networks[experiments.loc[i,'network']],
-                                  memoizationName=outputs + "/" + str(i) + ".celloracle.oracle", 
-                                  perturbations=perturbationsToPredict,
-                                  clusterColumnName = experiments.loc[i, "cluster_resolution"],
-                                  pruningParameters = {"p":experiments.loc[i,'p'], 
-                                                        "threshold_number":experiments.loc[i,'threshold_number']}) 
-    for i in experiments.index
-  }
+
+  experiments = pd.DataFrame(
+    {
+      "network":      ([n             for n in networks.keys()] + [list(networks.keys())[0]])*len(clusterResolutions),
+      "network_prior":(["restrictive" for _ in networks.keys()] + ["ignore"]                )*len(clusterResolutions),
+      "cluster_resolution":[f for f in clusterResolutions for _ in range(len(networks.keys()) + 1) ],
+      "num_clusters":      [f for f in num_clusters       for _ in range(len(networks.keys()) + 1) ]
+    }
+  )
+  predictions = {}
+  for i in experiments.index:
+    grn = predict.GRN(train=train_data, network=networks[experiments.loc[i,'network']])
+    grn.extract_features(method = "tf_rna")
+    grn.fit(
+        method = "linear", 
+        cell_type_labels = experiments.loc[i, "cluster_resolution"],
+        cell_type_sharing_strategy = "distinct",
+        network_prior = experiments.loc[i,'network_prior'],
+        pruning_strategy = "none", 
+        projection = "none", 
+    )
+    predictions[i] = grn.predict(perturbationsToPredict)   
+
   other = None
   return experiments, predictions, other
 

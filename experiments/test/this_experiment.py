@@ -4,6 +4,7 @@ import sys
 import os
 import numpy as np
 import evaluator
+import predict
 
 def run(train_data, test_data, perturbationsToPredict, networks, outputs):
   """Prediction code specific to this experiment.
@@ -30,22 +31,27 @@ def run(train_data, test_data, perturbationsToPredict, networks, outputs):
 
   experiments["log10_n_edges"] = round(np.log10(experiments["threshold_number"]), 2)
   experiments.to_csv(os.path.join(outputs, "networkExperiments.csv"))
-  predictions = {
-      i: evaluator.trainCausalModelAndPredict(
-        expression=train_data,
-        baseNetwork=networks[experiments.loc[i,'network']],
-        memoizationName=os.path.join(outputs, str(i) + ".celloracle.oracle"), 
-        perturbations=perturbationsToPredict,
-        clusterColumnName = "fake_cluster",
-        pruningParameters = {
-          "p":experiments.loc[i,'p'], 
-          "threshold_number":experiments.loc[i,'threshold_number']
-          }
-        ) 
-      for i in experiments.index
-  }
+  predictions = {}
+  for i in experiments.index:
+    grn = predict.GRN(
+      train=train_data, 
+      network=networks[experiments.loc[i,'network']]
+    )
+    grn.extract_features(method = "tf_rna")
+    grn.fit(
+        method = "linear", 
+        cell_type_labels = None,
+        cell_type_sharing_strategy = "identical",
+        network_prior = "restrictive",
+        pruning_strategy = "prune_and_refit", 
+        pruning_parameter = experiments.loc[i,'threshold_number'],
+        projection = "none", 
+    )
+    predictions[i] = grn.predict(perturbationsToPredict)   
+
   other = None
   return experiments, predictions, other
+
 
 
 def plot(evaluationResults, output):

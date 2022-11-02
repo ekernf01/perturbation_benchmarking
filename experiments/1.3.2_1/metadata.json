@@ -5,10 +5,9 @@
     "question": "1.3.2",
     "is_active": true,
     "factor_varied": "network",
-    "default_level": "dense",
+    "default_level": "hIPS.parquet",
     "perturbation_dataset": "nakatake",
     "network_datasets": {
-        "dense":{},
         "ANANSE_0.5":{}
     }
 }
