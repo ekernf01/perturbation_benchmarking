@@ -6,3 +6,6 @@ err.txt
 out.txt
 start_time.txt
 finish_time.txt
+*__pycache__*
+*.pyc
+old_experiments/*
