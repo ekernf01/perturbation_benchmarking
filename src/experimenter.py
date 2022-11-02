@@ -1,3 +1,4 @@
+
 import os
 import re
 import matplotlib.colors as colors
@@ -41,7 +42,7 @@ if args.experiment_name is None:
 
 # Deal with various file paths specific to this project
 PROJECT_PATH = '/home/ekernf01/Desktop/jhu/research/projects/perturbation_prediction/cell_type_knowledge_transfer/'
-os.chdir(PROJECT_PATH + "benchmarking")
+os.chdir(PROJECT_PATH + "perturbation_benchmarking")
 import importlib
 import sys
 sys.path.append(os.path.expanduser(os.path.join(PROJECT_PATH, 'network_collection', 'load_networks'))) 
@@ -55,6 +56,7 @@ importlib.reload(load_networks)
 importlib.reload(load_perturbations)
 os.environ["GRN_PATH"]           = PROJECT_PATH + "network_collection/networks"
 os.environ["PERTURBATION_PATH"]  = PROJECT_PATH + "perturbation_data/perturbations"
+outputs = os.path.join("experiments", args.experiment_name, "outputs")
 
 # Parse experiment metadata
 def validate_metadata():
@@ -62,7 +64,6 @@ def validate_metadata():
         metadata = json.load(f)
     if not metadata["is_active"]:
         raise ValueError("This experiment is marked as inactive. If you really want to run it, edit its metadata.json.")
-    outputs = os.path.join("experiments", args.experiment_name, "outputs")
     print("\n\n Running experiment " + args.experiment_name + ":\n")
     print(yaml.dump(metadata))
 
@@ -128,16 +129,16 @@ def get_subnets(netName:str, subnets:list, test_mode: bool = args.test_mode) -> 
     print("Getting network '" + netName + "'")
     gc.collect()
     if "random" in netName:
-        return {"": evaluator.makeRandomNetwork(density = float(netName[6:])) }
+        return { "": evaluator.pivotNetworkWideToLong( evaluator.makeRandomNetwork( density = float( netName[6:] ) ) ) }
     elif "dense" in netName:
-        return {"": evaluator.makeRandomNetwork(density = 1.0)}
+        return { "": evaluator.pivotNetworkWideToLong( evaluator.makeRandomNetwork( density = 1.0 ) ) }
     else:
         if subnets[0]=="all":
             subnets = load_networks.list_subnetworks(netName)
         if test_mode:
             subnets = subnets[0:1]
         return {
-            subnet: evaluator.networkEdgesToMatrix(load_networks.load_grn_by_subnetwork(netName, subnet))
+            subnet: load_networks.load_grn_by_subnetwork(netName, subnet)
             for subnet in subnets
         }
 
@@ -147,7 +148,7 @@ if args.amount_to_do in {"models", "evaluations"}:
     for netName in metadata["network_datasets"].keys():
         all_subnets = get_subnets(netName, subnets = metadata["network_datasets"][netName]["subnets"] )
         if metadata["network_datasets"][netName]["do_aggregate_subnets"]:
-            raise NotImplementedError("Sorry, still haven't found the code to union network edge sets. Set do_aggregate_subnets to false.")
+            raise NotImplementedError("Sorry, still haven't implemented unions of network edge sets. For now, set do_aggregate_subnets to False.")
         else:
             for subnet_name in all_subnets.keys():
                 new_key = netName + " " + subnet_name if not subnet_name == "" else netName 
@@ -158,19 +159,27 @@ if args.amount_to_do in {"models", "evaluations"}:
     perturbed_expression_data = load_perturbations.load_perturbation(metadata["perturbation_dataset"])
     if args.test_mode:
         perturbed_expression_data = evaluator.downsample(perturbed_expression_data, proportion = 0.2, proportion_genes = 0.01)
-    allowedRegulators = set.union(*[set(networks[key].columns) for key in networks])
+    if any(networks):
+        allowedRegulators = set.union(*[set(networks[key]["regulator"]) for key in networks])
+    else:
+        allowedRegulators = perturbed_expression_data.var_names
     perturbed_expression_data_train, perturbed_expression_data_heldout = \
         evaluator.splitData(perturbed_expression_data, allowedRegulators, minTestSetSize=5 if args.test_mode else 250)
 
     # Experiment-specific code goes elsewhere
     print("Running experiment")
+    pp = [
+            (r[1][0], r[1][1]) 
+            for r in perturbed_expression_data_heldout.obs[["perturbation", "expression_level_after_perturbation"]].iterrows()
+        ]
     experiments, predictions, other = this_experiment.run(
         train_data = perturbed_expression_data_train, 
         test_data  = perturbed_expression_data_heldout,
-        perturbationsToPredict = perturbed_expression_data_heldout.obs[["perturbation", "expression_level_after_perturbation"]],
+        perturbationsToPredict = pp,
         networks = networks, 
         outputs = outputs
-    )    
+    )      
+    experiments.to_csv( os.path.join(outputs, "experiments.csv") )
     print("Evaluating predictions.")
     evaluationResults, stripchartMainFig, meanSEPlot = evaluator.evaluateCausalModel(
         heldout = perturbed_expression_data_heldout, 
@@ -183,7 +192,6 @@ if args.amount_to_do in {"models", "evaluations"}:
         classifier = None
     )
     evaluationResults.to_parquet(          os.path.join(outputs, "networksExperimentEvaluation.parquet"))
-    experiments.to_csv(                    os.path.join(outputs, "experiments.csv"))
 
 if args.amount_to_do in {"plots", "models", "evaluations"}:
     evaluationResults = pd.read_parquet(os.path.join(outputs, "networksExperimentEvaluation.parquet"))
