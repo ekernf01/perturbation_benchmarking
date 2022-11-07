@@ -8,3 +8,5 @@ conda install -c conda-forge leidenalg=0.8.10
 pip3 install git+https://github.com/morris-lab/CellOracle.git
 conda install scanpy
 conda install dask
+conda install -c conda-forge altair vega_datasets
+
