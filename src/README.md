@@ -1,4 +1,4 @@
-## INSERT_NAME: Modular and customizable regulatory network inference software
+## Modular and customizable regulatory network inference software
 
 This software allows flexible combination of numerous individual components that are common in GRN inference:
 
@@ -8,29 +8,6 @@ This software allows flexible combination of numerous individual components that
 - Feature construction using motif analysis or predetermined targets to measure TF activity as opposed to expression
 
 It is a work in progress.
-
-#### TODO / Planned development
-
-The intial sprint aims to mimic some capabilities of CellOracle: specifically, cell-type-specific ridge regression with user-defined sparsity patterns and simple pruning of smaller coefficients.
-
-Software/QoL:
-
-- unit test for correctness, not just that each thing runs
-- `save` & `load` methods
-- deal with dangling "ppi" arg
-- make it [conda installable](https://docs.conda.io/projects/conda-build/en/latest/user-guide/tutorials/build-pkgs.html)
-- Is everything in the right place? Consider `predict/py`, `evaluator.py`, `experimenter.py`, the networks collection, and the perturbations collection; some functions perhaps are in one that belong in another. 
-
-Features to be added: 
-
-- Include predicting the mean of the training data as a baseline.
-- Simulate data from a trained model
-- Control for confounders (e.g. batch, donor)
-- various ways of handling low-rank structure
-- various ways of handling cell type specificity
-- various ways of handling prior information
-- alternate feature construction and TF dimerization
-
 
 ### How to use it
 
