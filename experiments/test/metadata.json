@@ -5,7 +5,8 @@
     "question": "1.1",
     "is_active": true,
     "factor_varied": "log10_n_edges",
-    "default_level": null,
+    "color_by": null,
+    "facet_by": null,
     "perturbation_dataset": "nakatake",
     "network_datasets": {
         "celloracle_human": {},

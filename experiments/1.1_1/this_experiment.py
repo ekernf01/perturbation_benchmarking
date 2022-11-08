@@ -2,9 +2,12 @@ import seaborn as sns
 import pandas as pd
 import sys
 import os
+import gc
 import numpy as np
 import evaluator
+import scanpy as sc
 import predict
+import psutil
 
 def run(train_data, test_data, perturbationsToPredict, networks, outputs):
   """Prediction code specific to this experiment.
@@ -20,9 +23,6 @@ def run(train_data, test_data, perturbationsToPredict, networks, outputs):
     - other: can be anything
   """
   grn = predict.GRN(train=train_data)
-  grn.extract_features(method = "tf_rna")
-  print(len(train_data.var_names))
-  print(len(grn.tf_list))
   size_of_dense_network = len(train_data.var_names)*len(grn.tf_list)
   threshold_number = [int(f) for f in np.logspace(np.log10(20000), np.log10(size_of_dense_network), 10)]
   experiments = pd.DataFrame({"threshold_number":threshold_number})
@@ -30,7 +30,11 @@ def run(train_data, test_data, perturbationsToPredict, networks, outputs):
   experiments.to_csv(os.path.join(outputs, "networkExperiments.csv"))
 
   predictions = {}
-  for i in experiments.index:
+  for i in experiments.index:  
+    print("Running setting " + str(i))
+    sys.stdout.flush()
+    grn = predict.GRN(train=train_data)
+    grn.extract_features(method = "tf_rna")
     grn.fit(
         method = "linear", 
         cell_type_labels = None,
@@ -40,8 +44,12 @@ def run(train_data, test_data, perturbationsToPredict, networks, outputs):
         pruning_parameter = experiments.loc[i,'threshold_number'],
         projection = "none", 
     )
-    predictions[i] = grn.predict(perturbationsToPredict)   
-
+    predictions[i] = grn.predict(perturbationsToPredict) 
+    print("Trying to deallocate memory.")
+    print(psutil.Process().memory_info().rss)
+    del grn
+    print(gc.collect())
+    print(psutil.Process().memory_info().rss)
   other = None
   return experiments, predictions, other
 

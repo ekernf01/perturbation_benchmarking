@@ -5,7 +5,8 @@
     "question": "1.4",
     "is_active": false,
     "factor_varied": "network",
-    "default_level": "dense",
+    "color_by": null,
+    "facet_by": null,
     "perturbation_dataset": "nakatake",
     "network_datasets": {
         "dense":                 { "do_aggregate_subnets": true }, 

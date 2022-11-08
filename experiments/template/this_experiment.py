@@ -1,8 +1,11 @@
+
+import gc
 import seaborn as sns
 import pandas as pd
 import sys
 sys.path.append(os.path.expanduser(os.path.join(PROJECT_PATH, 'benchmarking', 'src'))) 
 import evaluator
+import scanpy as sc
 
 def run(train_data, test_data, perturbationsToPredict, networks, outputs):
   """Prediction code specific to this experiment.
@@ -18,7 +21,10 @@ def run(train_data, test_data, perturbationsToPredict, networks, outputs):
         Each value is an AnnData object, and its .obs must have the same index, "perturbation", and "expression_level_after_perturbation" as test_data.
     - other: can be anything
   """
-
+  for i in ...
+    grn = ???
+    del grn
+  gc.collect()
   return experiments, predictions, other
 
 

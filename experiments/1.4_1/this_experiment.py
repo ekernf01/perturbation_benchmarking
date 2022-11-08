@@ -1,7 +1,9 @@
+import gc
 import seaborn as sns
 import pandas as pd
 import os
 import sys
+import scanpy as sc
 # PROJECT_PATH = '/home/ekernf01/Desktop/jhu/research/projects/perturbation_prediction/cell_type_knowledge_transfer/'
 # sys.path.append(os.path.expanduser(os.path.join(PROJECT_PATH, 'benchmarking', 'src'))) 
 import evaluator
@@ -43,8 +45,9 @@ def run(train_data, test_data, perturbationsToPredict, networks, outputs):
         pruning_parameter = None,
         projection = "none", 
     )
-    predictions[i] = grn.predict(perturbationsToPredict)   
-
+    predictions[i] = grn.predict(perturbationsToPredict) 
+    del grn
+    gc.collect()
   other = None
   return experiments, predictions, other
 

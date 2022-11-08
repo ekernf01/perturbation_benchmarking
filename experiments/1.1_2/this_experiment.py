@@ -3,7 +3,9 @@ import seaborn as sns
 import pandas as pd
 import sys
 import os
+import gc
 import numpy as np
+import scanpy as sc
 import anndata
 #sys.path.append(os.path.expanduser(os.path.join(PROJECT_PATH, 'benchmarking', 'src'))) 
 import evaluator
@@ -31,10 +33,15 @@ def run(train_data, test_data, perturbationsToPredict, networks, outputs):
       "training_set_size":[f for f in downSampleFactors for _ in range(len(networks.keys()) + 1) ]
     }
   )
+  experiments = experiments.merge(pd.DataFrame({"seed":range(3)}), how='cross')
   predictions = {}
   for i in experiments.index:
     grn = predict.GRN(
-      train=evaluator.downsample(train_data, experiments.loc[i, "training_set_size"]), 
+      train=evaluator.downsample(
+          train_data,
+          experiments.loc[i, "training_set_size"], 
+          seed=experiments.loc[i, "seed"], 
+        ), 
       network=networks[experiments.loc[i,'network']]
     )
     grn.extract_features(method = "tf_rna")
@@ -46,8 +53,9 @@ def run(train_data, test_data, perturbationsToPredict, networks, outputs):
         pruning_strategy = "none", 
         projection = "none", 
     )
-    predictions[i] = grn.predict(perturbationsToPredict)   
-
+    predictions[i] = grn.predict(perturbationsToPredict)  
+    del grn
+    gc.collect()
   other = None
   return experiments, predictions, other
 

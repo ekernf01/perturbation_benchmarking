@@ -5,6 +5,8 @@ import os
 import sys
 import predict
 import evaluator
+import gc
+import scanpy as sc
 
 def run(train_data, test_data, perturbationsToPredict, networks, outputs):
   """Prediction code specific to this experiment.
@@ -56,7 +58,8 @@ def run(train_data, test_data, perturbationsToPredict, networks, outputs):
         projection = "none", 
     )
     predictions[i] = grn.predict(perturbationsToPredict)   
-
+    del grn
+    gc.collect()
   other = None
   return experiments, predictions, other
 

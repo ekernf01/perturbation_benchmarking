@@ -4,8 +4,9 @@
     "readme": "This experiment ???? ",
     "question": "????",
     "is_active": false,
-    "factor_varied": "????",
-    "default_level": "????",
+    "factor_varied": "????",    
+    "color_by": null,
+    "facet_by": "????",
     "perturbation_dataset": "nakatake",
     "network_datasets": {
         "dense": {},

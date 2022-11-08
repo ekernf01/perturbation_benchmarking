@@ -2,8 +2,10 @@ import seaborn as sns
 import pandas as pd
 import sys
 import os
+import gc
 import evaluator
 import predict
+import scanpy as sc
 
 def run(train_data, test_data, perturbationsToPredict, networks, outputs):
   """Prediction code specific to this experiment.
@@ -19,9 +21,6 @@ def run(train_data, test_data, perturbationsToPredict, networks, outputs):
         Each value is an AnnData object, and its .obs must have the same index, "perturbation", and "expression_level_after_perturbation" as test_data.
     - other: can be anything
   """
-  n_networks = len(networks.keys())
-  network_sizes = pd.DataFrame({bn:evaluator.countMatrixEdges(networks[bn]) for bn in networks}, index = ["numEdges"])
-  network_sizes = network_sizes.T.reset_index().rename({"index":"network"}, axis = 1)
 
   experiments = pd.DataFrame({"network":[n for n in networks.keys()]})
 
@@ -39,7 +38,8 @@ def run(train_data, test_data, perturbationsToPredict, networks, outputs):
         projection = "none", 
     )
     predictions[i] = grn.predict(perturbationsToPredict)   
-
+    del grn
+    gc.collect()
   other = None
   return experiments, predictions, other
 

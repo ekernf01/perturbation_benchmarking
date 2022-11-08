@@ -2,9 +2,12 @@ import seaborn as sns
 import pandas as pd
 import sys
 import os
+import gc
 import numpy as np
 import evaluator
 import predict
+import scanpy as sc
+import psutil 
 
 def run(train_data, test_data, perturbationsToPredict, networks, outputs):
   """Prediction code specific to this experiment.
@@ -25,7 +28,7 @@ def run(train_data, test_data, perturbationsToPredict, networks, outputs):
   threshold_number = [int(f) for f in np.logspace(np.log10(20000), np.log10(network_sizes['numEdges'].max()), 1)]
   n_pruning = len(threshold_number)
   experiments = pd.DataFrame({"threshold_number":threshold_number,
-                              "network":["dense"]*n_pruning, 
+                              "network":["celloracle_human human_promoters.parquet"]*n_pruning, 
                               "p":[1]*n_pruning,
                               "pruning":["none"]*n_pruning})
 
@@ -46,10 +49,15 @@ def run(train_data, test_data, perturbationsToPredict, networks, outputs):
         pruning_strategy = "prune_and_refit", 
         pruning_parameter = experiments.loc[i,'threshold_number'],
         projection = "none", 
-    )
-    predictions[i] = grn.predict(perturbationsToPredict)   
+    )        
+    predictions[i] = grn.predict(perturbationsToPredict)  
+    print("Trying to deallocate memory.")
+    print(psutil.Process().memory_info().rss)
+    del grn
+    print(gc.collect())
+    print(psutil.Process().memory_info().rss)
+    other = grn
 
-  other = None
   return experiments, predictions, other
 
 
