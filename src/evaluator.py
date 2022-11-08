@@ -3,7 +3,6 @@ It dedicates particular attention to interfacing with CellOracle, a thought-prov
 """
 from ast import If
 from multiprocessing.sharedctypes import Value
-import celloracle as co
 import scanpy as sc
 import numpy as np
 import pandas as pd
@@ -18,32 +17,50 @@ import importlib
 sys.path.append("src")
 import predict
 importlib.reload(predict)
+import altair as alt
 
-def makeMainPlots(evaluationResults, factor_varied:str, outputs: str, default_level=None):
+def makeMainPlots(evaluationResults, outputs: str, factor_varied:str, facet_by: str = None, color_by: str = None):
     """Redo the main plots summarizing an experiment.
     Args:
-        factor_varied (str): Plots are automatically stratified based on this column of "experiments". 
         evaluationResults (pd.DataFrame, optional): By default, looks for results saved as a csv.
-        outputs (str): put plots here
+        factor_varied (str): Plots are automatically colored based on this column of "evaluationResults". 
+        facet_by (str): Plots are automatically stratified based on this column of "evaluationResults". 
+        outputs (str): folder to save plots in
         default_level: a value found in evaluationResults.loc[:,factor_varied] to compare all others against. This will be used to remove the variation from gene to gene. 
     """
-    stripchartMainFig = sns.stripplot(y = "spearman", 
-                                                x=factor_varied, 
-                                                data = evaluationResults)
-    stripchartMainFig.set(ylabel="Spearman correlation \npredicted log fold change vs observed")
-    stripchartMainFig.set_xticklabels(stripchartMainFig.get_xticklabels(), rotation=90)
-    stripchartMainFig.figure.savefig(f'{outputs}/stripchart.pdf', bbox_inches="tight")
-    plt.show()
-    plt.figure()
-    meanSEPlot = {}
-    for readout in "spearman", "cell_fate_correct":
-        meanSEPlot[readout] = sns.pointplot(factor_varied, y=readout, data=evaluationResults, dodge=True, join=False)
-        meanSEPlot[readout].set(title="Mean and SE of " + readout)
-        meanSEPlot[readout].set_xticklabels(meanSEPlot[readout].get_xticklabels(), rotation=90)
-        meanSEPlot[readout].figure.savefig(f'{outputs}/MeanSEPlot{readout}.pdf', bbox_inches="tight")
-        plt.show()
-        plt.figure()
-    return stripchartMainFig, meanSEPlot
+    evaluationResults.index = [p[1] for p in evaluationResults.index]
+    vlnplot = alt.Chart(
+        data = evaluationResults, 
+        title = "Spearman correlation (predicted log fold change vs observed)"
+    ).mark_boxplot()
+    if color_by is not None:
+        vlnplot=vlnplot.encode(
+            y=alt.Y('spearman:Q'),
+            color=color_by,
+            x=alt.X(
+                factor_varied + ':N'
+            )
+        ).properties(
+            width=400,
+            height=400
+        )
+    else:
+        vlnplot = vlnplot.encode(
+            y=alt.Y('spearman:Q'),
+            x=alt.X(
+                factor_varied + ':N'
+            )
+        ).properties(
+            width=400,
+            height=400
+        )
+    if facet_by is not None:
+        vlnplot = vlnplot.facet(
+            facet_by + ':N',
+            columns=int(np.ceil(np.sqrt(len(evaluationResults[facet_by].unique()))))
+        )
+    vlnplot.save(f'{outputs}/stripchart.pdf')
+    return vlnplot
 
 
 def evaluateCausalModel(
@@ -176,7 +193,6 @@ def countMatrixEdges(network):
     return 1.0*network.iloc[:,2:].sum().sum()
 
 humanTFs = pd.read_csv("../accessory_data/humanTFs.csv")
-targetGenes = co.data.load_human_promoter_base_GRN()["gene_short_name"]
 
 def pivotNetworkWideToLong(network_wide: pd.DataFrame):
     """Convert from CellOracle's preferred format to a triplet format
@@ -194,7 +210,7 @@ def pivotNetworkWideToLong(network_wide: pd.DataFrame):
     ])
     return network_long
 
-def makeRandomNetwork(density = 0, seed = 0, TFs = humanTFs['HGNC symbol'], targetGenes = targetGenes ):
+def makeRandomNetwork(targetGenes, density = 0, seed = 0, TFs = humanTFs['HGNC symbol'] ):
     """Generate a random network formatted the way that celloracle needs its input."""
     np.random.seed(seed)
     X = pd.DataFrame(
@@ -231,7 +247,7 @@ def makeNetworkDense(X):
     return X
 
 
-def splitData(adata, allowedRegulators, minTestSetSize = 250):
+def splitData(adata, allowedRegulators, minTestSetSize = 5):
     """Determine a train-test split satisfying constraints imposed by base networks and available data.
     
     A few factors complicate the training-test split. 
@@ -260,19 +276,39 @@ def splitData(adata, allowedRegulators, minTestSetSize = 250):
                                                replace = False)
         testSetPerturbations = testSetPerturbations.difference(swap)
         trainingSetPerturbations = trainingSetPerturbations.union(swap)
-    adata.uns[  "perturbed_and_measured_genes"]     = set(adata.uns[  "perturbed_and_measured_genes"])
-    adata.uns[  "perturbed_but_not_measured_genes"] = set(adata.uns[  "perturbed_but_not_measured_genes"])
     adata_train    = adata[adata.obs["perturbation"].isin(trainingSetPerturbations),:]
     adata_heldout  = adata[adata.obs["perturbation"].isin(testSetPerturbations),    :]
-    adata_train.uns[  "perturbed_and_measured_genes"] = adata_train.uns[  "perturbed_and_measured_genes"].intersection(trainingSetPerturbations)
-    adata_heldout.uns["perturbed_and_measured_genes"] = adata_heldout.uns["perturbed_and_measured_genes"].intersection(testSetPerturbations)
-    adata_train.uns[  "perturbed_but_not_measured_genes"] = adata_train.uns[  "perturbed_but_not_measured_genes"].intersection(trainingSetPerturbations)
-    adata_heldout.uns["perturbed_but_not_measured_genes"] = adata_heldout.uns["perturbed_but_not_measured_genes"].intersection(testSetPerturbations)
+    adata_train.uns[  "perturbed_and_measured_genes"]     = set(adata_train.uns[  "perturbed_and_measured_genes"]).intersection(trainingSetPerturbations)
+    adata_heldout.uns["perturbed_and_measured_genes"]     = set(adata_heldout.uns["perturbed_and_measured_genes"]).intersection(testSetPerturbations)
+    adata_train.uns[  "perturbed_but_not_measured_genes"] = set(adata_train.uns[  "perturbed_but_not_measured_genes"]).intersection(trainingSetPerturbations)
+    adata_heldout.uns["perturbed_but_not_measured_genes"] = set(adata_heldout.uns["perturbed_but_not_measured_genes"]).intersection(testSetPerturbations)
     print("Test set size:")
     print(len(testSetPerturbations))
     print("Training set size:")
     print(len(trainingSetPerturbations))
     return adata_train, adata_heldout
+
+def averagWithinPerturbation(ad: anndata.AnnData, confounders = []):
+    """Average the expression levels within each level of ad.obs["perturbation"].
+
+    Args:
+        ad (anndata.AnnData): Object conforming to the validity checks in the load_perturbations module.
+    """
+    if len(confounders) != 0:
+        raise NotImplementedError("Haven't yet decided how to handle confounders when merging replicates.")
+
+    perts = ad.perturbations.unique()
+    new_ad = anndata.AnnData(
+        X = np.zeros((len(perts), len(ad.var_names))),
+        obs = pd.DataFrame({"perturbation":perts}, index = perts),
+        var = ad.var,
+    )
+    for p in perts:
+        p_idx = ad.obs["perturbation"]==p
+        new_ad[p,].X = ad[p_idx,:].X.mean(0)
+        new_ad.obs.loc[p,] = ad[p_idx,:].obs.iloc[0,:]
+        new_ad.obs.loc[p,"expression_level_after_perturbation"] = ad[p_idx,:].obs[:, "expression_level_after_perturbation"].mean()
+    return new_ad
 
 
 def downsample(adata: anndata.AnnData, proportion: float, seed = None, proportion_genes = 1):
