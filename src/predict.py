@@ -5,6 +5,7 @@ import pandas as pd
 import os
 import sklearn.linear_model as lm
 import numpy as np
+import gc 
 
 # Project-specific paths
 import sys 
@@ -21,6 +22,7 @@ class GRN:
     """
     Flexible inference of gene regulatory network models.
     """
+    
     def __init__(self, train: anndata.AnnData, network: pd.DataFrame = None, tf_list = DEFAULT_TF_LIST, predict_self = False, validate_immediately = True):
         """Create a GRN object.
 
@@ -35,10 +37,29 @@ class GRN:
         self.network = network 
         self.tf_list = list(set(tf_list).intersection(set(train.var_names)))
         self.predict_self = predict_self
-        self.models = []
+        self.models = [None for _ in self.train.var_names]
         self.training_args = {}
         if validate_immediately:
             assert self.check_perturbation_dataset()
+
+    def __del__(self):
+        del self.train
+        del self.tf_list
+        del self.predict_self
+        del self.models
+        try:
+            del self.features
+        except AttributeError:
+            pass
+        try:
+            del self.training_args
+        except AttributeError:
+            pass
+        try:
+            del self.network
+        except AttributeError:
+            pass
+        return gc.collect()
 
     def check_perturbation_dataset(self):
         return load_perturbations.check_perturbation_dataset(ad=self.train)
@@ -54,7 +75,7 @@ class GRN:
             self.features = self.train[:,self.tf_list].X
         else:
             raise NotImplementedError("Only 'tf_rna' feature extraction is so far available.")
-        
+
     def apply_supervised_ml(
         self, 
         FUN, 
@@ -73,7 +94,7 @@ class GRN:
             raise NotImplementedError("lasso pruning not implemented yet.")
         elif pruning_strategy == "prune_and_refit":
             # Fit
-            self.models = Parallel(n_jobs=cpu_count()-1, verbose = verbose, prefer="threads")(
+            self.models = Parallel(n_jobs=cpu_count()-1, verbose = verbose, backend="loky")(
                 delayed(apply_supervised_ml_one_gene)(
                     train_obs = self.train.obs,
                     target_expr = self.train[:,g].X,
@@ -114,7 +135,7 @@ class GRN:
             pruned_network = pruned_network.groupby("cell_type")
             pruned_network = pruned_network.apply(lambda grp: grp.nlargest(pruning_parameter, "abs_weight"))
             # Refit
-            self.models = Parallel(n_jobs=cpu_count()-1, verbose = verbose, prefer="threads")(
+            self.models = Parallel(n_jobs=cpu_count()-1, verbose = verbose, backend="loky")(
                 delayed(apply_supervised_ml_one_gene)(  
                     train_obs = self.train.obs,
                     target_expr = self.train[:,g].X,
@@ -131,7 +152,7 @@ class GRN:
             )
             
         elif pruning_strategy == "none":
-            self.models = Parallel(n_jobs=cpu_count()-1, verbose = verbose, prefer="threads")(
+            self.models = Parallel(n_jobs=cpu_count()-1, verbose = verbose, backend="loky")(
                 delayed(apply_supervised_ml_one_gene)(  
                     train_obs = self.train.obs,
                     target_expr = self.train[:,g].X,
@@ -162,7 +183,7 @@ class GRN:
         else:
             raise NotImplementedError("pruning_strategy should be one of 'none', 'lasso', 'prune_and_refit' ")
                 
-
+    
     def fit(
         self,
         method: str, 

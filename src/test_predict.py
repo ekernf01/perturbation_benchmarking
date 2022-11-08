@@ -16,13 +16,16 @@ train   = sc.read_h5ad("../accessory_data/nakatake.h5ad")
 network = pd.read_parquet("../accessory_data/human_promoters.parquet")
 
 class TestModelInstantiation(unittest.TestCase):
-    def test_make_GRN(self):
+    def test_make_delete_GRN(self):
         self.assertIsInstance(
             predict.GRN(train, network = network), predict.GRN
         )
         self.assertIsInstance(
             predict.GRN(train), predict.GRN
         )
+        grn = predict.GRN(train, network = network)
+        del grn
+
     def test_validate_input(self):
         self.assertTrue(
             predict.GRN(train, network = network).check_perturbation_dataset() 
