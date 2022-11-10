@@ -99,5 +99,8 @@ def get_subnets(netName:str, subnets:list, test_mode, target_genes = None, do_ag
             networks = {}
             for subnet_name in subnets:
                 new_key = netName + " " + subnet_name
-                networks[new_key] = load_networks.LightNetwork(netName, subnet_name)
+                if subnets[0]=="all":
+                    networks[new_key] = load_networks.LightNetwork(netName)
+                else:
+                    networks[new_key] = load_networks.LightNetwork(netName, [subnet_name])
     return networks

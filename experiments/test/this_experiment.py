@@ -22,13 +22,13 @@ def run(train_data, test_data, perturbationsToPredict, networks, outputs):
         Each value is an AnnData object, and its .obs must have the same index, "perturbation", and "expression_level_after_perturbation" as test_data.
     - other: can be anything
   """
-  network_sizes = pd.DataFrame({bn:evaluator.countMatrixEdges(networks[bn]) for bn in networks}, index = ["numEdges"])
+  network_sizes = pd.DataFrame({bn:networks[bn].get_num_edges() for bn in networks}, index = ["numEdges"])
   network_sizes = network_sizes.T.reset_index().rename({"index":"network"}, axis = 1)
 
   threshold_number = [int(f) for f in np.logspace(np.log10(20000), np.log10(network_sizes['numEdges'].max()), 1)]
   n_pruning = len(threshold_number)
   experiments = pd.DataFrame({"threshold_number":threshold_number,
-                              "network":["celloracle_human human_promoters.parquet"]*n_pruning, 
+                              "network":["celloracle_human all"]*n_pruning, 
                               "p":[1]*n_pruning,
                               "pruning":["none"]*n_pruning})
 
@@ -49,15 +49,15 @@ def run(train_data, test_data, perturbationsToPredict, networks, outputs):
         pruning_strategy = "prune_and_refit", 
         pruning_parameter = experiments.loc[i,'threshold_number'],
         projection = "none", 
-    )        
+        do_parallel = False
+    )
     predictions[i] = grn.predict(perturbationsToPredict)  
     print("Trying to deallocate memory.")
     print(psutil.Process().memory_info().rss)
     del grn
     print(gc.collect())
     print(psutil.Process().memory_info().rss)
-    other = grn
-
+  other = None
   return experiments, predictions, other
 
 

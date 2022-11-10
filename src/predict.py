@@ -51,25 +51,6 @@ class GRN:
         if validate_immediately:
             assert self.check_perturbation_dataset()
 
-    def __del__(self):
-        del self.train
-        del self.tf_list
-        del self.predict_self
-        del self.models
-        try:
-            del self.features
-        except AttributeError:
-            pass
-        try:
-            del self.training_args
-        except AttributeError:
-            pass
-        try:
-            del self.network
-        except AttributeError:
-            pass
-        return gc.collect()
-
     def check_perturbation_dataset(self):
         return load_perturbations.check_perturbation_dataset(ad=self.train)
 
@@ -161,6 +142,7 @@ class GRN:
                                                 predict_self = self.predict_self, 
                                                 network_prior = network_prior,
                                                 target = self.train.var_names[i], 
+                                                network = self.network,
                                                 ), 
                                         "target": self.train.var_names[i], 
                                         "weight": self.models[i][cell_type].coef_.squeeze(),
@@ -177,6 +159,7 @@ class GRN:
                                             predict_self = self.predict_self, 
                                             network_prior = network_prior,
                                             target = self.train.var_names[i], 
+                                            network = self.network,
                                             ), 
                                     "target": self.train.var_names[i], 
                                     "weight": self.models[i].coef_.squeeze(),
@@ -420,8 +403,8 @@ def apply_supervised_ml_one_gene(
 
     
 
-def get_regulators(tf_list, predict_self, network_prior: str, target: str, network = None, cell_type = None):
-    """_summary_
+def get_regulators(tf_list, predict_self, network_prior: str, target: str, network = None, cell_type = None) -> list:
+    """Get candidates for what's directly upstream of a given gene.
 
     Args:
         tf_list: list of all candidate regulators
@@ -432,7 +415,9 @@ def get_regulators(tf_list, predict_self, network_prior: str, target: str, netwo
         cell_type: if network structure is cell-type-specific, which cell type to use when getting regulators.
 
     Returns:
-        (list of str): candidate regulators currently included in the model for predicting g.
+        (list of str): candidate regulators currently included in the model for predicting 'target'.
+        Given the same inputs, these will always be returned in the same order -- furthermore, in the 
+        order that they appear in tf_list.
     """
     if network_prior == "ignore":
         selected_features = tf_list.copy()
@@ -442,13 +427,13 @@ def get_regulators(tf_list, predict_self, network_prior: str, target: str, netwo
         if cell_type is not None:
             assert "cell_type" in regulators.keys(), "'cell_type' must be a column in the provided network."
             regulators = regulators.loc[regulators["cell_type"]==cell_type,:]
-        selected_features = set(regulators["regulator"]).intersection(tf_list)
+        selected_features = [tf for tf in tf_list if tf in regulators["regulator"]]
     else:
         raise ValueError("network_prior must be one of 'ignore' and 'restrictive'. ")
 
     if not predict_self:
         try:
-            selected_features.remove(target)
+            selected_features = [tf for tf in selected_features if tf != target]
         except (KeyError, ValueError) as e:
             pass
     if len(selected_features)==0:

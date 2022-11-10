@@ -77,18 +77,13 @@ if args.amount_to_do in {"models", "evaluations"}:
     # Get networks
     networks = {}
     for netName in metadata["network_datasets"].keys():
-        all_subnets = experimenter.get_subnets(
+        networks = networks | experimenter.get_subnets(
             netName, 
             subnets = metadata["network_datasets"][netName]["subnets"], 
             target_genes = perturbed_expression_data.var_names, 
-            test_mode = args.test_mode 
+            test_mode = args.test_mode, 
+            do_aggregate_subnets = metadata["network_datasets"][netName]["do_aggregate_subnets"]
         )
-        if metadata["network_datasets"][netName]["do_aggregate_subnets"]:
-            raise NotImplementedError("Sorry, still haven't implemented unions of network edge sets. For now, set do_aggregate_subnets to False.")
-        else:
-            for subnet_name in all_subnets.keys():
-                new_key = netName + " " + subnet_name if not subnet_name == "" else netName 
-                networks[new_key] = all_subnets[subnet_name]
 
     # load & split perturbation data
     print("Loading & splitting perturbation data.")
@@ -100,7 +95,7 @@ if args.amount_to_do in {"models", "evaluations"}:
     if args.test_mode:
         perturbed_expression_data = evaluator.downsample(perturbed_expression_data, proportion = 0.2, proportion_genes = 0.01)
     if any(networks):
-        allowedRegulators = set.union(*[set(networks[key]["regulator"]) for key in networks])
+        allowedRegulators = set.union(*[networks[key].get_all_regulators() for key in networks])
     else:
         allowedRegulators = perturbed_expression_data.var_names
     perturbed_expression_data_train, perturbed_expression_data_heldout = \
@@ -129,7 +124,6 @@ if args.amount_to_do in {"models", "evaluations"}:
         experiments = experiments, 
         outputs = outputs, 
         factor_varied = metadata["factor_varied"], 
-        default_level = metadata["default_level"], 
         classifier = None
     )
     evaluationResults.to_parquet(          os.path.join(outputs, "networksExperimentEvaluation.parquet"))
