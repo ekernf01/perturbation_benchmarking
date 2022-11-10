@@ -2,10 +2,10 @@
 
 This software allows flexible combination of numerous individual components that are common in GRN inference:
 
-- Arbitrary supervised ML with TF-related features and target-related labels
-- Prior and/or learned network structure specifying targets of each TF
+- Supervised ML with TF-related features and target-related labels
+- Network structure specifying targets of each TF (user-provided or learned *de novo*)
 - Sharing of information across cell types
-- Feature construction using motif analysis or predetermined targets to measure TF activity as opposed to expression
+- Feature construction using motif analysis or predetermined targets to measure TF activity
 
 It is a work in progress.
 
@@ -49,7 +49,7 @@ This section will describe various options for GRN modeling, along with some pos
 
 #### Linear modeling
 
-A simple starting point is to run ridge regression with TF expression as predictors and target expression as the labels. Many other supervised learning methods could form a drop-in replacement for linear models; for example, related literature uses GAMs (DCD-FG) or kernel regression (Dynamo). 
+A simple starting point is to run ridge regression with TF expression as predictors and target expression as the labels. Many other supervised learning methods could form a drop-in replacement for linear models; for example, related literature uses neural networks (DCD-FG), kernel regression (Dynamo), or boosted trees (GRNBOOST). 
 
 - $Y$: target expression
 - $X$: TF expression
@@ -59,16 +59,31 @@ It's unclear how to choose the strength of regularization. We want parameters th
 
 #### Sparsity (user-defined)
 
-As in CellOracle, a sparse model can be fit where instead of using all TF's to predict each target, prior knowledge dictates a small number of known TF's to include in the model for each target. This combines easily with supervised learning.
-
-- $reg(Y)$: known regulators of target gene $Y$
-- $Y \approx X_{reg(Y)}\beta$
+As in CellOracle, a sparse model can be fit where instead of using all TF's to predict each target, prior knowledge dictates a small number of known TF's to include in the model for each target. This combines easily with supervised learning. If $reg(Y)$ contains user-provided regulators of target gene $Y$, we can use  supervised learning methods (for now, ridge regression) to learn $f$ in $Y \approx f(X_{reg(Y)})$.
 
 #### Sparsity (data-driven)
 
-With or without user-defined network structure, additional pruning can be done to zero out small coefficients, e.g. with LASSO. The strategy in CellOracle is to keep only the largest coefficients (user-defined, but usually about 1e4 total). The model is fit once, then coeffs are selected, and then the model is fit once again on fewer features. This is compatible with any supervised learning method that produces a feature important measure as part of its output. Kernel regression could be difficult and random forests would require a GENIE3-like importance measure, but ridge regression works fine. Something reasonable could be extracted from DCD-FG even if it's not clear exactly what. 
+With or without user-defined network structure, additional pruning can be done to zero out small effects, e.g. with LASSO. The strategy in CellOracle is to keep only the largest RR coefficients (user-defined, but usually about 1e4 total). The model is fit once, then coeffs are selected, and then the model is fit once again on fewer features. 
+
+There are a lot of ways that data-driven and user-defined feature selection methods could be combined. But as of 2022 Nov 10, the only option implemented is:
+
+- Fit ridge regression $Y \approx X_{reg(Y)}\beta$ where $reg(Y)$ contains either all TF's or user-provided regulators of target gene $Y$
+- Prune, retaining the largest $N$ coeffs across the whole network, where $N$ is user-provided.
+
+#### Cell type specificity
+
+Some methods use the same model for all training data, but others (e.g. CellOracle) use separate models for each cell type, and some methods specifically focus on adapting to the the data in terms of how similar network structure is across cell types (e.g. csnets, GNAT). As of 2022 Nov 10, we implement two options:
+
+- one model for all cell types
+- separate models for each cell type
+- (We intend to implement partial sharing of information later.)
+
+There is some unavoidable complexity in how this interacts with sparse network structure, because user-provided or learned structure could be cell-type-specific. For example, CellOracle does separate pruning within each cell type, yielding cell-type-specific network structures even from generic user input. If user-provided structures are cell-type-specific, the cell types would need to be matched between the input network and the input expression data.
+
+Currently, our software *does not* allow user-provided network structure to be cell-type-specific. It *does* allow for cell-type-specific model-fitting and pruning.
 
 #### Feature extraction
+
 In place of TF mRNA levels, some works (notably ARMADA) use genome-wide motif activity.
 
 #### Low-rank structure
@@ -81,5 +96,4 @@ Some methods project into a principal subspace to interpret output (e.g. CellOra
 
 #### Dynamics
 #### Interventions
-#### Cell type specificity
 
