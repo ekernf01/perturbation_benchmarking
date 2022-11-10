@@ -7,6 +7,7 @@ conda install numba cython pybedtools jupyter jupyter-lab pysam fa2
 conda install -c conda-forge leidenalg=0.8.10
 pip3 install git+https://github.com/morris-lab/CellOracle.git
 conda install scanpy
-conda install dask
-conda install -c conda-forge altair vega_datasets
+conda install -c conda-forge altair vega_datasets altair_saver
+conda install pyarrow
+conda install -c conda-forge python-duckdb
 

@@ -25,7 +25,7 @@ os.environ["PERTURBATION_PATH"]  = PROJECT_PATH + "perturbation_data/perturbatio
 def validate_metadata(experiment_name, permissive = False):
     with open(os.path.join("experiments", experiment_name, "metadata.json")) as f:
         metadata = json.load(f)
-    if not permissive and metadata["is_active"]:
+    if not permissive and not metadata["is_active"]:
         raise ValueError("This experiment is marked as inactive. If you really want to run it, edit its metadata.json.")
     print("\n\n Raw metadata experiment " + experiment_name + ":\n")
     print(yaml.dump(metadata))
@@ -66,37 +66,38 @@ def validate_metadata(experiment_name, permissive = False):
 
 
 # TODO: move this to the network collection loader module?
-def get_subnets(netName:str, subnets:list, test_mode, target_genes = None) -> dict:
+def get_subnets(netName:str, subnets:list, test_mode, target_genes = None, do_aggregate_subnets = False) -> dict:
     """Get gene regulatory networks.
 
     Args:
         netName (str): Name of network to pull from collection, or "dense" or e.g. "random0.123" for random with density 12.3%. 
         subnets (list, optional): List of cell type- or tissue-specific subnetworks to include. 
         test_mode (bool, optional): Lighten the load during testing. Defaults to args.test_mode.
+        do_aggregate_subnets (bool, optional): If True, return has just one network named netName. If False,
+            then returned dict has many separate networks named like netName + " " + subnet_name.
 
     Returns:
-        dict: A dict containing base GRN's in the format expected by CO.
+        dict: A dict containing base GRN's as LightNetwork objects (see the docs in the load_networks module in the networks collection.)
     """
     print("Getting network '" + netName + "'")
     gc.collect()
     if "random" in netName:
-        return { 
-            "": evaluator.pivotNetworkWideToLong( 
+        networks = { 
+            netName: load_networks.LightNetwork(
+                df = evaluator.pivotNetworkWideToLong( 
                     evaluator.makeRandomNetwork( target_genes = target_genes, density = float( netName[6:] ) ) 
-                    ) 
-                }
-    elif "dense" in netName:
-        return { 
-            "": evaluator.pivotNetworkWideToLong( 
-                    evaluator.makeRandomNetwork( target_genes = target_genes, density = 1.0 )
                 ) 
-            }
-    else:
-        if subnets[0]=="all":
-            subnets = load_networks.list_subnetworks(netName)
-        if test_mode:
-            subnets = subnets[0:1]
-        return {
-            subnet: load_networks.load_grn_by_subnetwork(netName, subnet)
-            for subnet in subnets
+            )
         }
+    else:
+        if do_aggregate_subnets:
+            if subnets[0]=="all":
+                networks = load_networks.LightNetwork(netName)
+            else:
+                networks = load_networks.LightNetwork(netName, subnets)
+        else:
+            networks = {}
+            for subnet_name in subnets:
+                new_key = netName + " " + subnet_name
+                networks[new_key] = load_networks.LightNetwork(netName, subnet_name)
+    return networks

@@ -12,8 +12,12 @@ sys.path.append("src")
 import predict
 importlib.reload(predict)
 
+sys.path.append(os.path.expanduser(os.path.join(PROJECT_PATH, 'network_collection', 'load_networks'))) 
+import load_networks
+importlib.reload(load_networks)
+
 train   = sc.read_h5ad("../accessory_data/nakatake.h5ad")
-network = pd.read_parquet("../accessory_data/human_promoters.parquet")
+network = load_networks.LightNetwork(files=["../accessory_data/human_promoters.parquet"])
 
 class TestModelInstantiation(unittest.TestCase):
     def test_make_delete_GRN(self):
@@ -55,6 +59,18 @@ class TestModelInstantiation(unittest.TestCase):
                 pruning_strategy = "none", 
                 pruning_parameter = None, 
                 projection = "factor_graph", 
+            )
+        )
+        self.assertIsNone(
+            grn.fit(
+                method = "linear", 
+                confounders = ["donor", "batch"],
+                cell_type_sharing_strategy = "identical", 
+                network_prior = "ignore",
+                pruning_strategy = "none", 
+                pruning_parameter = None, 
+                projection = "factor_graph", 
+                do_parallel=False,
             )
         )
         p = grn.predict((("KLF8", 0), ("GATA1", 0)))

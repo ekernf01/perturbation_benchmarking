@@ -37,7 +37,7 @@ if args.experiment_name is None:
     args = Namespace(**{
         "experiment_name":'test',
         "test_mode":True,
-        "amount_to_do": "plots"
+        "amount_to_do": "models"
     })
 
 # Deal with various file paths specific to this project
@@ -58,7 +58,7 @@ outputs = os.path.join("experiments", args.experiment_name, "outputs")
 
 
 # Load experiment code
-metadata, code_location = experimenter.validate_metadata()
+metadata, code_location = experimenter.validate_metadata(experiment_name=args.experiment_name)
 sys.path.append(code_location)
 import this_experiment
 importlib.reload(this_experiment)
