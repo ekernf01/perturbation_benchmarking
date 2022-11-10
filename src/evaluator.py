@@ -11,7 +11,8 @@ import seaborn as sns
 import gc
 import anndata
 from scipy.stats import spearmanr as spearmanr
-
+import os 
+import shutil
 import sys
 import importlib
 sys.path.append("src")
@@ -94,7 +95,8 @@ def evaluateCausalModel(
                 expression =                        heldout[:, shared_var_names], 
                 predictedExpression=predictions[experiment][:, shared_var_names],   
                 baseline =                         baseline[:, shared_var_names],     
-                doPlots=False, 
+                doPlots=True, 
+                outputs = os.path.join(outputs, "plots", str(experiment)),
                 classifier=classifier
             )[0]
         evaluationResults[experiment]["index"] = experiment
@@ -110,15 +112,22 @@ def evaluateCausalModel(
     evaluationResults["somePredictionRefused"] = evaluationResults["perturbation"].isin(noPredictionMade) 
     # Save main results
     evaluationResults.to_csv(outputs +"/evaluationResults.csv")
-    stripchartMainFig, meanSEPlot = makeMainPlots(factor_varied=factor_varied,  outputs=outputs, evaluationResults=evaluationResults)
+    vlnplot = makeMainPlots(factor_varied=factor_varied,  outputs=outputs, evaluationResults=evaluationResults)
     # Which genes are best/worst?
     hardest = evaluationResults.loc[evaluationResults["spearman"].idxmax(),"perturbation"]
     easiest = evaluationResults.loc[evaluationResults["spearman"].idxmin(),"perturbation"]
     evaluationResults.loc[evaluationResults["perturbation"]==hardest,:].to_csv(outputs +"/hardest.csv")
     evaluationResults.loc[evaluationResults["perturbation"]==easiest,:].to_csv(outputs +"/easiest.csv")
-    return evaluationResults, stripchartMainFig, meanSEPlot
+    return evaluationResults, vlnplot
 
-def evaluateOnePrediction(expression: anndata.AnnData, predictedExpression: anndata.AnnData, baseline: anndata.AnnData, doPlots=False, classifier = None, do_careful_checks = True):
+def evaluateOnePrediction(
+    expression: anndata.AnnData, 
+    predictedExpression: anndata.AnnData, 
+    baseline: anndata.AnnData, 
+    outputs,
+    doPlots=False, 
+    classifier = None, 
+    do_careful_checks = True):
     '''Compare observed against predicted, for expression, fold-change, or cell type.
 
             Parameters:
@@ -134,6 +143,7 @@ def evaluateOnePrediction(expression: anndata.AnnData, predictedExpression: annd
                     classifier (sklearn logistic regression classifier): 
                         optional machine learning classifier to assign cell fate. 
                         Must have a predict() method capable of taking a value from expression or predictedExpression and returning a single class label. 
+                    doPlots (bool): Make a scatterplot showing observed vs predicted, one dot per gene. 
                     do_careful_checks (bool): check gene name and expression level associated with each perturbation.
                         They must match between expression and predictionExpression.
             Returns:
@@ -149,6 +159,10 @@ def evaluateOnePrediction(expression: anndata.AnnData, predictedExpression: annd
     baseline = baseline.X.mean(axis=0).squeeze()
     plots = {}
     metrics = pd.DataFrame(index = predictedExpression.obs.index, columns = ["spearman", "spearmanp", "cell_fate_correct"])
+    try:
+        shutil.rmtree(outputs)
+    except FileNotFoundError:
+        pass
     for pert in predictedExpression.obs.index:
         if do_careful_checks:
             assert all(
@@ -166,14 +180,16 @@ def evaluateOnePrediction(expression: anndata.AnnData, predictedExpression: annd
                 class_predicted = classifier.predict(np.reshape(predicted, (1, -1)))[0]
                 metrics.loc[pert,"cell_fate_correct"] = 1.0*(class_observed==class_predicted)            
         if doPlots:
-            plots[pert] = sns.scatterplot(x=observed, y=predicted)
+            os.makedirs(outputs, exist_ok = True)
+            plt.figure()
+            plots[pert] = sns.scatterplot(x=observed-baseline, y=predicted-baseline, hue=baseline)
             plots[pert].set(title=pert + " (Spearman rho="+ str(round(metrics.loc[pert,"spearman"])) +")")
             plots[pert].set_xlabel("Observed log fc", fontsize = 20)
             plots[pert].set_ylabel("Predicted log fc", fontsize = 20)
-            plots[pert].plot()
+            plots[pert].figure.savefig(os.path.join(outputs, f"{pert}.pdf"))
             plt.figure()
     metrics["perturbation"] = metrics.index
-    return metrics, plots                 
+    return metrics, plots
     
 def networkEdgesToMatrix(networkEdges, regulatorColumn=0, targetColumn=1):
     """Reformat a network from a two-column dataframe to the way that celloracle needs its input."""

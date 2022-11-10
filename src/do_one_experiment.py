@@ -65,11 +65,6 @@ importlib.reload(this_experiment)
 
 print("Starting at " + str(datetime.datetime.now()))
 
-# Delete any existing models if models are to be re-fitted
-if args.amount_to_do == "models":
-    [os.unlink(os.path.join(outputs, model_file)) for model_file in os.listdir(outputs) if re.search(".celloracle.oracle", model_file)]
-
-
 if args.amount_to_do in {"models", "evaluations"}:
     perturbed_expression_data = load_perturbations.load_perturbation(metadata["perturbation_dataset"])
     # perturbed_expression_data = evaluator.average_within_perturbation(perturbed_expression_data)
@@ -99,15 +94,17 @@ if args.amount_to_do in {"models", "evaluations"}:
     else:
         allowedRegulators = perturbed_expression_data.var_names
     perturbed_expression_data_train, perturbed_expression_data_heldout = \
-        evaluator.splitData(perturbed_expression_data, allowedRegulators, minTestSetSize=5)
+        evaluator.splitData(perturbed_expression_data, allowedRegulators, minTestSetSize=5 if args.test_mode else 250)
     del perturbed_expression_data
     gc.collect()
     # Experiment-specific code goes elsewhere
-    print("Running experiment")
     pp = [
             (r[1][0], r[1][1]) 
             for r in perturbed_expression_data_heldout.obs[["perturbation", "expression_level_after_perturbation"]].iterrows()
         ]
+
+if args.amount_to_do in {"models"}:
+    print("Running experiment")
     experiments, predictions, other = this_experiment.run(
         train_data = perturbed_expression_data_train, 
         test_data  = perturbed_expression_data_heldout,
@@ -115,16 +112,31 @@ if args.amount_to_do in {"models", "evaluations"}:
         networks = networks, 
         outputs = outputs
     )      
+    # save metadata and predictions
     experiments.to_csv( os.path.join(outputs, "experiments.csv") )
-    print("Evaluating predictions.")
-    evaluationResults, stripchartMainFig, meanSEPlot = evaluator.evaluateCausalModel(
+    os.makedirs(os.path.join(outputs, "predictions"), exist_ok=True)
+    for i in predictions.keys():
+        h5ad = os.path.join( outputs, "predictions", str(i) + ".h5ad" )
+        try:
+            os.unlink(h5ad)
+        except FileNotFoundError:
+            pass
+        predictions[i].write_h5ad( h5ad )
+
+if args.amount_to_do in {"models", "evaluations"}:
+    print("Retrieving saved predictions")
+    experiments = pd.read_csv( os.path.join(outputs, "experiments.csv") )
+    predictions = {i:sc.read_h5ad( os.path.join(outputs, "predictions", str(i) + ".h5ad" ) ) for i in experiments.index}
+
+    evaluationResults, vlnplot = evaluator.evaluateCausalModel(
         heldout = perturbed_expression_data_heldout, 
         predictions = predictions, 
         baseline = perturbed_expression_data_train[perturbed_expression_data_train.obs["is_control"], :],
         experiments = experiments, 
         outputs = outputs, 
         factor_varied = metadata["factor_varied"], 
-        classifier = None
+        default_level = None,
+        classifier = None,
     )
     evaluationResults.to_parquet(          os.path.join(outputs, "networksExperimentEvaluation.parquet"))
 
