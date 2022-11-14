@@ -3,15 +3,12 @@
     "nickname": "base_network",
     "readme": "people have published big fat lists of TF-target or gene-gene relationships, often for GWAS interpretation or reprogramming. Existing benchmarks have limited information content and seldom compare these published network structures directly without introducing confounding factors. For instance, one might ask whether the networks used by CellNet, Mogrify, Irene, and CellOracle are of comparable value in predicting reprogramming outcomes. Those methods have been compared, but they each involve many other components that may also affect the outcome, confounding the effect of network structure. This benchmarks many networks to see how much they help predict held-out perturbations.",
     "question": "1.4",
-    "is_active": false,
+    "is_active": true,
     "factor_varied": "network",
     "color_by": null,
     "facet_by": null,
     "perturbation_dataset": "nakatake",
     "network_datasets": {
-        "dense":                 { "do_aggregate_subnets": true }, 
-        "random0.1":             { "do_aggregate_subnets": true },
-        "random0.01":            { "do_aggregate_subnets": true },
         "celloracle_human":      { "do_aggregate_subnets": true },
         "gtex_rna":              { "do_aggregate_subnets": true },
         "magnum_compendium_32":  { "do_aggregate_subnets": true },   
@@ -22,8 +19,7 @@
         "MARA_FANTOM4":          { "do_aggregate_subnets": true },
         "STRING":                { "do_aggregate_subnets": true },    
         "ANANSE_0.5":            { "do_aggregate_subnets": true },
-        "ANANSE_tissue_0.5":     { "do_aggregate_subnets": true },
-        "magnum_compendium_394": { "do_aggregate_subnets": true }
+        "ANANSE_tissue_0.5":     { "do_aggregate_subnets": true }
     }
 }
 
