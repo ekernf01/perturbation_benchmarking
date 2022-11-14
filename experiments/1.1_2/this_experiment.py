@@ -1,29 +1,32 @@
-from turtle import down
-import seaborn as sns
-import pandas as pd
 import sys
 import os
-import gc
 import numpy as np
+import pandas as pd
+import evaluator
+import predict
 import scanpy as sc
 import anndata
-#sys.path.append(os.path.expanduser(os.path.join(PROJECT_PATH, 'benchmarking', 'src'))) 
-import evaluator
-import predict 
+import gc 
 
-def run(train_data, test_data, perturbationsToPredict, networks, outputs):
-  """Prediction code specific to this experiment.
+def lay_out_runs(
+  train_data: anndata.AnnData, 
+  test_data: anndata.AnnData, 
+  perturbationsToPredict: list, 
+  networks: dict, 
+  outputs: str
+) -> pd.DataFrame:
+  """Lay out the specific runs done in this experiment.
+
   Args:
-    - train_data
-    - test_data: usually not used, except in weird cases like the "oracle structure" experiment
-    - perturbationsToPredict: genes and the expression level to set them to, e.g. {("FOXN1", 0), ("PAX9", 0)}
-    - networks
-    - outputs: folder name to save results in
-  Return: 
-    - experiments: metadata on the different conditions in this experiment
-    - predictions: dictionary with keys equal to index of experiments. 
-        Each value is an AnnData object, and its .obs must have the same index, "perturbation", and "expression_level_after_perturbation" as test_data.
-    - other: can be anything
+      train_data (anndata.AnnData): _description_
+      test_data (anndata.AnnData):  usually not used, except in weird cases like the "oracle structure" experiment
+      perturbationsToPredict (list):  genes and the expression level to set them to, e.g. {("FOXN1", 0), ("PAX9", 0)}
+      networks (dict): dict with string keys and LightNetwork values
+      outputs (str): folder name to save results in
+
+  Returns:
+      pd.DataFrame: metadata on the different conditions in this experiment
+
   """
   downSampleFactors = [i/10.0 for i in range(3,11,2)]
   experiments = pd.DataFrame(
@@ -34,30 +37,48 @@ def run(train_data, test_data, perturbationsToPredict, networks, outputs):
     }
   )
   experiments = experiments.merge(pd.DataFrame({"seed":range(3)}), how='cross')
-  predictions = {}
-  for i in experiments.index:
-    grn = predict.GRN(
-      train=evaluator.downsample(
-          train_data,
-          experiments.loc[i, "training_set_size"], 
-          seed=experiments.loc[i, "seed"], 
-        ), 
-      network=networks[experiments.loc[i,'network']]
-    )
-    grn.extract_features(method = "tf_rna")
-    grn.fit(
-        method = "linear", 
-        cell_type_labels = None,
-        cell_type_sharing_strategy = "identical",
-        network_prior = experiments.loc[i, "network_prior"],
-        pruning_strategy = "none", 
-        projection = "none", 
-    )
-    predictions[i] = grn.predict(perturbationsToPredict)  
-    del grn
-    gc.collect()
-  other = None
-  return experiments, predictions, other
+  return experiments
+  
+def do_one_run(
+  experiments: pd.DataFrame, 
+  i: int, 
+  train_data: anndata.AnnData, 
+  test_data: anndata.AnnData, 
+  perturbationsToPredict: list, 
+  networks: dict, 
+  outputs: str
+  ) -> anndata.AnnData:
+  """Do one run (fit a GRN model and make predictions) as part of this experiment.
+
+  Args:
+      experiments (pd.DataFrame): Output of lay_out_runs
+      i (int): A value from the experiments.index
+      Other args: see help(lay_out_runs)
+
+  Returns:
+      anndata.AnnData: Predicted expression
+  """
+  grn = predict.GRN(
+    train=evaluator.downsample(
+        train_data,
+        experiments.loc[i, "training_set_size"], 
+        seed=experiments.loc[i, "seed"], 
+      ), 
+    network=networks[experiments.loc[i,'network']]
+  )
+  grn.extract_features(method = "tf_rna")
+  grn.fit(
+      method = "linear", 
+      cell_type_labels = None,
+      cell_type_sharing_strategy = "identical",
+      network_prior = experiments.loc[i, "network_prior"],
+      pruning_strategy = "none", 
+      projection = "none", 
+  )
+  predictions = grn.predict(perturbationsToPredict)  
+  del grn
+  gc.collect()
+  return predictions
 
 
 
