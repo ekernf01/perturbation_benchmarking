@@ -1,5 +1,6 @@
 
 import os
+import numpy as np
 import re
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
@@ -20,24 +21,25 @@ parser.add_argument("--experiment_name", help="Unique id for the experiment.", t
 parser.add_argument("--test_mode",       help="If true, use a small subset of the perturbation data.",     default = False, action = "store_true")
 parser.add_argument(
     "--amount_to_do",
-    choices = ["plots", "evaluations", "models"],
+    choices = ["plots", "evaluations", "models", "missing_models"],
     help="""
     The code makes models, evaluations, and plots, in that order. It saves the models and the evaluations. 
     To do just plots, using saved evaluations and models, specify "plots".
     To do plots and evaluations using saved models, specify "evaluations".
     To do everything, specify "models". 
+    If it crashes, specify "missing_models" to keep previous progress. 
     """
 )
 args = parser.parse_args()
-print("args to experimenter.py:")
+print("args to experimenter.py:", flush = True)
 print(args)
 
 # For interactive sessions
 if args.experiment_name is None:
     args = Namespace(**{
-        "experiment_name":'test',
-        "test_mode":True,
-        "amount_to_do": "models"
+        "experiment_name":'1.4_1',
+        "test_mode":False,
+        "amount_to_do": "missing_models"
     })
 
 # Deal with various file paths specific to this project
@@ -63,11 +65,11 @@ sys.path.append(code_location)
 import this_experiment
 importlib.reload(this_experiment)
 
-print("Starting at " + str(datetime.datetime.now()))
+print("Starting at " + str(datetime.datetime.now()), flush = True)
 
-if args.amount_to_do in {"models", "evaluations"}:
+if args.amount_to_do in {"models", "missing_models", "evaluations"}:
     perturbed_expression_data = load_perturbations.load_perturbation(metadata["perturbation_dataset"])
-    # perturbed_expression_data = evaluator.average_within_perturbation(perturbed_expression_data)
+    # perturbed_expression_data = evaluator.averageWithinPerturbation(perturbed_expression_data)
 
     # Get networks
     networks = {}
@@ -81,7 +83,7 @@ if args.amount_to_do in {"models", "evaluations"}:
         )
 
     # load & split perturbation data
-    print("Loading & splitting perturbation data.")
+    print("Loading & splitting perturbation data.", flush = True)
     try:
         perturbed_expression_data = perturbed_expression_data.to_memory()
     except ValueError: #Object is already in memory.
@@ -94,7 +96,7 @@ if args.amount_to_do in {"models", "evaluations"}:
     else:
         allowedRegulators = perturbed_expression_data.var_names
     perturbed_expression_data_train, perturbed_expression_data_heldout = \
-        evaluator.splitData(perturbed_expression_data, allowedRegulators, minTestSetSize=5 if args.test_mode else 250)
+        evaluator.splitData(perturbed_expression_data, allowedRegulators, desired_heldout_fraction=0.5)
     del perturbed_expression_data
     gc.collect()
     # Experiment-specific code goes elsewhere
@@ -103,28 +105,39 @@ if args.amount_to_do in {"models", "evaluations"}:
             for r in perturbed_expression_data_heldout.obs[["perturbation", "expression_level_after_perturbation"]].iterrows()
         ]
 
-if args.amount_to_do in {"models"}:
-    print("Running experiment")
-    experiments, predictions, other = this_experiment.run(
-        train_data = perturbed_expression_data_train, 
-        test_data  = perturbed_expression_data_heldout,
-        perturbationsToPredict = pp,
-        networks = networks, 
-        outputs = outputs
-    )      
-    # save metadata and predictions
+if args.amount_to_do in {"models", "missing_models"}:
+    print("Running experiment", flush = True)
+    experiments = this_experiment.lay_out_runs(
+            train_data = perturbed_expression_data_train, 
+            test_data  = perturbed_expression_data_heldout,
+            perturbationsToPredict = pp,
+            networks = networks, 
+            outputs = outputs,
+            )
     experiments.to_csv( os.path.join(outputs, "experiments.csv") )
-    os.makedirs(os.path.join(outputs, "predictions"), exist_ok=True)
-    for i in predictions.keys():
+    os.makedirs(os.path.join( outputs, "predictions" ), exist_ok=True) 
+    for i in experiments.index:
         h5ad = os.path.join( outputs, "predictions", str(i) + ".h5ad" )
-        try:
-            os.unlink(h5ad)
-        except FileNotFoundError:
-            pass
-        predictions[i].write_h5ad( h5ad )
+        if (args.amount_to_do in {"models"}) or not os.path.isfile(h5ad):
+            try:
+                os.unlink(h5ad)
+            except FileNotFoundError:
+                pass
+            predictions = this_experiment.do_one_run(
+                experiments, 
+                i,
+                train_data = perturbed_expression_data_train, 
+                test_data  = perturbed_expression_data_heldout,
+                perturbationsToPredict = pp,
+                networks = networks, 
+                outputs = outputs,
+            )
+            print("Saving predictions...", flush = True)
+            predictions.write_h5ad( h5ad )
+            print("... done.", flush = True)
 
-if args.amount_to_do in {"models", "evaluations"}:
-    print("Retrieving saved predictions")
+if args.amount_to_do in {"models", "missing_models", "evaluations"}:
+    print("Retrieving saved predictions", flush = True)
     experiments = pd.read_csv( os.path.join(outputs, "experiments.csv") )
     predictions = {i:sc.read_h5ad( os.path.join(outputs, "predictions", str(i) + ".h5ad" ) ) for i in experiments.index}
 
@@ -140,7 +153,7 @@ if args.amount_to_do in {"models", "evaluations"}:
     )
     evaluationResults.to_parquet(          os.path.join(outputs, "networksExperimentEvaluation.parquet"))
 
-if args.amount_to_do in {"plots", "models", "evaluations"}:
+if args.amount_to_do in {"plots", "models", "missing_models", "evaluations"}:
     evaluationResults = pd.read_parquet(os.path.join(outputs, "networksExperimentEvaluation.parquet"))
     evaluator.makeMainPlots(
         evaluationResults, 
@@ -153,4 +166,4 @@ if args.amount_to_do in {"plots", "models", "evaluations"}:
 
 this_experiment.plot(evaluationResults, outputs)
 
-print("Experiment done at " + str(datetime.datetime.now()))
+print("Experiment done at " + str(datetime.datetime.now()), flush = True)
