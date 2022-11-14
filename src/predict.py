@@ -6,6 +6,7 @@ import os
 import sklearn.linear_model as lm
 import numpy as np
 import gc 
+import psutil
 
 # Project-specific paths
 import sys 
@@ -91,7 +92,7 @@ class GRN:
         """
         if do_parallel:     
             def do_loop(network = self.network):
-                    return Parallel(n_jobs=cpu_count()-1, verbose = verbose, backend="loky")(
+                    m = Parallel(n_jobs=cpu_count()-1, verbose = verbose, backend="loky")(
                         delayed(apply_supervised_ml_one_gene)(
                             train_obs = self.train.obs,
                             target_expr = self.train[:,g].X,
@@ -106,6 +107,7 @@ class GRN:
                         )
                         for g in self.train.var_names
                     )
+                    return m
         else:
             def do_loop(network = self.network):
                 return [
@@ -127,9 +129,9 @@ class GRN:
         if pruning_strategy == "lasso":
             raise NotImplementedError("lasso pruning not implemented yet.")
         elif pruning_strategy == "prune_and_refit":
-            # Fit
+            print("Fitting")
             self.models = do_loop()
-            # Prune
+            print("Pruning")
             chunks = []
             for i in range(len(self.train.var_names)):
                 if self.training_args["cell_type_sharing_strategy"] == "distinct":
@@ -173,14 +175,14 @@ class GRN:
             pruned_network = pruned_network.query("regulator != 'NO_REGULATORS'")
             pruned_network.loc[:, "abs_weight"] = np.abs(pruned_network["weight"])
             pruned_network = pruned_network.nlargest(pruning_parameter, "abs_weight")
-            # Refit
+            print("Re-fitting")
             self.models = do_loop(network = load_networks.LightNetwork(df=pruned_network))                
         elif pruning_strategy == "none":
+            print("Fitting")
             self.models = do_loop() 
         else:
             raise NotImplementedError("pruning_strategy should be one of 'none', 'lasso', 'prune_and_refit' ")
                 
-    
     def fit(
         self,
         method: str, 
@@ -236,9 +238,10 @@ class GRN:
 
     def predict(
         self,
-        perturbations,
+        perturbations: list,
         starting_states = None,
-        aggregation = "before",
+        aggregation: str = "before",
+        do_parallel: bool = True,
     ):
         """Predict expression after new perturbations.
 
@@ -247,6 +250,7 @@ class GRN:
                 perturbation, e.g. {("POU5F1", 0.0), ("NANOG", 0.0)}.
             starting_states: indices of observations in self.train to use as initial conditions. Defaults to self.train.obs["is_control"].
             aggregation: one of "before", "after", or "none". If there are multiple starting states
+            do_parallel (bool): if True, use joblib parallelization. 
         """
 
         if starting_states is None:
@@ -255,80 +259,103 @@ class GRN:
         # Handle aggregation of multiple controls
         if aggregation == "before":
             features          = self.features[starting_states,:].mean(axis=0, keepdims = True)
-            metadata_template = self.train[starting_states,:][0,:]
+            n_starting_states = 1
         elif aggregation == "none":
             features = self.features[starting_states,:]
-            metadata_template = self.train[starting_states,:]
+            n_starting_states = sum(starting_states)
         elif aggregation == "after":
             raise NotImplementedError("aggregation after simulation is not implemented yet, sorry.")
         else:
             raise ValueError("aggregation must be 'none', 'before', or 'after'.")
 
-        # Initialize objects
+        # Set up features  
         def perturb_features(features, gene, expression_level_after_perturbation):
             features[:, self.tf_list == gene] = expression_level_after_perturbation
             return features
-        def perturb_metadata(adata, gene, expression_level_after_perturbation):
-            adata.obs["perturbation"]                        = gene
-            adata.obs["expression_level_after_perturbation"] = expression_level_after_perturbation
-            return adata
         features = np.concatenate([
             perturb_features(features.copy(), p[0], p[1])
             for p in perturbations
         ])
-        predictions = anndata.concat(
-            keys = [
-                p[0] + "_" + str(p[1])
-                for p in perturbations
-            ],
-            adatas = [
-                perturb_metadata(metadata_template.copy(), p[0], p[1])
-                for p in perturbations
-            ], 
-            index_unique = "_",
+        # Set up container for output
+        nrow = len(perturbations)*n_starting_states
+        predictions = anndata.AnnData(
+            X = np.zeros((nrow, len(self.train.var_names))),
+            var = self.train.var.copy(),
+            obs = pd.DataFrame(
+                {
+                    "perturbation":"NA", 
+                    "expression_level_after_perturbation": -999
+                }, 
+                index = [str(i) for i in range(nrow)],
+            )
         )
+        for i in range(len(perturbations)):
+            idx = [str(i*n_starting_states + s) for s in range(n_starting_states)]
+            predictions.obs.loc[idx, "perturbation"]                        = perturbations[i][0]
+            predictions.obs.loc[idx, "expression_level_after_perturbation"] = perturbations[i][1]
         # Make predictions
-        for i in range(len(self.models)):
-            target = self.train.var_names[i]
-            if self.training_args["cell_type_sharing_strategy"] == "discrete":
-                for cell_type in      predictions.obs[self.training_args["cell_type_labels"]].unique():
-                    is_in_cell_type = predictions.obs[self.training_args["cell_type_labels"]]==cell_type
-                    regulators = get_regulators(
-                        tf_list = self.tf_list, 
-                        predict_self = self.predict_self, 
-                        network_prior = self.training_args["network_prior"],
-                        target = target, 
-                        network = self.network,
-                        cell_type=cell_type
+        if self.training_args["cell_type_sharing_strategy"] == "discrete":
+            cell_type_labels = predictions.obs[self.training_args["cell_type_labels"]]
+        else:
+            cell_type_labels = None
+        if do_parallel:
+            def do_loop():
+                return Parallel(n_jobs=cpu_count()-1, verbose = 1, backend="loky")(
+                    delayed(self.predict_one_gene)(
+                       self, i, features, cell_type_labels
                     )
-                    is_in_model = [tf in regulators for tf in self.tf_list]
-                    if not any(is_in_model):
-                        X = 1 + 0*features[:,[0]]
-                    else:
-                        X = features[:,is_in_model]
-                    X = X[is_in_cell_type,:]
-                    M = self.models[i][cell_type]
-                    Y = M.predict(X = X).squeeze()
-                    predictions.X[is_in_cell_type, i] = Y
-            elif self.training_args["cell_type_sharing_strategy"] == "identical":
+                    for g in self.train.var_names
+                )
+        else:
+            def do_loop(network = self.network):
+                return [
+                    self.predict_one_gene(
+                        i, features, cell_type_labels
+                    )
+                    for g in self.train.var_names
+                ]
+        return predictions
+
+    def predict_one_gene(self, i, features, cell_type_labels):
+        target = self.var_names[i]
+        predictions = np.zeros(features.shape[0])
+        if self.training_args["cell_type_sharing_strategy"] == "discrete":
+            for cell_type in cell_type_labels.unique():
+                is_in_cell_type = cell_type_labels==cell_type
                 regulators = get_regulators(
                     tf_list = self.tf_list, 
                     predict_self = self.predict_self, 
                     network_prior = self.training_args["network_prior"],
                     target = target, 
                     network = self.network,
-                    cell_type=None
+                    cell_type=cell_type
                 )
                 is_in_model = [tf in regulators for tf in self.tf_list]
                 if not any(is_in_model):
                     X = 1 + 0*features[:,[0]]
                 else:
                     X = features[:,is_in_model]
-                M = self.models[i]
-                Y = M.predict(X = X).squeeze()
-                predictions.X[:, i] = Y
+                X = X[is_in_cell_type,:]
+                M = self.models[i][cell_type]
+                predictions[is_in_cell_type] = M.predict(X = X).squeeze()
+        elif self.training_args["cell_type_sharing_strategy"] == "identical":
+            regulators = get_regulators(
+                tf_list = self.tf_list, 
+                predict_self = self.predict_self, 
+                network_prior = self.training_args["network_prior"],
+                target = target, 
+                network = self.network,
+                cell_type=None
+            )
+            is_in_model = [tf in regulators for tf in self.tf_list]
+            if not any(is_in_model):
+                X = 1 + 0*features[:,[0]]
             else:
-                raise NotImplementedError("Invalid cell_type_sharing_strategy.")
+                X = features[:,is_in_model]
+            M = self.models[i]
+            predictions = M.predict(X = X).squeeze()
+        else:
+            raise NotImplementedError("Invalid cell_type_sharing_strategy.")
         return predictions
 
 def apply_supervised_ml_one_gene(
