@@ -183,11 +183,14 @@ def evaluateOnePrediction(
             os.makedirs(outputs, exist_ok = True)
             plt.figure()
             plots[pert] = sns.scatterplot(x=observed-baseline, y=predicted-baseline, hue=baseline)
-            plots[pert].set(title=pert + " (Spearman rho="+ str(round(metrics.loc[pert,"spearman"])) +")")
-            plots[pert].set_xlabel("Observed log fc", fontsize = 20)
+            plots[pert].set(title=pert + " (Spearman rho="+ str(round(metrics.loc[pert,"spearman"], ndigits=2)) +")")
+            plots[pert].set_xlabel("Observed log fc" , fontsize = 20)
             plots[pert].set_ylabel("Predicted log fc", fontsize = 20)
+            plots[pert].axline((0, 0), slope=1)
             plots[pert].figure.savefig(os.path.join(outputs, f"{pert}.pdf"))
             plt.figure()
+            plt.close(plots[pert].figure)
+            plt.close("all")
     metrics["perturbation"] = metrics.index
     return metrics, plots
     
@@ -263,35 +266,58 @@ def makeNetworkDense(X):
     return X
 
 
-def splitData(adata, allowedRegulators, minTestSetSize = 5):
+def splitData(adata, allowedRegulators, desired_heldout_fraction = 0.5):
     """Determine a train-test split satisfying constraints imposed by base networks and available data.
     
     A few factors complicate the training-test split. 
 
-    - Perturbed genes may be absent from most base GRN's due to lack of motif information or ChIP data. These are excluded from the test data to avoid obvious failure cases.
-    - Perturbed genes may not be measured. These are excluded from test data because we don't know to what extent they were overexpressed.
+    - Perturbed genes may be absent from most base GRN's due to lack of motif information or ChIP data. These are 
+        excluded from the test data to avoid obvious failure cases.
+    - Perturbed genes may not be measured. These are excluded from test data because we don't know to what extent 
+        they were overexpressed.
 
-    In both cases, we still use those perturbed profiles as training data, hoping they will provide useful info about attainable cell states and downstream causal effects. 
+    In both cases, we still use those perturbed profiles as training data, hoping they will provide useful info about 
+    attainable cell states and downstream causal effects. 
 
-    For some collections of base networks, there are many factors ineligible for use as test data -- so many that we use all the eligible ones for test and the only ineligible ones for training. For other cases, such as dense base networks, we have more flexibility, so we send some perturbations to the training set at random even if we would be able to use them in the test set.
+    For some collections of base networks, there are many factors ineligible for use as test data -- so many that 
+    we use all the eligible ones for test and the only ineligible ones for training. 
+    For other cases, such as dense base networks, we have more flexibility, so we send some perturbations to the 
+    training set at random even if we would be able to use them in the test set.
 
     parameters:
     - adata: AnnData object satisfying the expectations outlined in the accompanying collection of perturbation data.
-    - allowedRegulators: list or set of features allowed to be in the test set. In CellOracle, this is usually constrained by motif/chip availability. 
+    - allowedRegulators: list or set of features allowed to be in the test set. In CellOracle, this is usually constrained 
+        by motif/chip availability. 
 
     """
-    allowedRegulators = set(allowedRegulators)
-    allowedRegulators = allowedRegulators.intersection(adata.uns["perturbed_and_measured_genes"])
-    if len(allowedRegulators) <= minTestSetSize:
-        raise ValueError(f"minTestSetSize was set to {minTestSetSize} but only {len(allowedRegulators)} perturbed conditions are available.")
-    testSetPerturbations     = set(adata.obs["perturbation"]).intersection(allowedRegulators)
-    trainingSetPerturbations = set(adata.obs["perturbation"]).difference(allowedRegulators)
-    if len(trainingSetPerturbations) < minTestSetSize:
-        swap = np.random.default_rng(seed=0).choice(list(testSetPerturbations), 
-                                               minTestSetSize - len(trainingSetPerturbations), 
-                                               replace = False)
-        testSetPerturbations = testSetPerturbations.difference(swap)
-        trainingSetPerturbations = trainingSetPerturbations.union(swap)
+    # For a deterministic result when downsampling an iterable, setting a seed alone is not enough.
+    # Must also avoid the use of sets. 
+    get_unique_keep_order = lambda x: list(dict.fromkeys(x))
+    allowedRegulators = [p for p in allowedRegulators if p in adata.uns["perturbed_and_measured_genes"]]
+    testSetEligible   = [p for p in adata.obs["perturbation"] if p     in allowedRegulators]
+    testSetIneligible = [p for p in adata.obs["perturbation"] if p not in allowedRegulators]
+    allowedRegulators = get_unique_keep_order(allowedRegulators)
+    testSetEligible   = get_unique_keep_order(testSetEligible)
+    testSetIneligible = get_unique_keep_order(testSetIneligible)
+    eligible_heldout_fraction = len(testSetEligible)/(0.0+len(allowedRegulators))
+    if eligible_heldout_fraction < desired_heldout_fraction:
+        print("Not enough profiles for the desired_heldout_fraction. Will use all available.")
+        testSetPerturbations = testSetEligible
+        trainingSetPerturbations = testSetIneligible
+    elif eligible_heldout_fraction == desired_heldout_fraction: #nailed it
+        testSetPerturbations = testSetEligible
+        trainingSetPerturbations = testSetIneligible
+    else:
+        numExcessTestEligible = int(np.ceil((eligible_heldout_fraction - desired_heldout_fraction)*len(allowedRegulators)))
+        excessTestEligible = np.random.default_rng(seed=0).choice(
+            testSetEligible, 
+            numExcessTestEligible, 
+            replace = False)
+        testSetPerturbations = [p for p in testSetEligible if p not in excessTestEligible]                      
+        trainingSetPerturbations = list(testSetIneligible) + list(excessTestEligible) 
+    # Now that the random part is done, we can start using sets. Order may change but content won't. 
+    testSetPerturbations     = set(testSetPerturbations)
+    trainingSetPerturbations = set(trainingSetPerturbations)
     adata_train    = adata[adata.obs["perturbation"].isin(trainingSetPerturbations),:]
     adata_heldout  = adata[adata.obs["perturbation"].isin(testSetPerturbations),    :]
     adata_train.uns[  "perturbed_and_measured_genes"]     = set(adata_train.uns[  "perturbed_and_measured_genes"]).intersection(trainingSetPerturbations)
@@ -304,7 +330,7 @@ def splitData(adata, allowedRegulators, minTestSetSize = 5):
     print(len(trainingSetPerturbations))
     return adata_train, adata_heldout
 
-def averagWithinPerturbation(ad: anndata.AnnData, confounders = []):
+def averageWithinPerturbation(ad: anndata.AnnData, confounders = []):
     """Average the expression levels within each level of ad.obs["perturbation"].
 
     Args:
@@ -313,17 +339,22 @@ def averagWithinPerturbation(ad: anndata.AnnData, confounders = []):
     if len(confounders) != 0:
         raise NotImplementedError("Haven't yet decided how to handle confounders when merging replicates.")
 
-    perts = ad.perturbations.unique()
+    perts = ad.obs["perturbation"].unique()
     new_ad = anndata.AnnData(
         X = np.zeros((len(perts), len(ad.var_names))),
-        obs = pd.DataFrame({"perturbation":perts}, index = perts),
+        obs = pd.DataFrame(
+            {"perturbation":perts}, 
+            index = perts, 
+            columns=ad.obs.columns.copy(),
+        ),
         var = ad.var,
     )
     for p in perts:
         p_idx = ad.obs["perturbation"]==p
         new_ad[p,].X = ad[p_idx,:].X.mean(0)
-        new_ad.obs.loc[p,] = ad[p_idx,:].obs.iloc[0,:]
-        new_ad.obs.loc[p,"expression_level_after_perturbation"] = ad[p_idx,:].obs[:, "expression_level_after_perturbation"].mean()
+        new_ad.obs.loc[p,:] = ad[p_idx,:].obs.iloc[0,:]
+        new_ad.obs.loc[p,"expression_level_after_perturbation"] = ad.obs.loc[p_idx, "expression_level_after_perturbation"].mean()
+    new_ad.obs.astype(dtype = {c:ad.obs.dtypes[c] for c in new_ad.obs.columns}, copy = False)
     return new_ad
 
 
