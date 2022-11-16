@@ -45,7 +45,7 @@ class GRN:
         self.train = train 
         assert network is None or type(network)==load_networks.LightNetwork
         self.network = network 
-        self.tf_list = list(set(tf_list).intersection(set(train.var_names)))
+        self.tf_list = [tf for tf in tf_list if tf in train.var_names]
         self.predict_self = predict_self
         self.models = [None for _ in self.train.var_names]
         self.training_args = {}
@@ -145,6 +145,7 @@ class GRN:
                                                 network_prior = network_prior,
                                                 target = self.train.var_names[i], 
                                                 network = self.network,
+                                                cell_type = cell_type,
                                                 ), 
                                         "target": self.train.var_names[i], 
                                         "weight": self.models[i][cell_type].coef_.squeeze(),
@@ -175,8 +176,10 @@ class GRN:
             pruned_network = pruned_network.query("regulator != 'NO_REGULATORS'")
             pruned_network.loc[:, "abs_weight"] = np.abs(pruned_network["weight"])
             pruned_network = pruned_network.nlargest(pruning_parameter, "abs_weight")
+            del pruned_network["abs_weight"]
+            self.network = load_networks.LightNetwork(df=pruned_network)
             print("Re-fitting")
-            self.models = do_loop(network = load_networks.LightNetwork(df=pruned_network))                
+            self.models = do_loop()                
         elif pruning_strategy == "none":
             print("Fitting")
             self.models = do_loop() 
@@ -215,9 +218,23 @@ class GRN:
             projection (str, optional): Not implemented yet.
         """
         # Save some training args to later ensure prediction is consistent with training.
+        self.training_args["confounders"]                = confounders
         self.training_args["network_prior"]              = network_prior
         self.training_args["cell_type_sharing_strategy"] = cell_type_sharing_strategy
         self.training_args["cell_type_labels"]           = cell_type_labels
+        if network_prior != "ignore" and self.training_args["cell_type_sharing_strategy"] != 'identical':
+            ct_from_network = self.network.get_all_one_field("cell_type")
+            ct_from_trainset = self.train.obs[cell_type_labels]
+            ct_missing = [ct for ct in ct_from_trainset if ct not in ct_from_network]
+            prettyprint = lambda x: '\n'.join(x)
+            if len(ct_from_network) > 0:
+                if len(ct_missing)>0:
+                    raise ValueError(
+                        "Some cell types in the training data are not in the networks."
+                        "Trainset: \n" f"{prettyprint(ct_from_trainset)}"
+                        "Networks: \n" f"{prettyprint(ct_from_network)}"
+                        "Missing:  \n" f"{prettyprint(ct_missing)}"
+                    )
 
         if method == "linear":
             def FUN(X,y):
@@ -248,36 +265,36 @@ class GRN:
         Args:
             perturbations (iterable of tuples): Iterable of tuples with gene and its expression after 
                 perturbation, e.g. {("POU5F1", 0.0), ("NANOG", 0.0)}.
-            starting_states: indices of observations in self.train to use as initial conditions. Defaults to self.train.obs["is_control"].
+            starting_states: indices of observations in self.train to use as initial conditions. 
+                Defaults to self.train.obs["is_control"].
+                Must be boolean.
             aggregation: one of "before", "after", or "none". If there are multiple starting states
             do_parallel (bool): if True, use joblib parallelization. 
         """
 
         if starting_states is None:
             starting_states = self.train.obs["is_control"].copy()
-        
+        assert all([type(b)==bool for b in starting_states]), "starting_states must be boolean."
         # Handle aggregation of multiple controls
         if aggregation == "before":
-            features          = self.features[starting_states,:].mean(axis=0, keepdims = True)
+            init_features = self.features[starting_states,:].mean(axis=0, keepdims = True)
             n_starting_states = 1
+            first_entry = np.argmax(starting_states)
+            starting_states = [i==first_entry for i in range(len(starting_states))]
         elif aggregation == "none":
-            features = self.features[starting_states,:]
+            init_features = self.features[starting_states,:]
             n_starting_states = sum(starting_states)
         elif aggregation == "after":
             raise NotImplementedError("aggregation after simulation is not implemented yet, sorry.")
         else:
             raise ValueError("aggregation must be 'none', 'before', or 'after'.")
 
-        # Set up features  
-        def perturb_features(features, gene, expression_level_after_perturbation):
-            features[:, self.tf_list == gene] = expression_level_after_perturbation
-            return features
-        features = np.concatenate([
-            perturb_features(features.copy(), p[0], p[1])
-            for p in perturbations
-        ])
-        # Set up container for output
+        # Set up containers for output & features
         nrow = len(perturbations)*n_starting_states
+        features = np.zeros((nrow, len(self.tf_list)))
+        columns_to_transfer = self.training_args["confounders"].copy()
+        if self.training_args["cell_type_sharing_strategy"] != "identical":
+            columns_to_transfer.append(self.training_args["cell_type_labels"])
         predictions = anndata.AnnData(
             X = np.zeros((nrow, len(self.train.var_names))),
             var = self.train.var.copy(),
@@ -287,14 +304,23 @@ class GRN:
                     "expression_level_after_perturbation": -999
                 }, 
                 index = [str(i) for i in range(nrow)],
+                columns = ["perturbation", "expression_level_after_perturbation"] + columns_to_transfer,
             )
         )
+        # implement perturbations
         for i in range(len(perturbations)):
-            idx = [str(i*n_starting_states + s) for s in range(n_starting_states)]
-            predictions.obs.loc[idx, "perturbation"]                        = perturbations[i][0]
-            predictions.obs.loc[idx, "expression_level_after_perturbation"] = perturbations[i][1]
+            idx     = [i*n_starting_states + s for s in range(n_starting_states)]
+            idx_str = [str(j) for j in idx]
+            column = [tf == perturbations[i][0] for tf in self.tf_list]
+            features[idx, :] = init_features
+            features[idx, column] = perturbations[i][1]
+            predictions.obs.loc[idx_str, "perturbation"]                        = perturbations[i][0]
+            predictions.obs.loc[idx_str, "expression_level_after_perturbation"] = perturbations[i][1]
+            for col in columns_to_transfer:
+                predictions.obs.loc[idx_str, col] = self.train.obs.loc[starting_states, col].values
+
         # Make predictions
-        if self.training_args["cell_type_sharing_strategy"] == "discrete":
+        if self.training_args["cell_type_sharing_strategy"] == "distinct":
             cell_type_labels = predictions.obs[self.training_args["cell_type_labels"]]
         else:
             cell_type_labels = None
@@ -302,9 +328,9 @@ class GRN:
             def do_loop():
                 return Parallel(n_jobs=cpu_count()-1, verbose = 1, backend="loky")(
                     delayed(self.predict_one_gene)(
-                       self, i, features, cell_type_labels
+                       i, features, cell_type_labels
                     )
-                    for g in self.train.var_names
+                    for i in range(len(self.train.var_names))
                 )
         else:
             def do_loop(network = self.network):
@@ -312,14 +338,27 @@ class GRN:
                     self.predict_one_gene(
                         i, features, cell_type_labels
                     )
-                    for g in self.train.var_names
+                    for i in range(len(self.train.var_names))
                 ]
+        y = do_loop()
+        for i in range(len(self.train.var_names)):
+            predictions.X[:,i] = y[i]
         return predictions
 
-    def predict_one_gene(self, i, features, cell_type_labels):
-        target = self.var_names[i]
+    def predict_one_gene(self, i: int, features, cell_type_labels) -> np.array:
+        """Predict expression of one gene after perturbation. 
+
+        Args:
+            i (int): Which gene to predict.
+            features (_type_): inputs to predictive model, with shape num_regulators by num_perturbations. 
+            cell_type_labels (_type_): in case models are cell type-specific, this specifies the cell types. 
+
+        Returns:
+            np.array: Expression of gene i across all perturbed samples. 
+        """
+        target = self.train.var_names[i]
         predictions = np.zeros(features.shape[0])
-        if self.training_args["cell_type_sharing_strategy"] == "discrete":
+        if self.training_args["cell_type_sharing_strategy"] == "distinct":
             for cell_type in cell_type_labels.unique():
                 is_in_cell_type = cell_type_labels==cell_type
                 regulators = get_regulators(
@@ -354,6 +393,7 @@ class GRN:
                 X = features[:,is_in_model]
             M = self.models[i]
             predictions = M.predict(X = X).squeeze()
+            
         else:
             raise NotImplementedError("Invalid cell_type_sharing_strategy.")
         return predictions
@@ -386,9 +426,8 @@ def apply_supervised_ml_one_gene(
         _type_: dict with cell types as keys and with values containing result of FUN. see GRN.fit docs.
     """
     if training_args["cell_type_sharing_strategy"] == "distinct":
-        assert training_args["cell_type_labels"] is not None,          "cell_type_labels must name a column in .obs of training data."
-        assert training_args["cell_type_labels"] in train_obs.columns, "cell_type_labels must name a column in .obs of training data."
-        assert pd.api.types.is_string_dtype(train_obs[training_args["cell_type_labels"]]), "cell_type_labels must name a string column in .obs of training data."
+        assert training_args["cell_type_labels"] is not None,               "cell_type_labels must be provided."
+        assert training_args["cell_type_labels"] in set(train_obs.columns), "cell_type_labels must name a column in .obs of training data."
         models = {}
         for cell_type in train_obs[training_args["cell_type_labels"]].unique():
             rrrelevant_rrregulators = get_regulators(
@@ -397,7 +436,7 @@ def apply_supervised_ml_one_gene(
                 network_prior = network_prior,
                 target        = target, 
                 network       = network,
-                cell_type = cell_type,
+                cell_type     = cell_type, 
             )
             is_in_model = [tf in rrrelevant_rrregulators for tf in tf_list]
             is_in_cell_type = train_obs[training_args["cell_type_labels"]]==cell_type
@@ -451,10 +490,9 @@ def get_regulators(tf_list, predict_self, network_prior: str, target: str, netwo
     elif network_prior == "restrictive":
         assert network is not None, "For restrictive network priors, you must provide the network as a LightNetwork object."
         regulators = network.get_regulators(target=target)
-        if cell_type is not None:
-            assert "cell_type" in regulators.keys(), "'cell_type' must be a column in the provided network."
+        if cell_type is not None and "cell_type" in regulators.keys():
             regulators = regulators.loc[regulators["cell_type"]==cell_type,:]
-        selected_features = [tf for tf in tf_list if tf in regulators["regulator"]]
+        selected_features = [tf for tf in tf_list if tf in set(regulators["regulator"])]
     else:
         raise ValueError("network_prior must be one of 'ignore' and 'restrictive'. ")
 
