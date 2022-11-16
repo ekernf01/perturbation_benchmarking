@@ -84,28 +84,4 @@ def plot(evaluationResults, output):
       evaluationResults (_type_): dataframe with evaluation results, often one row per combo of method and gene
       output (_type_): where to save output
   """
-  baseNetworkComparisonFigure = sns.FacetGrid(evaluationResults[~evaluationResults['somePredictionRefused']], 
-                                              col = 'pruning',
-                                              sharey = False, 
-                                              height=5, 
-                                              aspect=1).set(title = "Performance")
-  baseNetworkComparisonFigure.map(sns.violinplot, "spearman", "network", 
-                                  palette=["r", "b", "k", "y", "g"]
-                              ).add_legend()
-  baseNetworkComparisonFigure.set(ylabel="Spearman correlation\nminus average over all methods")
-  baseNetworkComparisonFigureCompact.savefig(os.path.join(output, "baseNetworkComparisonFigure.pdf"))
-  baseNetworkComparisonFigureCompact.savefig(os.path.join(output, "baseNetworkComparisonFigure.svg"))
-  summary = evaluationResults[~evaluationResults['somePredictionRefused']]
-  summary = summary.groupby(["pruning", "network"]).mean()[["spearman"]].reset_index(["pruning", "network"])
-  summary = summary.merge(network_sizes)
-  summary.sort_values(['pruning', 'network'], inplace=True)
-  summary.to_csv(os.path.join(outputs, "networksExperimentEvaluationSummary.csv"))
-  baseNetworkComparisonFigureCompact = sns.scatterplot(data=summary[[p!="harsh" for p in summary["pruning"]]],
-                  x='numEdges',
-                  y='spearman', 
-                  hue='network')
-  baseNetworkComparisonFigureCompact.set_xscale("log")
-  baseNetworkComparisonFigureCompact.set(title="Density vs performance")
-  baseNetworkComparisonFigureCompact.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-  baseNetworkComparisonFigureCompact.savefig(os.path.join(output, "baseNetworkComparisonFigureCompact.pdf"))
-  baseNetworkComparisonFigureCompact.savefig(os.path.join(output, "baseNetworkComparisonFigureCompact.svg"))
+  return
