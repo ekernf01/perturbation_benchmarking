@@ -72,7 +72,8 @@ def evaluateCausalModel(
     outputs: str, 
     factor_varied: str,
     default_level, 
-    classifier = None):
+    classifier = None, 
+    do_scatterplots = True):
     """Compile plots and tables comparing heldout data and predictions for same. 
 
     Args:
@@ -95,16 +96,14 @@ def evaluateCausalModel(
                 expression =                        heldout[:, shared_var_names], 
                 predictedExpression=predictions[experiment][:, shared_var_names],   
                 baseline =                         baseline[:, shared_var_names],     
-                doPlots=True, 
+                doPlots=do_scatterplots, 
                 outputs = os.path.join(outputs, "plots", str(experiment)),
                 classifier=classifier
-            )[0]
+            )
         evaluationResults[experiment]["index"] = experiment
     evaluationResults = pd.concat(evaluationResults)
     evaluationResults = evaluationResults.merge(experiments, how = "left", right_index = True, left_on = "index")
     evaluationResults = pd.DataFrame(evaluationResults.to_dict())
-    # TO DO: Estimate a per-gene fixed effect 
-    # evaluationResults["spearman_gene_effect"] = 
     # Mark anything where predictions were unavailable
     noPredictionMade = evaluationResults.iloc[[x==0 for x in evaluationResults["spearman"]],:]['perturbation']
     noPredictionMade = set(noPredictionMade)
@@ -113,11 +112,6 @@ def evaluateCausalModel(
     # Save main results
     evaluationResults.to_csv(outputs +"/evaluationResults.csv")
     vlnplot = makeMainPlots(factor_varied=factor_varied,  outputs=outputs, evaluationResults=evaluationResults)
-    # Which genes are best/worst?
-    hardest = evaluationResults.loc[evaluationResults["spearman"].idxmax(),"perturbation"]
-    easiest = evaluationResults.loc[evaluationResults["spearman"].idxmin(),"perturbation"]
-    evaluationResults.loc[evaluationResults["perturbation"]==hardest,:].to_csv(outputs +"/hardest.csv")
-    evaluationResults.loc[evaluationResults["perturbation"]==easiest,:].to_csv(outputs +"/easiest.csv")
     return evaluationResults, vlnplot
 
 def evaluateOnePrediction(
@@ -157,12 +151,7 @@ def evaluateOnePrediction(
         raise ValueError("expression and baseline must have the same number of genes.")
     predictedExpression.obs_names = expression.obs_names
     baseline = baseline.X.mean(axis=0).squeeze()
-    plots = {}
     metrics = pd.DataFrame(index = predictedExpression.obs.index, columns = ["spearman", "spearmanp", "cell_fate_correct"])
-    try:
-        shutil.rmtree(outputs)
-    except FileNotFoundError:
-        pass
     for pert in predictedExpression.obs.index:
         if do_careful_checks:
             assert all(
@@ -178,21 +167,47 @@ def evaluateOnePrediction(
             if classifier is not None:
                 class_observed  = classifier.predict(np.reshape(observed,  (1, -1)))[0]
                 class_predicted = classifier.predict(np.reshape(predicted, (1, -1)))[0]
-                metrics.loc[pert,"cell_fate_correct"] = 1.0*(class_observed==class_predicted)            
-        if doPlots:
+                metrics.loc[pert,"cell_fate_correct"] = 1.0*(class_observed==class_predicted)  
+     
+    metrics["spearman"] = metrics["spearman"].astype(float)
+    hardest = metrics["spearman"].idxmin()
+    easiest = metrics["spearman"].idxmax()
+    for pert in metrics.index:
+        observed  = expression[         pert,:].X.squeeze()
+        predicted = predictedExpression[pert,:].X.squeeze()
+        is_hardest = hardest==pert
+        is_easiest = easiest==pert
+        if doPlots | is_hardest | is_easiest:
             os.makedirs(outputs, exist_ok = True)
-            plt.figure()
-            plots[pert] = sns.scatterplot(x=observed-baseline, y=predicted-baseline, hue=baseline)
-            plots[pert].set(title=pert + " (Spearman rho="+ str(round(metrics.loc[pert,"spearman"], ndigits=2)) +")")
-            plots[pert].set_xlabel("Observed log fc" , fontsize = 20)
-            plots[pert].set_ylabel("Predicted log fc", fontsize = 20)
-            plots[pert].axline((0, 0), slope=1)
-            plots[pert].figure.savefig(os.path.join(outputs, f"{pert}.pdf"))
-            plt.figure()
-            plt.close(plots[pert].figure)
-            plt.close("all")
+            diagonal = alt.Chart(
+                pd.DataFrame({
+                    "x":[-1, 1],
+                    "y":[-1,1 ],
+                })
+            ).mark_line(color= 'black').encode(
+                x= 'x',
+                y= 'y',
+            )
+            scatterplot = alt.Chart(
+                pd.DataFrame({
+                    "Observed log fc": observed-baseline, 
+                    "Predicted log fc": predicted-baseline, 
+                    "Baseline expression":baseline,
+                })
+            ).mark_circle().encode(
+                x="Observed log fc:Q",
+                y="Predicted log fc:Q",
+                color="Baseline expression:Q",
+            ).properties(
+                title=pert + " (Spearman rho="+ str(round(metrics.loc[pert,"spearman"], ndigits=2)) +")"
+            ) + diagonal
+            scatterplot.save(os.path.join(outputs, f"{pert}.pdf"))
+            if is_easiest:
+                scatterplot.save(os.path.join(outputs, f"_easiest({pert}).pdf"))
+            if is_hardest:
+                scatterplot.save(os.path.join(outputs, f"_hardest({pert}).pdf"))
     metrics["perturbation"] = metrics.index
-    return metrics, plots
+    return metrics
     
 def networkEdgesToMatrix(networkEdges, regulatorColumn=0, targetColumn=1):
     """Reformat a network from a two-column dataframe to the way that celloracle needs its input."""
