@@ -7,6 +7,7 @@ import predict
 import scanpy as sc
 import anndata
 import gc 
+import altair as alt
 
 def lay_out_runs(
   train_data: anndata.AnnData, 
@@ -32,6 +33,10 @@ def lay_out_runs(
   experiments = pd.DataFrame(
     {
       "network":[n for n in networks.keys()], 
+      "network_prior":[
+        "ignore" if list(networks.keys())[i] == "dense" else "restrictive"
+        for i in range(len(networks.keys()))
+      ]
     }
   )
   return experiments
@@ -64,7 +69,7 @@ def do_one_run(
       method = "linear", 
       cell_type_labels = None,
       cell_type_sharing_strategy = "identical",
-      network_prior = "restrictive",
+      network_prior = experiments.loc[i, 'network_prior'],
       pruning_strategy = "none", 
       pruning_parameter = None,
       projection = "none", 
@@ -84,4 +89,19 @@ def plot(evaluationResults, output):
       evaluationResults (_type_): dataframe with evaluation results, often one row per combo of method and gene
       output (_type_): where to save output
   """
-  return
+  vlnplot = alt.Chart(
+      data = evaluationResults, 
+      title = "Spearman correlation (predicted log fold change vs observed)"
+  ).mark_boxplot()
+  vlnplot=vlnplot.encode(
+      y=alt.Y('spearman:Q'),
+      color="is_tf_in_network:N",
+      x=alt.X(
+          'network:N'
+      )
+  ).properties(
+      width=400,
+      height=400
+  )
+  vlnplot.save(f'{output}/custom_stripchart.pdf')
+  return vlnplot
