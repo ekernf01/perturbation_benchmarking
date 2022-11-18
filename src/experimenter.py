@@ -4,6 +4,7 @@ import gc
 import json
 import yaml
 import gc
+import pandas as pd
 # Deal with various file paths specific to this project
 PROJECT_PATH = '/home/ekernf01/Desktop/jhu/research/projects/perturbation_prediction/cell_type_knowledge_transfer/'
 os.chdir(PROJECT_PATH + "perturbation_benchmarking")
@@ -43,6 +44,23 @@ def validate_metadata(experiment_name, permissive = False):
         code_location = os.path.expanduser(os.path.join('experiments', experiment_name))
         metadata["refers_to"] = None
 
+    # Make sure we have all the metadata
+    missing = [k for k in (
+        "merge_replicates",
+        "unique_id",
+        "nickname",
+        "readme",
+        "question",
+        "is_active",
+        "factor_varied",    
+        "color_by",
+        "facet_by",
+        "merge_replicates",
+        "perturbation_dataset",
+        "network_datasets",
+    ) if k not in metadata.keys()]
+    assert len(missing)==0, f"Metadata is missing some required keys: {missing[0]}"
+
     # network handling is complex; add some default behavior to reduce metadata boilerplate
     for netName in metadata["network_datasets"].keys():
         if not "subnets" in metadata["network_datasets"][netName].keys():
@@ -55,7 +73,7 @@ def validate_metadata(experiment_name, permissive = False):
     if not permissive:
         assert metadata["perturbation_dataset"] in set(load_perturbations.load_perturbation_metadata().query("is_ready=='yes'")["name"]), "perturbation data exist as named"
         for netName in metadata["network_datasets"].keys():
-            assert netName in set(load_networks.load_grn_metadata()["name"]).union({"dense"}) or "random" in netName, "Networks exist as named"
+            assert netName in set(load_networks.load_grn_metadata()["name"]).union({"dense", "empty"}) or "random" in netName, "Networks exist as named"
             assert "subnets" in metadata["network_datasets"][netName].keys(), "Optional metadata fields filled correctly"
             assert "do_aggregate_subnets" in metadata["network_datasets"][netName].keys(), "Optional metadata fields filled correctly"
 
@@ -89,6 +107,12 @@ def get_subnets(netName:str, subnets:list, test_mode, target_genes = None, do_ag
                 ) 
             )
         }
+    elif "empty" == netName or "dense" == netName:
+        networks = { 
+            netName: load_networks.LightNetwork(df=pd.DataFrame(index=[], columns=["regulator", "target", "weight"]))
+        }
+        if "dense"==netName:
+            print("WARNING: for 'dense' network, returning an empty network. In GRN.fit(), use network_prior='ignore'. ")
     else:            
         networks = {}
         if do_aggregate_subnets:

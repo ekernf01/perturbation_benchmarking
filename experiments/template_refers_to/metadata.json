@@ -4,6 +4,7 @@
     "readme": "This experiment uses the same logic as experiment <refers_to>, with different networks and perturbation data.",
     "refers_to": "????",
     "is_active": false,
+    "merge_replicates": true,
     "perturbation_dataset": "cmap",
     "network_datasets": {
         "dense": {},

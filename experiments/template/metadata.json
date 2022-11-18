@@ -7,6 +7,7 @@
     "factor_varied": "????",    
     "color_by": null,
     "facet_by": "????",
+    "merge_replicates": true,
     "perturbation_dataset": "nakatake",
     "network_datasets": {
         "dense": {},

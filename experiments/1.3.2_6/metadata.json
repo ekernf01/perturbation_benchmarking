@@ -5,6 +5,7 @@
     "refers_to": "1.3.2_1",
     "is_active": true,
     "perturbation_dataset": "replogle",
+    "merge_replicates": true,
     "network_datasets": {
         "magnum_compendium_394": {
             "subnets": [

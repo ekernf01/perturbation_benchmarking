@@ -37,9 +37,9 @@ print(args)
 # For interactive sessions
 if args.experiment_name is None:
     args = Namespace(**{
-        "experiment_name":'1.4_1',
-        "test_mode":False,
-        "amount_to_do": "missing_models"
+        "experiment_name":'test',
+        "test_mode":True,
+        "amount_to_do": "models"
     })
 
 # Deal with various file paths specific to this project
@@ -69,11 +69,16 @@ print("Starting at " + str(datetime.datetime.now()), flush = True)
 
 if args.amount_to_do in {"models", "missing_models", "evaluations"}:
     perturbed_expression_data = load_perturbations.load_perturbation(metadata["perturbation_dataset"])
-    # perturbed_expression_data = evaluator.averageWithinPerturbation(perturbed_expression_data)
+    try:
+        perturbed_expression_data = perturbed_expression_data.to_memory()
+    except ValueError: #Object is already in memory.
+        pass
+    if metadata["merge_replicates"]:
+        perturbed_expression_data = evaluator.averageWithinPerturbation(ad=perturbed_expression_data)
 
     # Get networks
     networks = {}
-    for netName in metadata["network_datasets"].keys():
+    for netName in list(metadata["network_datasets"].keys()):
         networks = networks | experimenter.get_subnets(
             netName, 
             subnets = metadata["network_datasets"][netName]["subnets"], 
@@ -82,15 +87,13 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
             do_aggregate_subnets = metadata["network_datasets"][netName]["do_aggregate_subnets"]
         )
 
-    # load & split perturbation data
-    print("Loading & splitting perturbation data.", flush = True)
-    try:
-        perturbed_expression_data = perturbed_expression_data.to_memory()
-    except ValueError: #Object is already in memory.
-        pass
-
+    print("Splitting perturbation data.", flush = True)
     if args.test_mode:
-        perturbed_expression_data = evaluator.downsample(perturbed_expression_data, proportion = 0.2, proportion_genes = 0.01)
+        perturbed_expression_data = evaluator.downsample(
+            adata = perturbed_expression_data,
+            proportion = 0.2,
+            proportion_genes = 0.01,
+        )
     if any(networks):
         allowedRegulators = set.union(*[networks[key].get_all_regulators() for key in networks])
     else:
@@ -150,6 +153,7 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
         factor_varied = metadata["factor_varied"], 
         default_level = None,
         classifier = None,
+        do_scatterplots = False
     )
     evaluationResults.to_parquet(          os.path.join(outputs, "networksExperimentEvaluation.parquet"))
 

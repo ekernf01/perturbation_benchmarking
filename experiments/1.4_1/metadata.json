@@ -19,7 +19,9 @@
         "MARA_FANTOM4":          { "do_aggregate_subnets": true },
         "STRING":                { "do_aggregate_subnets": true },    
         "ANANSE_0.5":            { "do_aggregate_subnets": true },
-        "ANANSE_tissue_0.5":     { "do_aggregate_subnets": true }
+        "ANANSE_tissue_0.5":     { "do_aggregate_subnets": true },
+        "empty":     { "do_aggregate_subnets": true }, 
+        "dense":     { "do_aggregate_subnets": true }
     }
 }
 

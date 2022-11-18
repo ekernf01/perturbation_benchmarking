@@ -8,6 +8,7 @@
     "color_by": "seed",
     "factor_varied": "training_set_size",
     "default_level": null,
+    "merge_replicates": true,
     "perturbation_dataset": "nakatake",
     "network_datasets": {
         "celloracle_human":{}
