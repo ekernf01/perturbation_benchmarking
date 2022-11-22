@@ -19,6 +19,7 @@ import gc
 parser = argparse.ArgumentParser("experimenter")
 parser.add_argument("--experiment_name", help="Unique id for the experiment.", type=str)
 parser.add_argument("--test_mode",       help="If true, use a small subset of the perturbation data.",     default = False, action = "store_true")
+parser.add_argument("--save_trainset_predictions", help="If true, make & save predictions of training data.", default = False, action = "store_true")
 parser.add_argument(
     "--amount_to_do",
     choices = ["plots", "evaluations", "models", "missing_models"],
@@ -37,9 +38,10 @@ print(args)
 # For interactive sessions
 if args.experiment_name is None:
     args = Namespace(**{
-        "experiment_name":'test',
-        "test_mode":True,
-        "amount_to_do": "models"
+        "experiment_name":'1.4_2',
+        "test_mode":False,
+        "amount_to_do": "missing_models",
+        "save_trainset_predictions": False,
     })
 
 # Deal with various file paths specific to this project
@@ -57,7 +59,7 @@ importlib.reload(experimenter)
 importlib.reload(load_perturbations)
 os.environ["PERTURBATION_PATH"]  = PROJECT_PATH + "perturbation_data/perturbations"
 outputs = os.path.join("experiments", args.experiment_name, "outputs")
-
+os.makedirs(outputs, exist_ok=True)
 
 # Load experiment code
 metadata, code_location = experimenter.validate_metadata(experiment_name=args.experiment_name)
@@ -102,47 +104,54 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
         evaluator.splitData(perturbed_expression_data, allowedRegulators, desired_heldout_fraction=0.5)
     del perturbed_expression_data
     gc.collect()
-    # Experiment-specific code goes elsewhere
-    pp = [
-            (r[1][0], r[1][1]) 
-            for r in perturbed_expression_data_heldout.obs[["perturbation", "expression_level_after_perturbation"]].iterrows()
-        ]
 
 if args.amount_to_do in {"models", "missing_models"}:
     print("Running experiment", flush = True)
     experiments = this_experiment.lay_out_runs(
             train_data = perturbed_expression_data_train, 
             test_data  = perturbed_expression_data_heldout,
-            perturbationsToPredict = pp,
             networks = networks, 
             outputs = outputs,
             )
     experiments.to_csv( os.path.join(outputs, "experiments.csv") )
-    os.makedirs(os.path.join( outputs, "predictions" ), exist_ok=True) 
+    os.makedirs(os.path.join( outputs, "predictions"   ), exist_ok=True) 
+    os.makedirs(os.path.join( outputs, "fitted_values" ), exist_ok=True) 
     for i in experiments.index:
-        h5ad = os.path.join( outputs, "predictions", str(i) + ".h5ad" )
+        h5ad        = os.path.join( outputs, "predictions", str(i) + ".h5ad" )
+        h5ad_fitted = os.path.join( outputs, "fitted_values", str(i) + ".h5ad" )
         if (args.amount_to_do in {"models"}) or not os.path.isfile(h5ad):
             try:
                 os.unlink(h5ad)
             except FileNotFoundError:
                 pass
-            predictions = this_experiment.do_one_run(
+            grn = this_experiment.do_one_run(
                 experiments, 
                 i,
                 train_data = perturbed_expression_data_train, 
                 test_data  = perturbed_expression_data_heldout,
-                perturbationsToPredict = pp,
                 networks = networks, 
                 outputs = outputs,
             )
             print("Saving predictions...", flush = True)
+            predictions   = grn.predict([
+                (r[1][0], r[1][1]) 
+                for r in perturbed_expression_data_heldout.obs[["perturbation", "expression_level_after_perturbation"]].iterrows()
+            ]) 
             predictions.write_h5ad( h5ad )
+            if args.save_trainset_predictions:
+                fitted_values = grn.predict([
+                    (r[1][0], r[1][1]) 
+                    for r in perturbed_expression_data_train.obs[["perturbation", "expression_level_after_perturbation"]].iterrows()
+                ])
+                fitted_values.write_h5ad( h5ad_fitted )
             print("... done.", flush = True)
+            del grn
 
 if args.amount_to_do in {"models", "missing_models", "evaluations"}:
     print("Retrieving saved predictions", flush = True)
     experiments = pd.read_csv( os.path.join(outputs, "experiments.csv") )
-    predictions = {i:sc.read_h5ad( os.path.join(outputs, "predictions", str(i) + ".h5ad" ) ) for i in experiments.index}
+    predictions   = {i:sc.read_h5ad( os.path.join(outputs, "predictions",   str(i) + ".h5ad" ) ) for i in experiments.index}
+    fitted_values = {i:sc.read_h5ad( os.path.join(outputs, "fitted_values", str(i) + ".h5ad" ) ) for i in experiments.index}
 
     evaluationResults, vlnplot = evaluator.evaluateCausalModel(
         heldout = perturbed_expression_data_heldout, 
@@ -155,10 +164,22 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
         classifier = None,
         do_scatterplots = False
     )
-    evaluationResults.to_parquet(          os.path.join(outputs, "networksExperimentEvaluation.parquet"))
+    evaluationResultsTrainset, vlnplotTrainset = evaluator.evaluateCausalModel(
+        heldout = perturbed_expression_data_train, 
+        predictions = fitted_values, 
+        baseline = perturbed_expression_data_train[perturbed_expression_data_train.obs["is_control"], :],
+        experiments = experiments, 
+        outputs = os.path.join(outputs, "trainset_performance"), 
+        factor_varied = metadata["factor_varied"], 
+        default_level = None,
+        classifier = None,
+        do_scatterplots = False
+    )
+    evaluationResults.to_parquet(          os.path.join(outputs, "evaluationResults.parquet"))
+    evaluationResultsTrainset.to_parquet(  os.path.join(outputs, "evaluationResultsTrainset.parquet"))
 
 if args.amount_to_do in {"plots", "models", "missing_models", "evaluations"}:
-    evaluationResults = pd.read_parquet(os.path.join(outputs, "networksExperimentEvaluation.parquet"))
+    evaluationResults = pd.read_parquet(os.path.join(outputs, "evaluationResults.parquet"))
     evaluator.makeMainPlots(
         evaluationResults, 
         outputs = outputs, 

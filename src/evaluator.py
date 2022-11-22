@@ -155,8 +155,8 @@ def evaluateOnePrediction(
     for pert in predictedExpression.obs.index:
         if do_careful_checks:
             assert all(
-                                 expression.obs.loc[pert, ["perturbation", "expression_level_after_perturbation"]] == \
-                        predictedExpression.obs.loc[pert, ["perturbation", "expression_level_after_perturbation"]] 
+                                 expression.obs.loc[pert, ["perturbation", "expression_level_after_perturbation"]].fillna(0) == \
+                        predictedExpression.obs.loc[pert, ["perturbation", "expression_level_after_perturbation"]].fillna(0) 
                     )
         observed  = expression[         pert,:].X.squeeze()
         predicted = predictedExpression[pert,:].X.squeeze()
@@ -369,7 +369,9 @@ def averageWithinPerturbation(ad: anndata.AnnData, confounders = []):
         new_ad[p,].X = ad[p_idx,:].X.mean(0)
         new_ad.obs.loc[p,:] = ad[p_idx,:].obs.iloc[0,:]
         new_ad.obs.loc[p,"expression_level_after_perturbation"] = ad.obs.loc[p_idx, "expression_level_after_perturbation"].mean()
-    new_ad.obs.astype(dtype = {c:ad.obs.dtypes[c] for c in new_ad.obs.columns}, copy = False)
+    new_ad.obs = new_ad.obs.astype(dtype = {c:ad.obs.dtypes[c] for c in new_ad.obs.columns}, copy = True)
+    new_ad.raw = ad.copy()
+    new_ad.uns = ad.uns.copy()
     return new_ad
 
 
