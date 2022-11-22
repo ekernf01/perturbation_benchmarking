@@ -63,7 +63,6 @@ class TestModelRuns(unittest.TestCase):
             do_parallel=False,
         )
         p = grn.predict((("KLF8", 0), ("GATA1", 0)))
-        print(p)
         self.assertIsInstance(
             p, anndata.AnnData
         )
@@ -79,7 +78,14 @@ class TestModelRuns(unittest.TestCase):
             pruning_parameter = None, 
         )
         p = grn.predict((("KLF8", 0), ("GATA1", 0)))
-        print(p)
+        self.assertIsInstance(
+            p, anndata.AnnData
+        )
+        p = grn.simulate_data((("KLF8", 0), ("GATA1", 0)), effects = "uniform_on_provided_network", noise_sd=1)
+        self.assertIsInstance(
+            p, anndata.AnnData
+        )
+        p = grn.simulate_data((("KLF8", 0), ("GATA1", 0)), effects = "fitted_models", noise_sd=1)
         self.assertIsInstance(
             p, anndata.AnnData
         )
@@ -95,7 +101,6 @@ class TestModelRuns(unittest.TestCase):
             pruning_parameter = 5000, 
         )
         p = grn.predict((("KLF8", 0), ("GATA1", 0)))
-        print(p)
         self.assertIsInstance(
             p, anndata.AnnData
         )

@@ -22,6 +22,14 @@ importlib.reload(load_networks)
 import load_perturbations
 importlib.reload(load_perturbations)
 
+
+class LinearSimulator:
+    """Stand-in for RidgeCV to allow simulation prior to model fitting."""
+    def __init__(self, dimension) -> None:
+        self.coef_ = np.ones(dimension) / dimension
+    def predict(self, X):
+        return X.dot(self.coef_)
+
 class GRN:
     """
     Flexible inference of gene regulatory network models.
@@ -185,7 +193,45 @@ class GRN:
             self.models = do_loop() 
         else:
             raise NotImplementedError("pruning_strategy should be one of 'none', 'lasso', 'prune_and_refit' ")
-                
+    
+    def simulate_data(
+        self,
+        perturbations,
+        effects: str = "fitted_models",
+        noise_sd = None,
+    ) -> anndata.AnnData:
+        """Generate simulated expression data
+
+        Args:
+            perturbations (_type_): See GRN.predict()
+            effects (str, optional): Either "fitted_models" (use effect sizes from an already-trained GRN) or
+                "uniform_on_provided_network" (use a provided network structure with small positive effects for all regulators).
+            noise_sd (_type_, optional): _description_. Defaults to None.
+
+        Returns:
+            anndata.AnnData: simulated gene expression values.
+        """
+        if effects == "fitted_models":
+            adata = self.predict(perturbations, add_noise=True, noise_sd=noise_sd)
+        elif effects == "uniform_on_provided_network":
+            if self.network is None:
+                raise ValueError("For network-based simulation, network structure must be provided during GRN initialization.")
+            self.training_args["predict_self"] = False
+            self.training_args["network_prior"] = "restrictive"
+            self.training_args["cell_type_sharing_strategy"] = "identical"
+            for i in range(len(self.train.var_names)):
+                self.models[i] = LinearSimulator(dimension=len(get_regulators(
+                    self.tf_list, 
+                    predict_self = False, 
+                    target = self.train.var_names[i],
+                    network = self.network,
+                    network_prior=self.training_args["network_prior"],
+                )))
+            adata = self.predict(perturbations, add_noise=True, noise_sd=noise_sd)
+        else:
+            raise ValueError("'effects' must be one of 'fitted_models' or 'uniform_on_provided_network'.")
+        return adata
+
     def fit(
         self,
         method: str, 
@@ -241,7 +287,8 @@ class GRN:
                 return lm.RidgeCV(
                     alphas=(0.01, 0.1, 1.0, 10.0, 100), 
                     fit_intercept=True,
-                    alpha_per_target=False
+                    alpha_per_target=False, 
+                    store_cv_values=True, #this lets us use ._cv_values later for simulating data.
                 ).fit(X, y)
         else:
             raise NotImplementedError("Only 'linear' is supported so far.")
@@ -259,6 +306,8 @@ class GRN:
         starting_states = None,
         aggregation: str = "before",
         do_parallel: bool = True,
+        add_noise = False,
+        noise_sd = None,
     ):
         """Predict expression after new perturbations.
 
@@ -270,6 +319,9 @@ class GRN:
                 Must be boolean.
             aggregation: one of "before", "after", or "none". If there are multiple starting states
             do_parallel (bool): if True, use joblib parallelization. 
+            add_noise (bool): if True, return simulated data Y + e instead of predictions Y 
+                where e is IID Gaussian with variance equal to the estimated residual variance.
+            noise_sd (bool): sd of the variable e described above. Defaults to estimates from the fitted models.
         """
 
         if starting_states is None:
@@ -313,7 +365,9 @@ class GRN:
             idx_str = [str(j) for j in idx]
             column = [tf == perturbations[i][0] for tf in self.tf_list]
             features[idx, :] = init_features
-            features[idx, column] = perturbations[i][1]
+            # If it's nan, leave it unperturbed -- used for studying fitted values on controls. 
+            if not np.isnan(perturbations[i][1]): 
+                features[idx, column] = perturbations[i][1]
             predictions.obs.loc[idx_str, "perturbation"]                        = perturbations[i][0]
             predictions.obs.loc[idx_str, "expression_level_after_perturbation"] = perturbations[i][1]
             for col in columns_to_transfer:
@@ -342,7 +396,22 @@ class GRN:
                 ]
         y = do_loop()
         for i in range(len(self.train.var_names)):
-            predictions.X[:,i] = y[i]
+            if add_noise:
+                if noise_sd is None:
+                    # From the docs:
+                    # 
+                    # > only available if store_cv_values=True and cv=None). 
+                    # > After fit() has been called, this attribute will contain 
+                    # > the mean squared errors if scoring is None otherwise it will 
+                    # > contain standardized per point prediction values.
+                    # 
+                    try:
+                        noise_sd = np.sqrt(np.mean(self.models[i].cv_values_))
+                    except AttributeError:
+                        raise ValueError("Noise standard deviation could not be extracted from trained models. Please provide it when calling GRN.simulate().")
+                predictions.X[:,i] = y[i] + np.random.standard_normal(len(y[i]))*noise_sd
+            else:
+                predictions.X[:,i] = y[i]
         return predictions
 
     def predict_one_gene(self, i: int, features, cell_type_labels) -> np.array:
@@ -467,8 +536,6 @@ def apply_supervised_ml_one_gene(
         raise ValueError("cell_type_sharing_strategy must be 'distinct' or 'identical' or 'similar'.")
     return
 
-    
-
 def get_regulators(tf_list, predict_self, network_prior: str, target: str, network = None, cell_type = None) -> list:
     """Get candidates for what's directly upstream of a given gene.
 
@@ -505,3 +572,4 @@ def get_regulators(tf_list, predict_self, network_prior: str, target: str, netwo
         return ["NO_REGULATORS"]
     else:
         return selected_features
+
