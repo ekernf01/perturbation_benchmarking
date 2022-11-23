@@ -15,7 +15,6 @@ import anndata
 def lay_out_runs(
   train_data: anndata.AnnData, 
   test_data: anndata.AnnData, 
-  perturbationsToPredict: list, 
   networks: dict, 
   outputs: str
   ) -> pd.DataFrame:
@@ -50,7 +49,6 @@ def do_one_run(
   i: int, 
   train_data: anndata.AnnData, 
   test_data: anndata.AnnData, 
-  perturbationsToPredict: list, 
   networks: dict, 
   outputs: str
   ) -> anndata.AnnData:
@@ -79,10 +77,7 @@ def do_one_run(
       projection = "none", 
       do_parallel = True,
   )
-  predictions = grn.predict(perturbationsToPredict)  
-  del grn
-  gc.collect()
-  return predictions
+  return grn
 
 
 def plot(evaluationResults, output):

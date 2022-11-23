@@ -56,10 +56,7 @@ def do_one_run(
       pruning_parameter = experiments.loc[i,'threshold_number'],
       projection = "none", 
   )
-  predictions = grn.predict(perturbationsToPredict) 
-  del grn
-  gc.collect()
-  return predictions
+  return grn
 
 def plot(evaluationResults, output):
   """Plots specific to this experiment.

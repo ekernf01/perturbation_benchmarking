@@ -34,7 +34,6 @@ def do_one_run(
   i: int, 
   train_data: anndata.AnnData, 
   test_data: anndata.AnnData, 
-  perturbationsToPredict: list, 
   networks: dict, 
   outputs: str
   ) -> anndata.AnnData:
@@ -49,7 +48,7 @@ def do_one_run(
       anndata.AnnData: Predicted expression
   """
   ...
-  return predictions
+  return grn
 
 
 def plot(evaluationResults, output):

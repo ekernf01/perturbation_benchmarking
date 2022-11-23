@@ -11,7 +11,6 @@ import gc
 def lay_out_runs(
   train_data: anndata.AnnData, 
   test_data: anndata.AnnData, 
-  perturbationsToPredict: list, 
   networks: dict, 
   outputs: str
 ) -> pd.DataFrame:
@@ -44,7 +43,6 @@ def do_one_run(
   i: int, 
   train_data: anndata.AnnData, 
   test_data: anndata.AnnData, 
-  perturbationsToPredict: list, 
   networks: dict, 
   outputs: str
   ) -> anndata.AnnData:
@@ -75,10 +73,7 @@ def do_one_run(
       pruning_strategy = "none", 
       projection = "none", 
   )
-  predictions = grn.predict(perturbationsToPredict)  
-  del grn
-  gc.collect()
-  return predictions
+  return grn
 
 
 
