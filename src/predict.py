@@ -39,7 +39,6 @@ class GRN:
         self, train: anndata.AnnData, 
         network: load_networks.LightNetwork = None, 
         tf_list = DEFAULT_TF_LIST, 
-        predict_self = False, 
         validate_immediately = True
         ):
         """Create a GRN object.
@@ -48,13 +47,11 @@ class GRN:
             train (anndata.AnnData): Training data. Should conform to the requirements in load_perturbations.check_perturbation_dataset().
             network (pd.DataFrame, optional): LightNetwork object containing prior knowledge about regulators and targets.
             tf_list (_type_, optional): List of gene names that are allowed to be regulators.
-            predict_self (bool, optional): Should e.g. POU5F1 activity be used to predict POU5F1 expression? Defaults to False.
         """
         self.train = train 
         assert network is None or type(network)==load_networks.LightNetwork
         self.network = network 
         self.tf_list = [tf for tf in tf_list if tf in train.var_names]
-        self.predict_self = predict_self
         self.models = [None for _ in self.train.var_names]
         self.training_args = {}
         if validate_immediately:
@@ -108,7 +105,6 @@ class GRN:
                             network = network,
                             training_args = self.training_args,
                             tf_list = self.tf_list, 
-                            predict_self = self.predict_self, 
                             FUN=FUN, 
                             network_prior=network_prior,
                             target = g,
@@ -126,7 +122,6 @@ class GRN:
                         network = network,
                         training_args = self.training_args,
                         tf_list = self.tf_list, 
-                        predict_self = self.predict_self, 
                         FUN=FUN, 
                         network_prior=network_prior,
                         target = g,
@@ -149,7 +144,7 @@ class GRN:
                                     {
                                         "regulator": get_regulators(
                                                 tf_list = self.tf_list, 
-                                                predict_self = self.predict_self, 
+                                                predict_self = self.training_args["predict_self"], 
                                                 network_prior = network_prior,
                                                 target = self.train.var_names[i], 
                                                 network = self.network,
@@ -167,7 +162,7 @@ class GRN:
                                 {
                                     "regulator": get_regulators(
                                             tf_list = self.tf_list, 
-                                            predict_self = self.predict_self, 
+                                            predict_self = self.training_args["predict_self"], 
                                             network_prior = network_prior,
                                             target = self.train.var_names[i], 
                                             network = self.network,
@@ -241,7 +236,8 @@ class GRN:
         network_prior: str = "restrictive",    
         pruning_strategy: str = "none", 
         pruning_parameter: str = None,          
-        projection: str = "none",      
+        projection: str = "none", 
+        predict_self = False,     
         do_parallel: bool = True,
     ):
         """Fit the model.
@@ -262,12 +258,14 @@ class GRN:
                 - maybe more options will be implemented. 
             pruning_parameter (numeric, optional): e.g. lasso penalty or total number of nonzero coefficients. See "pruning_strategy" for details.
             projection (str, optional): Not implemented yet.
+            predict_self (bool, optional): Should e.g. POU5F1 activity be used to predict POU5F1 expression? Defaults to False.
         """
         # Save some training args to later ensure prediction is consistent with training.
         self.training_args["confounders"]                = confounders
         self.training_args["network_prior"]              = network_prior
         self.training_args["cell_type_sharing_strategy"] = cell_type_sharing_strategy
         self.training_args["cell_type_labels"]           = cell_type_labels
+        self.training_args["predict_self"]               = predict_self
         if network_prior != "ignore" and self.training_args["cell_type_sharing_strategy"] != 'identical':
             ct_from_network = self.network.get_all_one_field("cell_type")
             ct_from_trainset = self.train.obs[cell_type_labels]
@@ -323,7 +321,6 @@ class GRN:
                 where e is IID Gaussian with variance equal to the estimated residual variance.
             noise_sd (bool): sd of the variable e described above. Defaults to estimates from the fitted models.
         """
-
         if starting_states is None:
             starting_states = self.train.obs["is_control"].copy()
         assert all([type(b)==bool for b in starting_states]), "starting_states must be boolean."
@@ -381,16 +378,28 @@ class GRN:
         if do_parallel:
             def do_loop():
                 return Parallel(n_jobs=cpu_count()-1, verbose = 1, backend="loky")(
-                    delayed(self.predict_one_gene)(
-                       i, features, cell_type_labels
+                    delayed(predict_one_gene)(
+                        target = self.train.var_names[i],
+                        model = self.models[i],
+                        features = features, 
+                        network = self.network,
+                        training_args = self.training_args,
+                        tf_list = self.tf_list,
+                        cell_type_labels = cell_type_labels,                     
                     )
                     for i in range(len(self.train.var_names))
                 )
         else:
             def do_loop(network = self.network):
                 return [
-                    self.predict_one_gene(
-                        i, features, cell_type_labels
+                    predict_one_gene(
+                        target = self.train.var_names[i],
+                        model = self.models[i],
+                        features = features, 
+                        network = self.network,
+                        training_args = self.training_args,
+                        tf_list = self.tf_list,
+                        cell_type_labels = cell_type_labels, 
                     )
                     for i in range(len(self.train.var_names))
                 ]
@@ -414,58 +423,73 @@ class GRN:
                 predictions.X[:,i] = y[i]
         return predictions
 
-    def predict_one_gene(self, i: int, features, cell_type_labels) -> np.array:
-        """Predict expression of one gene after perturbation. 
+# Having stand-alone functions (rather than methods of the GRN class) speeds
+# up parallel computing by a FUCK TON, probably because it avoids copying the 
+# entire GRN object to each new thread.  
 
-        Args:
-            i (int): Which gene to predict.
-            features (_type_): inputs to predictive model, with shape num_regulators by num_perturbations. 
-            cell_type_labels (_type_): in case models are cell type-specific, this specifies the cell types. 
+def predict_one_gene(
+    target: str, 
+    model,
+    features, 
+    network,
+    training_args,
+    tf_list,
+    cell_type_labels,
+) -> np.array:
+    """Predict expression of one gene after perturbation. 
 
-        Returns:
-            np.array: Expression of gene i across all perturbed samples. 
-        """
-        target = self.train.var_names[i]
-        predictions = np.zeros(features.shape[0])
-        if self.training_args["cell_type_sharing_strategy"] == "distinct":
-            for cell_type in cell_type_labels.unique():
-                is_in_cell_type = cell_type_labels==cell_type
-                regulators = get_regulators(
-                    tf_list = self.tf_list, 
-                    predict_self = self.predict_self, 
-                    network_prior = self.training_args["network_prior"],
-                    target = target, 
-                    network = self.network,
-                    cell_type=cell_type
-                )
-                is_in_model = [tf in regulators for tf in self.tf_list]
-                if not any(is_in_model):
-                    X = 1 + 0*features[:,[0]]
-                else:
-                    X = features[:,is_in_model]
-                X = X[is_in_cell_type,:]
-                M = self.models[i][cell_type]
-                predictions[is_in_cell_type] = M.predict(X = X).squeeze()
-        elif self.training_args["cell_type_sharing_strategy"] == "identical":
+    Args:
+        model: self.models[i], but for parallelization, we avoid passing self because it would have to get serialized and sent to another process.
+        train_obs: self.train.obs, but we avoid passing self because it would have to get serialized & sent to another process.
+        network: self.network (usually), but we avoid passing self because it would have to get serialized & sent to another process.
+        training_args: self.training_args, but we avoid passing self because it would have to get serialized & sent to another process.
+        tf_list: self.tf_list, but we avoid passing self because it would have to get serialized & sent to another process.
+
+        target (str): Which gene to predict.
+        features (matrix-like): inputs to predictive model, with shape num_regulators by num_perturbations. 
+        cell_type_labels (Iterable): in case models are cell type-specific, this specifies the cell types. 
+
+    Returns:
+        np.array: Expression of gene i across all perturbed samples. 
+    """
+    predictions = np.zeros(features.shape[0])
+    if training_args["cell_type_sharing_strategy"] == "distinct":
+        for cell_type in cell_type_labels.unique():
+            is_in_cell_type = cell_type_labels==cell_type
             regulators = get_regulators(
-                tf_list = self.tf_list, 
-                predict_self = self.predict_self, 
-                network_prior = self.training_args["network_prior"],
+                tf_list = tf_list, 
+                predict_self = training_args["predict_self"], 
+                network_prior = training_args["network_prior"],
                 target = target, 
-                network = self.network,
-                cell_type=None
+                network = network,
+                cell_type=cell_type
             )
-            is_in_model = [tf in regulators for tf in self.tf_list]
+            is_in_model = [tf in regulators for tf in tf_list]
             if not any(is_in_model):
                 X = 1 + 0*features[:,[0]]
             else:
                 X = features[:,is_in_model]
-            M = self.models[i]
-            predictions = M.predict(X = X).squeeze()
-            
+            X = X[is_in_cell_type,:]
+            predictions[is_in_cell_type] = model[cell_type].predict(X = X).squeeze()
+    elif training_args["cell_type_sharing_strategy"] == "identical":
+        regulators = get_regulators(
+            tf_list = tf_list, 
+            predict_self = training_args["predict_self"], 
+            network_prior = training_args["network_prior"],
+            target = target, 
+            network = network,
+            cell_type=None
+        )
+        is_in_model = [tf in regulators for tf in tf_list]
+        if not any(is_in_model):
+            X = 1 + 0*features[:,[0]]
         else:
-            raise NotImplementedError("Invalid cell_type_sharing_strategy.")
-        return predictions
+            X = features[:,is_in_model]
+        predictions = model.predict(X = X).squeeze()
+        
+    else:
+        raise NotImplementedError("Invalid cell_type_sharing_strategy.")
+    return predictions
 
 def apply_supervised_ml_one_gene(
     train_obs,
@@ -473,7 +497,6 @@ def apply_supervised_ml_one_gene(
     network,
     training_args, 
     tf_list, 
-    predict_self, 
     FUN, 
     network_prior: str,
     target: str,
@@ -482,10 +505,13 @@ def apply_supervised_ml_one_gene(
     """Apply a supervised ML method to predict target expression from TF activity (one target gene only).
 
     Args:
+
         train_obs: self.train.obs, but we avoid passing self because it would have to get serialized & sent to another process.
         features: self.features, but we avoid passing self so that we can treat this as memory-mapped. 
         network: self.network (usually), but we avoid passing self because it would have to get serialized & sent to another process.
         training_args: self.training_args, but we avoid passing self because it would have to get serialized & sent to another process.
+        tf_list: self.tf_list, but we avoid passing self because it would have to get serialized & sent to another process.
+
         FUN (Callable): See GRN.apply_supervised_ml docs.
         network_prior (str): see GRN.fit docs.
         target (str): target gene symbol
@@ -501,7 +527,7 @@ def apply_supervised_ml_one_gene(
         for cell_type in train_obs[training_args["cell_type_labels"]].unique():
             rrrelevant_rrregulators = get_regulators(
                 tf_list       = tf_list, 
-                predict_self  = predict_self, 
+                predict_self  = training_args["predict_self"], 
                 network_prior = network_prior,
                 target        = target, 
                 network       = network,
@@ -520,7 +546,7 @@ def apply_supervised_ml_one_gene(
     elif training_args["cell_type_sharing_strategy"] == "identical":
         rrrelevant_rrregulators = get_regulators(
             tf_list       = tf_list, 
-            predict_self  = predict_self, 
+            predict_self  = training_args["predict_self"], 
             network_prior = network_prior,
             target        = target, 
             network       = network,
