@@ -17,6 +17,7 @@ importlib.reload(load_networks)
 
 train   = sc.read_h5ad("../accessory_data/nakatake.h5ad")
 network = load_networks.LightNetwork(files=["../accessory_data/human_promoters.parquet"])
+example_perturbations = (("KLF8", 0), ("GATA1", 0), ("empty_vector", np.nan))
 class TestModelRuns(unittest.TestCase):
     def test_make_GRN(self):
         self.assertIsInstance(
@@ -62,7 +63,7 @@ class TestModelRuns(unittest.TestCase):
             pruning_parameter = None, 
             do_parallel=False,
         )
-        p = grn.predict((("KLF8", 0), ("GATA1", 0)))
+        p = grn.predict(example_perturbations)
         self.assertIsInstance(
             p, anndata.AnnData
         )
@@ -77,18 +78,28 @@ class TestModelRuns(unittest.TestCase):
             pruning_strategy = "none", 
             pruning_parameter = None, 
         )
-        p = grn.predict((("KLF8", 0), ("GATA1", 0)))
+        p = grn.predict(example_perturbations)
         self.assertIsInstance(
             p, anndata.AnnData
         )
-        p = grn.simulate_data((("KLF8", 0), ("GATA1", 0)), effects = "uniform_on_provided_network", noise_sd=1)
-        self.assertIsInstance(
-            p, anndata.AnnData
+
+    def test_simulation_works(self):
+        grn    = predict.GRN(train[0:100, 0:100].copy(), network = network, validate_immediately=False)
+        # network-based
+        p = grn.simulate_data(example_perturbations, effects = "uniform_on_provided_network", noise_sd=1)
+        self.assert_(predict.GRN(p, validate_immediately=True))
+        # trained model-based
+        grn.extract_features(method = "tf_rna")
+        grn.fit(
+            method = "linear", 
+            cell_type_sharing_strategy = "identical", 
+            network_prior = "restrictive", 
+            pruning_strategy = "none", 
+            pruning_parameter = None, 
         )
-        p = grn.simulate_data((("KLF8", 0), ("GATA1", 0)), effects = "fitted_models", noise_sd=1)
-        self.assertIsInstance(
-            p, anndata.AnnData
-        )
+        p = grn.simulate_data(example_perturbations, effects = "fitted_models")     
+        p = grn.simulate_data(example_perturbations, effects = "fitted_models", noise_sd=1)     
+        self.assert_(predict.GRN(p, validate_immediately=True))
 
     def test_pruned_fit_and_predict(self):
         grn    = predict.GRN(train[0:100, 0:100].copy(), network=network, validate_immediately=False)
@@ -100,7 +111,7 @@ class TestModelRuns(unittest.TestCase):
             pruning_strategy = "prune_and_refit",
             pruning_parameter = 5000, 
         )
-        p = grn.predict((("KLF8", 0), ("GATA1", 0)))
+        p = grn.predict(example_perturbations)
         self.assertIsInstance(
             p, anndata.AnnData
         )

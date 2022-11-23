@@ -194,6 +194,7 @@ class GRN:
         perturbations,
         effects: str = "fitted_models",
         noise_sd = None,
+        feature_extraction_method = "tf_rna",
     ) -> anndata.AnnData:
         """Generate simulated expression data
 
@@ -214,6 +215,7 @@ class GRN:
             self.training_args["predict_self"] = False
             self.training_args["network_prior"] = "restrictive"
             self.training_args["cell_type_sharing_strategy"] = "identical"
+            self.training_args["confounders"] = []
             for i in range(len(self.train.var_names)):
                 self.models[i] = LinearSimulator(dimension=len(get_regulators(
                     self.tf_list, 
@@ -222,9 +224,18 @@ class GRN:
                     network = self.network,
                     network_prior=self.training_args["network_prior"],
                 )))
+            self.extract_features(method = feature_extraction_method)
             adata = self.predict(perturbations, add_noise=True, noise_sd=noise_sd)
         else:
             raise ValueError("'effects' must be one of 'fitted_models' or 'uniform_on_provided_network'.")
+        # Make it pass the usual validation checks, same as all our perturbation data
+        adata.obs["perturbation_type"] = self.train.obs["perturbation_type"][0]
+        print(perturbations)
+        adata.obs["is_control"] = [np.isnan(p[1]) for p in perturbations]
+        adata.obs["spearmanCorr"] = np.nan #could simulate actual replicates later if needed
+        adata.uns["perturbed_and_measured_genes"]     = [p[0] for p in perturbations if p[0] in adata.var_names]
+        adata.uns["perturbed_but_not_measured_genes"] = [p[0] for p in perturbations if p[0] not in adata.var_names]
+        adata.raw = adata.copy()
         return adata
 
     def fit(
@@ -311,7 +322,8 @@ class GRN:
 
         Args:
             perturbations (iterable of tuples): Iterable of tuples with gene and its expression after 
-                perturbation, e.g. {("POU5F1", 0.0), ("NANOG", 0.0)}.
+                perturbation, e.g. {("POU5F1", 0.0), ("NANOG", 0.0), ("non_targeting", np.nan)}. Anything with
+                expression np.nan will be treated as a control, no matter the name.
             starting_states: indices of observations in self.train to use as initial conditions. 
                 Defaults to self.train.obs["is_control"].
                 Must be boolean.
