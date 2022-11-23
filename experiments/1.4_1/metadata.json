@@ -7,6 +7,7 @@
     "factor_varied": "network",
     "color_by": null,
     "facet_by": null,
+    "merge_replicates": false,
     "perturbation_dataset": "nakatake",
     "network_datasets": {
         "celloracle_human":      { "do_aggregate_subnets": true },
