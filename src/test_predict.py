@@ -97,9 +97,13 @@ class TestModelRuns(unittest.TestCase):
             pruning_strategy = "none", 
             pruning_parameter = None, 
         )
-        p = grn.simulate_data(example_perturbations, effects = "fitted_models")     
-        p = grn.simulate_data(example_perturbations, effects = "fitted_models", noise_sd=1)     
-        self.assert_(predict.GRN(p, validate_immediately=True))
+        p1 = grn.simulate_data(example_perturbations, effects = "fitted_models")    
+        p2 = grn.simulate_data(example_perturbations, effects = "fitted_models")     
+        p3 = grn.simulate_data(example_perturbations, effects = "fitted_models", noise_sd=1)     
+        self.assertEqual(p1.X, p2.X)
+        self.assert_(predict.GRN(p1, validate_immediately=True))
+        self.assert_(predict.GRN(p2, validate_immediately=True))
+        self.assert_(predict.GRN(p3, validate_immediately=True))
 
     def test_pruned_fit_and_predict(self):
         grn    = predict.GRN(train[0:100, 0:100].copy(), network=network, validate_immediately=False)
