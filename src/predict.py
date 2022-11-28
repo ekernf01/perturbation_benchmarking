@@ -195,14 +195,16 @@ class GRN:
         effects: str = "fitted_models",
         noise_sd = None,
         feature_extraction_method = "tf_rna",
+        seed = 0,
     ) -> anndata.AnnData:
         """Generate simulated expression data
 
         Args:
-            perturbations (_type_): See GRN.predict()
+            perturbations (iterable): See GRN.predict()
             effects (str, optional): Either "fitted_models" (use effect sizes from an already-trained GRN) or
                 "uniform_on_provided_network" (use a provided network structure with small positive effects for all regulators).
-            noise_sd (_type_, optional): _description_. Defaults to None.
+            noise_sd (float, optional): Standard deviation of noise. Defaults to None: noise sd will be extracted from fitted models.
+            seed (int): RNG seed. 
 
         Returns:
             anndata.AnnData: simulated gene expression values.
@@ -225,12 +227,11 @@ class GRN:
                     network_prior=self.training_args["network_prior"],
                 )))
             self.extract_features(method = feature_extraction_method)
-            adata = self.predict(perturbations, add_noise=True, noise_sd=noise_sd)
+            adata = self.predict(perturbations, add_noise=True, noise_sd=noise_sd, seed = seed)
         else:
             raise ValueError("'effects' must be one of 'fitted_models' or 'uniform_on_provided_network'.")
         # Make it pass the usual validation checks, same as all our perturbation data
         adata.obs["perturbation_type"] = self.train.obs["perturbation_type"][0]
-        print(perturbations)
         adata.obs["is_control"] = [np.isnan(p[1]) for p in perturbations]
         adata.obs["spearmanCorr"] = np.nan #could simulate actual replicates later if needed
         adata.uns["perturbed_and_measured_genes"]     = [p[0] for p in perturbations if p[0] in adata.var_names]
@@ -317,6 +318,7 @@ class GRN:
         do_parallel: bool = True,
         add_noise = False,
         noise_sd = None,
+        seed = 0,
     ):
         """Predict expression after new perturbations.
 
@@ -332,6 +334,7 @@ class GRN:
             add_noise (bool): if True, return simulated data Y + e instead of predictions Y 
                 where e is IID Gaussian with variance equal to the estimated residual variance.
             noise_sd (bool): sd of the variable e described above. Defaults to estimates from the fitted models.
+            seed (int): RNG seed.
         """
         if starting_states is None:
             starting_states = self.train.obs["is_control"].copy()
@@ -416,10 +419,12 @@ class GRN:
                     for i in range(len(self.train.var_names))
                 ]
         y = do_loop()
+        # Add noise
+        np.random.seed(seed)
         for i in range(len(self.train.var_names)):
             if add_noise:
                 if noise_sd is None:
-                    # From the docs:
+                    # From the docs on the RidgeCV attribute ".cv_values_":
                     # 
                     # > only available if store_cv_values=True and cv=None). 
                     # > After fit() has been called, this attribute will contain 

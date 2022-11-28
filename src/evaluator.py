@@ -20,49 +20,64 @@ import predict
 importlib.reload(predict)
 import altair as alt
 
-def makeMainPlots(evaluationResults, outputs: str, factor_varied:str, facet_by: str = None, color_by: str = None):
+def makeMainPlots(
+    evaluationPerPert: pd.DataFrame, 
+    evaluationPerTarget: pd.DataFrame, 
+    outputs: str, 
+    factor_varied:str, 
+    facet_by: str = None, 
+    color_by: str = None, 
+    metrics = ['spearman', 'mse']
+    ):
     """Redo the main plots summarizing an experiment.
     Args:
-        evaluationResults (pd.DataFrame, optional): By default, looks for results saved as a csv.
-        factor_varied (str): Plots are automatically colored based on this column of "evaluationResults". 
-        facet_by (str): Plots are automatically stratified based on this column of "evaluationResults". 
+        evaluationPerPert (pd.DataFrame)
+        evaluationPerTarget (pd.DataFrame)
+        factor_varied (str): Plots are automatically colored based on this column of "evaluationPerPert". 
+        facet_by (str): Plots are automatically stratified based on this column of "evaluationPerPert". 
         outputs (str): folder to save plots in
-        default_level: a value found in evaluationResults.loc[:,factor_varied] to compare all others against. This will be used to remove the variation from gene to gene. 
+        default_level: a value found in evaluationPerPert.loc[:,factor_varied] to compare all others against. This will be used to remove the variation from gene to gene. 
+        metrics: How to measure performance. 
     """
-    evaluationResults.index = [p[1] for p in evaluationResults.index]
-    vlnplot = alt.Chart(
-        data = evaluationResults, 
-        title = "Spearman correlation (predicted log fold change vs observed)"
-    ).mark_boxplot()
-    if color_by is not None:
-        vlnplot=vlnplot.encode(
-            y=alt.Y('spearman:Q'),
-            color=color_by,
-            x=alt.X(
-                factor_varied + ':N'
+    # Sometimes the index is too complex for Altair to handle correctly (tuples)
+    try:
+        evaluationPerPert.index = [p[1] for p in evaluationPerPert.index]
+    except IndexError:
+        pass
+    vlnplot = {}
+    for metric in metrics:
+        vlnplot[metric] = alt.Chart(
+            data = evaluationPerPert, 
+            title = f"{metric} (predicted log fold change vs observed)"
+        ).mark_boxplot()
+        if color_by is not None:
+            vlnplot[metric]=vlnplot[metric].encode(
+                y=alt.Y(f'{metric}:Q'),
+                color=color_by,
+                x=alt.X(
+                    factor_varied + ':N'
+                )
+            ).properties(
+                width=400,
+                height=400
             )
-        ).properties(
-            width=400,
-            height=400
-        )
-    else:
-        vlnplot = vlnplot.encode(
-            y=alt.Y('spearman:Q'),
-            x=alt.X(
-                factor_varied + ':N'
+        else:
+            vlnplot[metric] = vlnplot[metric].encode(
+                y=alt.Y(f'{metric}:Q'),
+                x=alt.X(
+                    factor_varied + ':N'
+                )
+            ).properties(
+                width=400,
+                height=400
             )
-        ).properties(
-            width=400,
-            height=400
-        )
-    if facet_by is not None:
-        vlnplot = vlnplot.facet(
-            facet_by + ':N',
-            columns=int(np.ceil(np.sqrt(len(evaluationResults[facet_by].unique()))))
-        )
-    vlnplot.save(f'{outputs}/stripchart.pdf')
+        if facet_by is not None:
+            vlnplot[metric] = vlnplot[metric].facet(
+                facet_by + ':N',
+                columns=int(np.ceil(np.sqrt(len(evaluationPerPert[facet_by].unique()))))
+            )
+        vlnplot[metric].save(f'{outputs}/{metric}.pdf')
     return vlnplot
-
 
 def evaluateCausalModel(
     heldout:anndata.AnnData, 
@@ -88,10 +103,11 @@ def evaluateCausalModel(
         outputs (String): Saves output here.
     """
     # Get spearman and classifier accuracy 
-    evaluationResults = {}
+    evaluationPerPert = {}
+    evaluationPerTarget = {}
     shared_var_names = list(set.intersection(*[set(predictions[experiment].var_names) for experiment in predictions.keys()]))
     for experiment in predictions.keys(): 
-        evaluationResults[experiment] = \
+        evaluationPerPert[experiment], evaluationPerTarget[experiment] = \
             evaluateOnePrediction(
                 expression =                        heldout[:, shared_var_names], 
                 predictedExpression=predictions[experiment][:, shared_var_names],   
@@ -100,19 +116,25 @@ def evaluateCausalModel(
                 outputs = os.path.join(outputs, "plots", str(experiment)),
                 classifier=classifier
             )
-        evaluationResults[experiment]["index"] = experiment
-    evaluationResults = pd.concat(evaluationResults)
-    evaluationResults = evaluationResults.merge(experiments, how = "left", right_index = True, left_on = "index")
-    evaluationResults = pd.DataFrame(evaluationResults.to_dict())
+        evaluationPerPert[experiment]["index"]   = experiment
+        evaluationPerTarget[experiment]["index"] = experiment
+    evaluationPerPert   = pd.concat(evaluationPerPert)
+    evaluationPerTarget = pd.concat(evaluationPerTarget)
+    evaluationPerPert   = evaluationPerPert.merge(experiments,   how = "left", right_index = True, left_on = "index")
+    evaluationPerTarget = evaluationPerTarget.merge(experiments, how = "left", right_index = True, left_on = "index")
+    evaluationPerPert   = pd.DataFrame(evaluationPerPert.to_dict())
+    evaluationPerTarget = pd.DataFrame(evaluationPerTarget.to_dict())
     # Mark anything where predictions were unavailable
-    noPredictionMade = evaluationResults.iloc[[x==0 for x in evaluationResults["spearman"]],:]['perturbation']
+    noPredictionMade = evaluationPerPert.iloc[[x==0 for x in evaluationPerPert["spearman"]],:]['perturbation']
     noPredictionMade = set(noPredictionMade)
     noPredictionMade
-    evaluationResults["somePredictionRefused"] = evaluationResults["perturbation"].isin(noPredictionMade) 
-    # Save main results
-    evaluationResults.to_csv(outputs +"/evaluationResults.csv")
-    vlnplot = makeMainPlots(factor_varied=factor_varied,  outputs=outputs, evaluationResults=evaluationResults)
-    return evaluationResults, vlnplot
+    evaluationPerPert["somePredictionRefused"] = evaluationPerPert["perturbation"].isin(noPredictionMade) 
+    vlnplot = makeMainPlots(
+        factor_varied=factor_varied,  
+        outputs=outputs, 
+        evaluationPerPert=evaluationPerPert, 
+        evaluationPerTarget=evaluationPerTarget)
+    return evaluationPerPert, evaluationPerTarget, vlnplot
 
 def evaluateOnePrediction(
     expression: anndata.AnnData, 
@@ -151,7 +173,13 @@ def evaluateOnePrediction(
         raise ValueError("expression and baseline must have the same number of genes.")
     predictedExpression.obs_names = expression.obs_names
     baseline = baseline.X.mean(axis=0).squeeze()
-    metrics = pd.DataFrame(index = predictedExpression.obs.index, columns = ["spearman", "spearmanp", "cell_fate_correct"])
+    metrics = pd.DataFrame(index = predictedExpression.obs.index, columns = ["spearman", "spearmanp", "cell_fate_correct", "mse"])
+    metrics_per_target = pd.DataFrame(index = predictedExpression.var.index, columns = ["mse"])
+    for target in predictedExpression.var.index:
+        observed  = expression[         :,target].X.squeeze()
+        predicted = predictedExpression[:,target].X.squeeze()
+        metrics_per_target.loc[target,["mse"]] = np.linalg.norm(observed - predicted)**2
+    
     for pert in predictedExpression.obs.index:
         if do_careful_checks:
             assert all(
@@ -161,14 +189,15 @@ def evaluateOnePrediction(
         observed  = expression[         pert,:].X.squeeze()
         predicted = predictedExpression[pert,:].X.squeeze()
         if type(predicted) is float and np.isnan(predicted):
-            metrics.loc[pert,["spearman","spearmanp", "cell_fate_correct"]] = 0,1,np.nan
+            metrics.loc[pert,["spearman","spearmanp", "cell_fate_correct", "mse"]] = 0,1,np.nan,np.nan
         else:
             metrics.loc[pert,["spearman","spearmanp"]] = spearmanr(observed - baseline, predicted - baseline)
+            metrics.loc[pert,"mse"] = np.linalg.norm(observed - predicted)**2
             if classifier is not None:
                 class_observed  = classifier.predict(np.reshape(observed,  (1, -1)))[0]
                 class_predicted = classifier.predict(np.reshape(predicted, (1, -1)))[0]
                 metrics.loc[pert,"cell_fate_correct"] = 1.0*(class_observed==class_predicted)  
-     
+
     metrics["spearman"] = metrics["spearman"].astype(float)
     hardest = metrics["spearman"].idxmin()
     easiest = metrics["spearman"].idxmax()
@@ -207,7 +236,7 @@ def evaluateOnePrediction(
             if is_hardest:
                 scatterplot.save(os.path.join(outputs, f"_hardest({pert}).pdf"))
     metrics["perturbation"] = metrics.index
-    return metrics
+    return metrics, metrics_per_target
     
 def networkEdgesToMatrix(networkEdges, regulatorColumn=0, targetColumn=1):
     """Reformat a network from a two-column dataframe to the way that celloracle needs its input."""
