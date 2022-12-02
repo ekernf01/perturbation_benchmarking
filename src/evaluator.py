@@ -46,10 +46,16 @@ def makeMainPlots(
         pass
     vlnplot = {}
     for metric in metrics:
+        group_mean_by = [factor_varied]
+        if facet_by is not None:
+            group_mean_by.append(facet_by)
+        if color_by is not None:
+            group_mean_by.append(color_by)
+        means = evaluationPerPert.groupby(group_mean_by, as_index=False)[[metric]].mean()
         vlnplot[metric] = alt.Chart(
             data = evaluationPerPert, 
             title = f"{metric} (predicted log fold change vs observed)"
-        ).mark_boxplot()
+        ).mark_boxplot(extent='min-max') + alt.Chart(data = means).mark_point(color="black")
         if color_by is not None:
             vlnplot[metric]=vlnplot[metric].encode(
                 y=alt.Y(f'{metric}:Q'),
@@ -129,12 +135,7 @@ def evaluateCausalModel(
     noPredictionMade = set(noPredictionMade)
     noPredictionMade
     evaluationPerPert["somePredictionRefused"] = evaluationPerPert["perturbation"].isin(noPredictionMade) 
-    vlnplot = makeMainPlots(
-        factor_varied=factor_varied,  
-        outputs=outputs, 
-        evaluationPerPert=evaluationPerPert, 
-        evaluationPerTarget=evaluationPerTarget)
-    return evaluationPerPert, evaluationPerTarget, vlnplot
+    return evaluationPerPert, evaluationPerTarget
 
 def evaluateOnePrediction(
     expression: anndata.AnnData, 
@@ -188,7 +189,9 @@ def evaluateOnePrediction(
                     )
         observed  = expression[         pert,:].X.squeeze()
         predicted = predictedExpression[pert,:].X.squeeze()
-        if type(predicted) is float and np.isnan(predicted):
+        def is_constant(x):
+            return np.std(x)<1e-12
+        if type(predicted) is float and np.isnan(predicted) or is_constant(predicted - baseline) or is_constant(observed - baseline):
             metrics.loc[pert,["spearman","spearmanp", "cell_fate_correct", "mse"]] = 0,1,np.nan,np.nan
         else:
             metrics.loc[pert,["spearman","spearmanp"]] = spearmanr(observed - baseline, predicted - baseline)
