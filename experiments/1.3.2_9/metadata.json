@@ -7,6 +7,8 @@
     "merge_replicates": true,
     "perturbation_dataset": "replogle4",
     "network_datasets": {
+        "empty": {},
+        "dense": {},
         "magnum_compendium_394": {
             "subnets": [
                 "retinal_pigment_epithelial_cells.parquet",

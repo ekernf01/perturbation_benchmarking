@@ -1,0 +1,9 @@
+{
+    "unique_id": "1.4.3_2",
+    "nickname": "base_network",
+    "refers_to": "1.4.3_1",
+    "readme": "This experiment uses the same logic as experiment <refers_to>, but with replicates merged.",
+    "is_active": true,
+    "merge_replicates": true
+}
+

@@ -10,6 +10,8 @@
     "merge_replicates": true,
     "perturbation_dataset": "nakatake",
     "network_datasets": {
+        "empty": {},
+        "dense": {},
         "ANANSE_0.5":{}
     }
 }

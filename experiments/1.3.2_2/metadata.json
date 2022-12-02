@@ -8,6 +8,8 @@
     "perturbation_dataset": "nakatake",
     "default_level": "hIPS.parquet",
     "network_datasets": {
+        "empty": {},
+        "dense": {},
         "cellnet_human_Hg1332":{}
     }
 }
