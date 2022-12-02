@@ -39,10 +39,10 @@ print(args)
 # For interactive sessions
 if args.experiment_name is None:
     args = Namespace(**{
-        "experiment_name":'1.4.3_3',
+        "experiment_name":'test',
         "test_mode":True,
-        "amount_to_do": "evaluations",
-        "save_trainset_predictions": True,
+        "amount_to_do": "missing_models",
+        "save_trainset_predictions": False,
     })
 
 # Deal with various file paths specific to this project
@@ -180,7 +180,7 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
         fitted_values = {i:sc.read_h5ad( os.path.join(outputs, "fitted_values", str(i) + ".h5ad" ) ) for i in experiments.index}
     except FileNotFoundError:
         fitted_values = None
-    evaluationPerPert, evaluationPerTarget, vlnplot = evaluator.evaluateCausalModel(
+    evaluationPerPert, evaluationPerTarget = evaluator.evaluateCausalModel(
         heldout = perturbed_expression_data_heldout,
         predictions = predictions,
         baseline = perturbed_expression_data_train[perturbed_expression_data_train.obs["is_control"], :],
@@ -194,19 +194,19 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
     evaluationPerPert.to_parquet(   os.path.join(outputs, "evaluationPerPert.parquet"))
     evaluationPerTarget.to_parquet( os.path.join(outputs, "evaluationPerTarget.parquet"))
     if fitted_values is not None:
-        evaluationPerPertTrainset, evaluationPerTargetTrainset, vlnplotTrainset = evaluator.evaluateCausalModel(
-            heldout = perturbed_expression_data_train, 
-            predictions = fitted_values, 
+        evaluationPerPertTrainset, evaluationPerTargetTrainset = evaluator.evaluateCausalModel(
+            heldout = perturbed_expression_data_train,
+            predictions = fitted_values,
             baseline = perturbed_expression_data_train[perturbed_expression_data_train.obs["is_control"], :],
-            experiments = experiments, 
-            outputs = os.path.join(outputs, "trainset_performance"), 
-            factor_varied = metadata["factor_varied"], 
+            experiments = experiments,
+            outputs = os.path.join(outputs, "trainset_performance"),
+            factor_varied = metadata["factor_varied"],
             default_level = None,
             classifier = None,
-            do_scatterplots = False
+            do_scatterplots = False,
         )
-        evaluationPerPertTrainset.to_parquet(   os.path.join(outputs, "evaluationPerPertTrainset.parquet"))
-        evaluationPerTargetTrainset.to_parquet( os.path.join(outputs, "evaluationPerTargetTrainset.parquet"))
+        evaluationPerPertTrainset.to_parquet(   os.path.join(outputs, "trainset_performance", "evaluationPerPert.parquet"))
+        evaluationPerTargetTrainset.to_parquet( os.path.join(outputs, "trainset_performance", "evaluationPerTarget.parquet"))
 
 if args.amount_to_do in {"plots", "models", "missing_models", "evaluations"}:
     evaluationPerPert   = pd.read_parquet(os.path.join(outputs, "evaluationPerPert.parquet"))
@@ -220,12 +220,12 @@ if args.amount_to_do in {"plots", "models", "missing_models", "evaluations"}:
         facet_by=metadata["facet_by"],
     )
     try:
-        evaluationPerPertTrainset   = pd.read_parquet(os.path.join(outputs, "evaluationPerPertTrainset.parquet"))
-        evaluationPerTargetTrainset = pd.read_parquet(os.path.join(outputs, "evaluationPerTargetTrainset.parquet"))
+        evaluationPerPertTrainset   = pd.read_parquet(os.path.join(outputs, "trainset_performance", "evaluationPerPert.parquet"))
+        evaluationPerTargetTrainset = pd.read_parquet(os.path.join(outputs, "trainset_performance", "evaluationPerTarget.parquet"))
         evaluator.makeMainPlots(
             evaluationPerPertTrainset, 
             evaluationPerTargetTrainset, 
-            outputs = outputs, 
+            outputs = os.path.join(outputs, "trainset_performance"), 
             factor_varied = metadata["factor_varied"],
             color_by = metadata["color_by"],
             facet_by=metadata["facet_by"],
