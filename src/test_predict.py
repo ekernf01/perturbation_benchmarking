@@ -100,7 +100,7 @@ class TestModelRuns(unittest.TestCase):
         p1 = grn.simulate_data(example_perturbations, effects = "fitted_models")    
         p2 = grn.simulate_data(example_perturbations, effects = "fitted_models")     
         p3 = grn.simulate_data(example_perturbations, effects = "fitted_models", noise_sd=1)     
-        self.assertEqual(p1.X, p2.X)
+        np.testing.assert_almost_equal(p1.X, p2.X)
         self.assert_(predict.GRN(p1, validate_immediately=True))
         self.assert_(predict.GRN(p2, validate_immediately=True))
         self.assert_(predict.GRN(p3, validate_immediately=True))
@@ -126,6 +126,8 @@ class TestModelRuns(unittest.TestCase):
 easy_simulated = anndata.AnnData(
     obs = pd.DataFrame(
         {"is_control": True,
+        "perturbation": "control",
+        "perturbation_type": "overexpression",
         "cell_type": np.resize([1,2], 1000)},
         index = [str(i) for i in range(1000)],
     ),
@@ -154,6 +156,7 @@ dense_network = load_networks.LightNetwork(df = pd.DataFrame({
     "target":    ["g" + str(i) for i in range(5) for _ in range(5)],
     "weight": 1,
     }))
+
 class TestModelExactlyRightOnEasySimulation(unittest.TestCase):
     def test_simple_dense(self):
         grn = predict.GRN(easy_simulated, validate_immediately=False, tf_list=easy_simulated.var_names)
@@ -235,6 +238,74 @@ class TestModelExactlyRightOnEasySimulation(unittest.TestCase):
         np.testing.assert_almost_equal(p[:,"g4"].X.squeeze(), [0,0,0], decimal=1)
         p = grn.predict((("g3", 0), ("g3", 1), ("g3", 2)), starting_states=easy_simulated.obs["cell_type"]==2)
         np.testing.assert_almost_equal(p[:,"g4"].X.squeeze(), [0,2,4], decimal=1)
+
+
+# Make some simulated data that ridge regressions should be able to get exactly right
+timeseries_simulated = anndata.AnnData(
+    obs = pd.DataFrame(
+        {
+            "is_control":   np.resize([True,  False, False, False, False], 1000),
+            "perturbation": np.resize(["control", "g0", "g0", "g1", "g1"], 1000),
+            "perturbation_type": "overexpression",
+            "cell_type":    np.resize([1,2], 1000),
+        },
+        index = [str(i) for i in range(1000)],
+    ),
+    var = pd.DataFrame(
+        index = ["g" + str(i) for i in range(5)],
+    ),
+    X = np.random.rand(1000, 5) - 0.5
+)
+
+# g0 and g1 are TFs. 
+# g2,3,4 do not regulate anything.
+# g0 is causally upstream of everything.
+# g1 is a linear function of g0, when not perturbed.
+# g2 is a linear function of g0.
+# g3 is a linear function of g1.
+# g4 is a linear function of g0 & g1.
+pert = timeseries_simulated.obs["perturbation"]
+timeseries_simulated.X[:,         0]                                      = np.random.rand(1000) - 0.5
+timeseries_simulated.X[pert=='g0',0]                                      = np.random.rand( 400) + 2
+timeseries_simulated.X[:,         1] = timeseries_simulated.X[:,0].copy() + np.random.rand(1000) - 0.5
+timeseries_simulated.X[pert=="g1",1]                                      = np.random.rand( 400) + 2
+timeseries_simulated.X[:,         2] = timeseries_simulated.X[:,0].copy()
+timeseries_simulated.X[:,         3] = timeseries_simulated.X[:,1].copy() 
+timeseries_simulated.X[:,         4] = timeseries_simulated.X[:,0].copy() + timeseries_simulated.X[:,1].copy()
+timeseries_simulated.uns["perturbed_and_measured_genes"] = {"g1", "g2"}
+class TestModelExactlyRightOnTimeSeriesSimulation(unittest.TestCase):
+    def test_timeseries(self):
+        grn = predict.GRN(timeseries_simulated, validate_immediately=False, tf_list=["g0", "g1"])
+        grn.extract_features(method = "tf_rna")
+        grn.fit(
+            method = "linear", 
+            cell_type_sharing_strategy = "identical", 
+            network_prior = "ignore", 
+            pruning_strategy = "none",
+            time_strategy = "two_step",
+        )
+        np.testing.assert_almost_equal(grn.models[0].coef_, [0.0], decimal=1)
+        np.testing.assert_almost_equal(grn.models[1].coef_, [1.0], decimal=1)
+        # some effects are estimated wrong due to the data augmentation scheme (strong
+        # assumptions about how effects propagate). This is expected. 
+        np.testing.assert_almost_equal(grn.models[2].coef_, [1,-0.5], decimal=1) 
+        np.testing.assert_almost_equal(grn.models[3].coef_, [0,0.5], decimal=1)
+        np.testing.assert_almost_equal(grn.models[4].coef_, [1,0.1], decimal=1)
+
+        pp0 = (("g0", 0), ("g0", 1), ("g0", 2))
+        for p in grn.predict(pp0), grn.simulate_data(pp0, effects = "fitted_models", noise_sd = 0):
+            np.testing.assert_almost_equal(p[:, "g0"].X.squeeze(), [0,  1,  2], decimal=9) 
+            np.testing.assert_almost_equal(p[:, "g1"].X.squeeze(), [0,  1,  2], decimal=1)
+            np.testing.assert_almost_equal(p[:, "g2"].X.squeeze(), [1.2,1.7,2.3], decimal=1)
+            np.testing.assert_almost_equal(p[:, "g3"].X.squeeze(), [1.2,1.7,2.2], decimal=1)
+            np.testing.assert_almost_equal(p[:, "g4"].X.squeeze(), [2.5,3.5,4.5], decimal=1)
+        pp1 = (("g1", 0), ("g1", 1), ("g1", 2))
+        for p in grn.predict(pp1), grn.simulate_data(pp1, effects = "fitted_models", noise_sd = 0):
+            np.testing.assert_almost_equal(p[:, "g0"].X.squeeze(), [0.0,0.0,0.0], decimal=1)
+            np.testing.assert_almost_equal(p[:, "g1"].X.squeeze(), [0.0,1.0,2.0], decimal=9)
+            np.testing.assert_almost_equal(p[:, "g2"].X.squeeze(), [1.2,0.7,0.3], decimal=1)
+            np.testing.assert_almost_equal(p[:, "g3"].X.squeeze(), [1.2,1.7,2.3], decimal=1)
+            np.testing.assert_almost_equal(p[:, "g4"].X.squeeze(), [2.4,2.5,2.5], decimal=1)
 
 if __name__ == '__main__':
     unittest.main()

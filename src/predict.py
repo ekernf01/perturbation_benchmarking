@@ -60,17 +60,27 @@ class GRN:
     def check_perturbation_dataset(self):
         return load_perturbations.check_perturbation_dataset(ad=self.train)
 
-    def extract_features(self, method = "tf_rna"):
+    def extract_features(self, train: anndata.AnnData = None, in_place: bool = True, method = "tf_rna"):
         """Create a feature matrix where each row matches a row in self.train 
         each column represents activity of the corresponding TF in self.tf_list.
 
         Args:
+            train: (anndata.AnnData, optional). Expression data to use in feature extraction. Defaults to self.train.
+            in_place (bool, optional): If True (default), put results in self.features. Otherwise, return results as a matrix. 
             method (str, optional): How to extract features. Defaults to "tf_rna", which uses the mRNA level of the TF.
         """
+        if train is None:
+            train = self.train # shallow copy is best here
+
         if method == "tf_rna":
-            self.features = self.train[:,self.tf_list].X
+            features = train[:,self.tf_list].X
         else:
             raise NotImplementedError("Only 'tf_rna' feature extraction is so far available.")
+        
+        if in_place:
+            self.features = features # shallow copy is best here too
+        else:
+            return features
 
     def apply_supervised_ml(
         self, 
@@ -93,40 +103,72 @@ class GRN:
             verbose (int, optional): Passed to joblib.Parallel. Defaults to 1.
 
         Returns:
-            _type_: _description_
+            No return value. Instead, this modifies self.models.
         """
+        if self.training_args["time_strategy"] == "two_step":
+            # Set intermediate expression equal to:
+            # - perturbed (for all TFs)
+            # - control (for non-TFs)
+            intermediate_expression = self.train.X.copy()
+            for i,g in enumerate(self.tf_list):
+                baseline_expression = self.train[self.train.obs["is_control"],g].X.mean()
+                intermediate_expression[:, i] = baseline_expression
+            # Set baseline TF activity equal to:
+            # - perturbed sample (for just the perturbed TF)
+            # - control sample (otherwise)
+            baseline_features  = self.features[self.train.obs["is_control"],:].mean(axis=0), 
+            baseline_features  = np.repeat(baseline_features, self.train.X.shape[0], axis=0)
+            for i,idx in enumerate(self.train.obs.index):
+                perturbed_gene = self.train.obs.loc[idx, "perturbation"] 
+                if perturbed_gene in self.train.uns["perturbed_and_measured_genes"] and perturbed_gene in self.tf_list:
+                    perturbed_gene_index = [g==perturbed_gene for g in self.tf_list]
+                    baseline_features[i, perturbed_gene_index] = self.features[i, perturbed_gene_index]
+            # Augment data: 
+            # - Baseline TF activity predicts intermediate expression 
+            # - Perturbed TF activity predicts final expression
+            # - Each sample repped twice so metadata also 2x samples
+            features_augmented = np.concatenate([baseline_features, self.features])
+            target_augmented   = np.concatenate([intermediate_expression,  self.train.X])            
+            obs_augmented      = pd.concat([self.train.obs,self.train.obs])
+        elif self.training_args["time_strategy"] == "steady_state":
+            features_augmented = self.features
+            target_augmented   = self.train.X
+            obs_augmented      = self.train.obs
+        else:
+            raise ValueError("'time_strategy' must be 'steady_state' or 'two_step'.")
+        
         if do_parallel:     
             def do_loop(network = self.network):
                     m = Parallel(n_jobs=cpu_count()-1, verbose = verbose, backend="loky")(
                         delayed(apply_supervised_ml_one_gene)(
-                            train_obs = self.train.obs,
-                            target_expr = self.train[:,g].X,
-                            features = self.features,
+                            train_obs = obs_augmented,
+                            target_expr = target_augmented[:,i],
+                            features = features_augmented,
                             network = network,
                             training_args = self.training_args,
                             tf_list = self.tf_list, 
                             FUN=FUN, 
                             network_prior=network_prior,
-                            target = g,
+                            target = self.train.var_names[i],
                         )
-                        for g in self.train.var_names
+                        for i in range(len(self.train.var_names))
                     )
                     return m
         else:
             def do_loop(network = self.network):
                 return [
                     apply_supervised_ml_one_gene(
-                        train_obs = self.train.obs,
-                        target_expr = self.train[:,g].X,
-                        features = self.features,
+                        train_obs = obs_augmented,
+                        target_expr = target_augmented[:,i],
+                        features = features_augmented,
                         network = network,
                         training_args = self.training_args,
                         tf_list = self.tf_list, 
                         FUN=FUN, 
                         network_prior=network_prior,
-                        target = g,
+                        target = self.train.var_names[i],
                     )
-                    for g in self.train.var_names
+                    for i in range(len(self.train.var_names))
                 ]
 
         if pruning_strategy == "lasso":
@@ -218,6 +260,7 @@ class GRN:
             self.training_args["network_prior"] = "restrictive"
             self.training_args["cell_type_sharing_strategy"] = "identical"
             self.training_args["confounders"] = []
+            self.training_args["time_strategy"] = "steady_state"
             for i in range(len(self.train.var_names)):
                 self.models[i] = LinearSimulator(dimension=len(get_regulators(
                     self.tf_list, 
@@ -249,7 +292,8 @@ class GRN:
         pruning_strategy: str = "none", 
         pruning_parameter: str = None,          
         projection: str = "none", 
-        predict_self = False,     
+        predict_self = False,   
+        time_strategy: str = "steady_state",  
         do_parallel: bool = True,
     ):
         """Fit the model.
@@ -271,6 +315,10 @@ class GRN:
             pruning_parameter (numeric, optional): e.g. lasso penalty or total number of nonzero coefficients. See "pruning_strategy" for details.
             projection (str, optional): Not implemented yet.
             predict_self (bool, optional): Should e.g. POU5F1 activity be used to predict POU5F1 expression? Defaults to False.
+            time_strategy (str): 'steady_state' predicts each a gene from sample i using TF activity features derived
+                from sample i. 'two-step' trains a model to gradually transform control samples into perturbed samples by
+                first perturbing the targeted gene, then propagating the perturbation to other TFs, then propagating throughout the genome. 
+                Under development circa 2022-Dec-01; see Eric's slides for a cleaner explanation.
         """
         # Save some training args to later ensure prediction is consistent with training.
         self.training_args["confounders"]                = confounders
@@ -278,6 +326,7 @@ class GRN:
         self.training_args["cell_type_sharing_strategy"] = cell_type_sharing_strategy
         self.training_args["cell_type_labels"]           = cell_type_labels
         self.training_args["predict_self"]               = predict_self
+        self.training_args["time_strategy"]              = time_strategy
         if network_prior != "ignore" and self.training_args["cell_type_sharing_strategy"] != 'identical':
             ct_from_network = self.network.get_all_one_field("cell_type")
             ct_from_trainset = self.train.obs[cell_type_labels]
@@ -391,13 +440,13 @@ class GRN:
         else:
             cell_type_labels = None
         if do_parallel:
-            def do_loop():
+            def do_loop(network = self.network, features=features):
                 return Parallel(n_jobs=cpu_count()-1, verbose = 1, backend="loky")(
                     delayed(predict_one_gene)(
                         target = self.train.var_names[i],
                         model = self.models[i],
                         features = features, 
-                        network = self.network,
+                        network = network,
                         training_args = self.training_args,
                         tf_list = self.tf_list,
                         cell_type_labels = cell_type_labels,                     
@@ -405,7 +454,7 @@ class GRN:
                     for i in range(len(self.train.var_names))
                 )
         else:
-            def do_loop(network = self.network):
+            def do_loop(network = self.network, features=features):
                 return [
                     predict_one_gene(
                         target = self.train.var_names[i],
@@ -419,10 +468,34 @@ class GRN:
                     for i in range(len(self.train.var_names))
                 ]
         y = do_loop()
-        # Add noise
-        np.random.seed(seed)
         for i in range(len(self.train.var_names)):
-            if add_noise:
+            predictions.X[:,i] = y[i]
+        # Set perturbed genes equal to user-specified expression, not whatever the endogenous level is predicted to be
+        for i, pp in enumerate(perturbations):
+            if pp[0] in predictions.var_names:
+                predictions[i, pp[0]].X = pp[1]
+        # Do one more time-step
+        if self.training_args["time_strategy"] == "two_step":
+            y = do_loop(
+                features = self.extract_features(
+                    train = predictions, 
+                    in_place = False,
+                    method = "tf_rna",
+                )
+            )
+            for i in range(len(self.train.var_names)):
+                predictions.X[:,i] = y[i]
+            # Set perturbed genes equal to user-specified expression, not whatever the endogenous level is predicted to be
+            for i, pp in enumerate(perturbations):
+                if pp[0] in predictions.var_names:
+                    print(predictions[i, pp[0]].X)
+                    predictions[i, pp[0]].X = pp[1]
+                    print(predictions[i, pp[0]].X)
+        
+        # Add noise. This is useful for simulations. 
+        if add_noise:
+            np.random.seed(seed)
+            for i in range(len(self.train.var_names)):
                 if noise_sd is None:
                     # From the docs on the RidgeCV attribute ".cv_values_":
                     # 
@@ -435,9 +508,8 @@ class GRN:
                         noise_sd = np.sqrt(np.mean(self.models[i].cv_values_))
                     except AttributeError:
                         raise ValueError("Noise standard deviation could not be extracted from trained models. Please provide it when calling GRN.simulate().")
-                predictions.X[:,i] = y[i] + np.random.standard_normal(len(y[i]))*noise_sd
-            else:
-                predictions.X[:,i] = y[i]
+                predictions.X[:,i] = predictions.X[:,i] + np.random.standard_normal(len(predictions.X[:,i]))*noise_sd
+
         return predictions
 
 # Having stand-alone functions (rather than methods of the GRN class) speeds
@@ -537,6 +609,7 @@ def apply_supervised_ml_one_gene(
     Returns:
         _type_: dict with cell types as keys and with values containing result of FUN. see GRN.fit docs.
     """
+    is_target_perturbed = train_obs["perturbation"]==target
     if training_args["cell_type_sharing_strategy"] == "distinct":
         assert training_args["cell_type_labels"] is not None,               "cell_type_labels must be provided."
         assert training_args["cell_type_labels"] in set(train_obs.columns), "cell_type_labels must name a column in .obs of training data."
@@ -556,7 +629,10 @@ def apply_supervised_ml_one_gene(
                 X = np.ones(shape=features[:,[0]].shape)
             else:
                 X = features[:,is_in_model]
-            models[cell_type] = FUN(X = X[is_in_cell_type,:], y = target_expr[is_in_cell_type])
+            models[cell_type] = FUN(
+                X = X[is_in_cell_type & ~is_target_perturbed,:], 
+                y = target_expr[is_in_cell_type & ~is_target_perturbed]
+            )
         return models
     elif training_args["cell_type_sharing_strategy"] == "similar":
         raise NotImplementedError("cell_type_sharing_strategy 'similar' is not implemented yet.")
@@ -574,7 +650,7 @@ def apply_supervised_ml_one_gene(
             X = np.ones(shape=features[:,[0]].shape)
         else:
             X = features[:,is_in_model]
-        return FUN(X = X, y = target_expr)
+        return FUN(X = X[~is_target_perturbed, :], y = target_expr[~is_target_perturbed])
     else:
         raise ValueError("cell_type_sharing_strategy must be 'distinct' or 'identical' or 'similar'.")
     return
