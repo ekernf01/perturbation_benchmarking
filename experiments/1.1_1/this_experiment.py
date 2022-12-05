@@ -11,9 +11,9 @@ import gc
 def lay_out_runs(
   train_data: anndata.AnnData, 
   test_data: anndata.AnnData, 
-  perturbationsToPredict: list, 
   networks: dict, 
-  outputs: str
+  outputs: str,
+  metadata: dict,
 ) -> pd.DataFrame:
   """Lay out the specific runs done in this experiment.
 
@@ -22,14 +22,16 @@ def lay_out_runs(
       test_data (anndata.AnnData):  usually not used, except in weird cases like the "oracle structure" experiment
       perturbationsToPredict (list):  genes and the expression level to set them to, e.g. {("FOXN1", 0), ("PAX9", 0)}
       networks (dict): dict with string keys and LightNetwork values
-      outputs (str): folder name to save results in
+      outputs (str): folder name to save results in,
+      metadata (dict): metadata for this Experiment, from metadata.json. See this repo's global README.
 
   Returns:
       pd.DataFrame: metadata on the different conditions in this experiment
 
   """
+  grn = predict.GRN(train=train_data)
   size_of_dense_network = len(train_data.var_names)*len(grn.tf_list)
-  threshold_number = [int(f) for f in np.logspace(np.log10(20000), np.log10(size_of_dense_network), 10)]
+  threshold_number = [1] + [int(f) for f in np.logspace(np.log10(20000), np.log10(size_of_dense_network), 10)]
   experiments = pd.DataFrame({"threshold_number":threshold_number})
   experiments["log10_n_edges"] = round(np.log10(experiments["threshold_number"]), 2)
   return experiments
@@ -39,16 +41,17 @@ def do_one_run(
   i: int, 
   train_data: anndata.AnnData, 
   test_data: anndata.AnnData, 
-  perturbationsToPredict: list, 
   networks: dict, 
-  outputs: str
+  outputs: str,
+  metadata: dict,    
 ) -> anndata.AnnData:
+  """See help(lay_out_runs)."""
   print("Running setting " + str(i))
   sys.stdout.flush()
   grn = predict.GRN(train=train_data)
   grn.extract_features(method = "tf_rna")
   grn.fit(
-      method = "linear", 
+      method = metadata["regression_method"], 
       cell_type_labels = None,
       cell_type_sharing_strategy = "identical",
       network_prior = "ignore",

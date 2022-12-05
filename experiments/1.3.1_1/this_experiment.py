@@ -12,16 +12,18 @@ def lay_out_runs(
   train_data: anndata.AnnData, 
   test_data: anndata.AnnData, 
   networks: dict, 
-  outputs: str
+  outputs: str,
+  metadata: dict,    
 ) -> pd.DataFrame:
   """Lay out the specific runs done in this experiment.
 
   Args:
-      train_data (anndata.AnnData): _description_
-      test_data (anndata.AnnData):  usually not used, except in weird cases like the "oracle structure" experiment
-      perturbationsToPredict (list):  genes and the expression level to set them to, e.g. {("FOXN1", 0), ("PAX9", 0)}
-      networks (dict): dict with string keys and LightNetwork values
-      outputs (str): folder name to save results in
+    train_data (anndata.AnnData): _description_
+    test_data (anndata.AnnData):  usually not used, except in weird cases like the "oracle structure" experiment
+    perturbationsToPredict (list):  genes and the expression level to set them to, e.g. {("FOXN1", 0), ("PAX9", 0)}
+    networks (dict): dict with string keys and LightNetwork values
+    outputs (str): folder name to save results in
+    metadata (dict): metadata for this Experiment, from metadata.json. See this repo's global README.
 
   Returns:
       pd.DataFrame: metadata on the different conditions in this experiment
@@ -46,7 +48,8 @@ def do_one_run(
   train_data: anndata.AnnData, 
   test_data: anndata.AnnData, 
   networks: dict, 
-  outputs: str
+  outputs: str,
+  metadata: dict,  
   ) -> anndata.AnnData:
   """Do one run (fit a GRN model and make predictions) as part of this experiment.
 
@@ -63,7 +66,7 @@ def do_one_run(
   grn = predict.GRN(train=train_data, network=networks[experiments.loc[i,'network']])
   grn.extract_features(method = "tf_rna")
   grn.fit(
-      method = "linear", 
+      method = metadata["regression_method"], 
       cell_type_labels = experiments.loc[i, "cluster_resolution"],
       cell_type_sharing_strategy = "distinct",
       network_prior = experiments.loc[i,'network_prior'],

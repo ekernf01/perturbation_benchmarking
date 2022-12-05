@@ -41,7 +41,7 @@ if args.experiment_name is None:
     args = Namespace(**{
         "experiment_name":'test',
         "test_mode":True,
-        "amount_to_do": "missing_models",
+        "amount_to_do": "models",
         "save_trainset_predictions": False,
     })
 
@@ -156,6 +156,7 @@ if args.amount_to_do in {"models", "missing_models"}:
                 test_data  = perturbed_expression_data_heldout,
                 networks = networks, 
                 outputs = outputs,
+                metadata = metadata,
             )
             print("Saving predictions...", flush = True)
             predictions   = grn.predict([

@@ -1,23 +1,20 @@
-import seaborn as sns
-import pandas as pd
 import sys
 import os
-import gc
 import numpy as np
+import pandas as pd
 import evaluator
 import predict
-import getsize
 import scanpy as sc
-import psutil 
-from memory_profiler import profile
 import anndata
+import gc 
+import altair as alt
 
 def lay_out_runs(
   train_data: anndata.AnnData, 
   test_data: anndata.AnnData, 
   networks: dict, 
   outputs: str,
-  metadata: dict,
+  metadata: dict,    
   ) -> pd.DataFrame:
   """Lay out the specific runs done in this experiment.
 
@@ -28,21 +25,21 @@ def lay_out_runs(
       networks (dict): dict with string keys and LightNetwork values
       outputs (str): folder name to save results in
       metadata (dict): metadata for this Experiment, from metadata.json. See this repo's global README.
+
   Returns:
       pd.DataFrame: metadata on the different conditions in this experiment
 
   """
-  network_sizes = pd.DataFrame({bn:networks[bn].get_num_edges() for bn in networks}, index = ["numEdges"])
-  network_sizes = network_sizes.T.reset_index().rename({"index":"network"}, axis = 1)
-
-  threshold_number = [int(f) for f in np.logspace(np.log10(20000), np.log10(network_sizes['numEdges'].max()), 1)]
-  n_pruning = len(threshold_number)
-  experiments = pd.DataFrame({"threshold_number":threshold_number,
-                              "network":["celloracle_human all"]*n_pruning, 
-                              "p":[1]*n_pruning,
-                              "pruning":["none"]*n_pruning})
-
-  experiments["log10_n_edges"] = round(np.log10(experiments["threshold_number"]), 2)
+  n_networks = len(networks.keys())
+  experiments = pd.DataFrame(
+    {
+      "network":[n for n in networks.keys()], 
+      "network_prior":[
+        "ignore" if list(networks.keys())[i] == "dense" else "restrictive"
+        for i in range(len(networks.keys()))
+      ]
+    }
+  )
   return experiments
   
 def do_one_run(
@@ -52,7 +49,7 @@ def do_one_run(
   test_data: anndata.AnnData, 
   networks: dict, 
   outputs: str,
-  metadata: dict,
+  metadata: dict,     
   ) -> anndata.AnnData:
   """Do one run (fit a GRN model and make predictions) as part of this experiment.
 
@@ -73,13 +70,14 @@ def do_one_run(
       method = metadata["regression_method"], 
       cell_type_labels = None,
       cell_type_sharing_strategy = "identical",
-      network_prior = "restrictive",
-      pruning_strategy = "prune_and_refit", 
-      pruning_parameter = experiments.loc[i,'threshold_number'],
+      network_prior = experiments.loc[i, 'network_prior'],
+      pruning_strategy = "none", 
+      pruning_parameter = None,
       projection = "none", 
-      do_parallel = True,
   )
   return grn
+
+
 
 
 def plot(evaluationResults, output):
@@ -89,3 +87,19 @@ def plot(evaluationResults, output):
       evaluationResults (_type_): dataframe with evaluation results, often one row per combo of method and gene
       output (_type_): where to save output
   """
+  vlnplot = alt.Chart(
+      data = evaluationResults, 
+      title = "Spearman correlation (predicted log fold change vs observed)"
+  ).mark_boxplot()
+  vlnplot=vlnplot.encode(
+      y=alt.Y('spearman:Q'),
+      color="is_tf_in_network:N",
+      x=alt.X(
+          'network:N'
+      )
+  ).properties(
+      width=400,
+      height=400
+  )
+  vlnplot.save(f'{output}/custom_stripchart.pdf')
+  return vlnplot
