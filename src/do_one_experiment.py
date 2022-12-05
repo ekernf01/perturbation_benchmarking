@@ -137,6 +137,7 @@ if args.amount_to_do in {"models", "missing_models"}:
             test_data  = perturbed_expression_data_heldout,
             networks = networks, 
             outputs = outputs,
+            metadata=metadata,
             )
     experiments.to_csv( os.path.join(outputs, "experiments.csv") )
     os.makedirs(os.path.join( outputs, "predictions"   ), exist_ok=True) 

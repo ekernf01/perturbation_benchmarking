@@ -299,7 +299,9 @@ class GRN:
         """Fit the model.
 
         Args:
-            method (str): Regression method to use. Defaults to "linear", which uses sklearn.linear_model.RidgeCV. Others not implemented yet. 
+            method (str): Regression method to use. Defaults to "RidgeCVExtraPenalty", which uses 
+                sklearn.linear_model.RidgeCV and combats overfitting by scanning higher penalty params whenever
+                the highest one is selected. Other methods not implemented yet. 
             confounders (list): Not implemented yet.
             cell_type_sharing_strategy (str, optional): Whether to fit one model across all training data ('identical') 
                 or fit separate ones ('distinct'). Defaults to "distinct".
@@ -341,7 +343,7 @@ class GRN:
                         "Missing:  \n" f"{prettyprint(ct_missing)}"
                     )
 
-        if method == "linear":
+        if method == "RidgeCV":
             def FUN(X,y):
                 return lm.RidgeCV(
                     alphas=(0.01, 0.1, 1.0, 10.0, 100), 
@@ -349,6 +351,24 @@ class GRN:
                     alpha_per_target=False, 
                     store_cv_values=True, #this lets us use ._cv_values later for simulating data.
                 ).fit(X, y)
+        if method == "RidgeCVExtraPenalty":
+            def FUN(X,y):
+                rcv = lm.RidgeCV(
+                    alphas=(0.01, 0.1, 1.0, 10.0, 100), 
+                    fit_intercept=True,
+                    alpha_per_target=False, 
+                    store_cv_values=True, #this lets us use ._cv_values later for simulating data.
+                ).fit(X, y)
+                if rcv.alpha_ == np.max(rcv.alphas):
+                    bigger_alphas = rcv.alpha_ * np.array([0.1, 1, 10, 100, 1000, 10000, 100000])
+                    rcv = lm.RidgeCV(
+                        alphas=bigger_alphas, 
+                        fit_intercept=True,
+                        alpha_per_target=False, 
+                        store_cv_values=True,
+                    ).fit(X, y)
+                return rcv
+
         else:
             raise NotImplementedError("Only 'linear' is supported so far.")
         self.apply_supervised_ml(
