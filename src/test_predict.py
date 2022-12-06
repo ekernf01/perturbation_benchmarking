@@ -1,5 +1,6 @@
 PROJECT_PATH = '/home/ekernf01/Desktop/jhu/research/projects/perturbation_prediction/cell_type_knowledge_transfer/'
 import os
+import shutil
 import unittest
 import pandas as pd
 import numpy as np
@@ -49,20 +50,23 @@ class TestModelRuns(unittest.TestCase):
         grn    = predict.GRN(train[0:100, 0:100].copy(), validate_immediately=False)
         grn.extract_features(method = "tf_rna")
         grn.fit(
-            method = "linear", 
+            method = "RidgeCVExtraPenalty", 
             cell_type_sharing_strategy = "identical", 
             network_prior = "ignore",
             pruning_strategy = "none", 
             pruning_parameter = None, 
         )
         grn.fit(
-            method = "linear", 
+            method = "RidgeCVExtraPenalty", 
             cell_type_sharing_strategy = "identical", 
             network_prior = "ignore",
             pruning_strategy = "none", 
             pruning_parameter = None, 
             do_parallel=False,
         )
+        shutil.rmtree("tempfolder23587623", ignore_errors=True)
+        self.assertTrue(grn.save_models("tempfolder23587623") is None)
+        shutil.rmtree("tempfolder23587623")
         p = grn.predict(example_perturbations)
         self.assertIsInstance(
             p, anndata.AnnData
@@ -72,7 +76,7 @@ class TestModelRuns(unittest.TestCase):
         grn    = predict.GRN(train[0:100, 0:100].copy(), network = network, validate_immediately=False)
         grn.extract_features(method = "tf_rna")
         grn.fit(
-            method = "linear", 
+            method = "RidgeCVExtraPenalty", 
             cell_type_sharing_strategy = "identical", 
             network_prior = "restrictive", 
             pruning_strategy = "none", 
@@ -91,7 +95,7 @@ class TestModelRuns(unittest.TestCase):
         # trained model-based
         grn.extract_features(method = "tf_rna")
         grn.fit(
-            method = "linear", 
+            method = "RidgeCVExtraPenalty", 
             cell_type_sharing_strategy = "identical", 
             network_prior = "restrictive", 
             pruning_strategy = "none", 
@@ -109,7 +113,7 @@ class TestModelRuns(unittest.TestCase):
         grn    = predict.GRN(train[0:100, 0:100].copy(), network=network, validate_immediately=False)
         grn.extract_features(method = "tf_rna")
         grn.fit(
-            method = "linear", 
+            method = "RidgeCVExtraPenalty", 
             cell_type_sharing_strategy = "identical", 
             network_prior = "ignore", 
             pruning_strategy = "prune_and_refit",
@@ -162,7 +166,7 @@ class TestModelExactlyRightOnEasySimulation(unittest.TestCase):
         grn = predict.GRN(easy_simulated, validate_immediately=False, tf_list=easy_simulated.var_names)
         grn.extract_features(method = "tf_rna")
         grn.fit(
-            method = "linear", 
+            method = "RidgeCVExtraPenalty", 
             cell_type_sharing_strategy = "identical", 
             network_prior = "ignore", 
             pruning_strategy = "none",
@@ -174,7 +178,7 @@ class TestModelExactlyRightOnEasySimulation(unittest.TestCase):
         grn = predict.GRN(easy_simulated, validate_immediately=False, tf_list=easy_simulated.var_names)
         grn.extract_features(method = "tf_rna")
         grn.fit(
-            method = "linear", 
+            method = "RidgeCVExtraPenalty", 
             cell_type_sharing_strategy = "identical", 
             network_prior = "ignore", 
             pruning_strategy = "none",
@@ -186,7 +190,7 @@ class TestModelExactlyRightOnEasySimulation(unittest.TestCase):
         grn = predict.GRN(easy_simulated, network = dense_network, validate_immediately=False, tf_list=easy_simulated.var_names)
         grn.extract_features(method = "tf_rna")
         grn.fit(
-            method = "linear", 
+            method = "RidgeCVExtraPenalty", 
             cell_type_sharing_strategy = "identical", 
             network_prior = "restrictive",
             pruning_strategy = "none"
@@ -198,7 +202,7 @@ class TestModelExactlyRightOnEasySimulation(unittest.TestCase):
         grn = predict.GRN(easy_simulated, network = correct_network, validate_immediately=False, tf_list=easy_simulated.var_names)
         grn.extract_features(method = "tf_rna")
         grn.fit(
-            method = "linear", 
+            method = "RidgeCVExtraPenalty", 
             cell_type_sharing_strategy = "identical", 
             network_prior = "restrictive",
             pruning_strategy = "none",
@@ -210,7 +214,7 @@ class TestModelExactlyRightOnEasySimulation(unittest.TestCase):
         grn = predict.GRN(easy_simulated, network = empty_network, validate_immediately=False, tf_list=easy_simulated.var_names)
         grn.extract_features(method = "tf_rna")
         grn.fit(
-            method = "linear", 
+            method = "RidgeCVExtraPenalty", 
             cell_type_sharing_strategy = "identical", 
             network_prior = "restrictive",
             pruning_strategy = "none",
@@ -222,7 +226,7 @@ class TestModelExactlyRightOnEasySimulation(unittest.TestCase):
         grn = predict.GRN(easy_simulated, validate_immediately=False, tf_list=easy_simulated.var_names)
         grn.extract_features(method = "tf_rna")
         grn.fit(
-            method = "linear", 
+            method = "RidgeCVExtraPenalty", 
             cell_type_sharing_strategy = "distinct", 
             cell_type_labels='cell_type',
             network_prior = "ignore",
@@ -278,7 +282,7 @@ class TestModelExactlyRightOnTimeSeriesSimulation(unittest.TestCase):
         grn = predict.GRN(timeseries_simulated, validate_immediately=False, tf_list=["g0", "g1"])
         grn.extract_features(method = "tf_rna")
         grn.fit(
-            method = "linear", 
+            method = "RidgeCVExtraPenalty", 
             cell_type_sharing_strategy = "identical", 
             network_prior = "ignore", 
             pruning_strategy = "none",

@@ -1,6 +1,6 @@
 from multiprocessing.sharedctypes import Value
 import anndata
-from joblib import Parallel, delayed, cpu_count
+from joblib import Parallel, delayed, cpu_count, dump
 import pandas as pd
 import os
 import sklearn.linear_model as lm
@@ -282,6 +282,17 @@ class GRN:
         adata.raw = adata.copy()
         return adata
 
+    def save_models(self, folder_name:str):
+        """Save all the regression models to a folder via joblib.dump (one file per gene).
+
+        Args:
+            folder_name (str): Where to save files.
+        """
+        os.makedirs(folder_name)
+        for i,target in enumerate(self.train.var_names):
+            dump(self.models[i], os.path.join(folder_name, f'{target}.joblib'))
+        return
+
     def fit(
         self,
         method: str, 
@@ -318,7 +329,7 @@ class GRN:
             projection (str, optional): Not implemented yet.
             predict_self (bool, optional): Should e.g. POU5F1 activity be used to predict POU5F1 expression? Defaults to False.
             time_strategy (str): 'steady_state' predicts each a gene from sample i using TF activity features derived
-                from sample i. 'two-step' trains a model to gradually transform control samples into perturbed samples by
+                from sample i. 'two_step' trains a model to gradually transform control samples into perturbed samples by
                 first perturbing the targeted gene, then propagating the perturbation to other TFs, then propagating throughout the genome. 
                 Under development circa 2022-Dec-01; see Eric's slides for a cleaner explanation.
         """
@@ -370,7 +381,7 @@ class GRN:
                 return rcv
 
         else:
-            raise NotImplementedError("Only 'linear' is supported so far.")
+            raise NotImplementedError("Only 'RidgeCV', RidgeCVExtraPenalty are supported so far.")
         self.apply_supervised_ml(
             FUN, 
             network_prior=network_prior, 
@@ -508,9 +519,7 @@ class GRN:
             # Set perturbed genes equal to user-specified expression, not whatever the endogenous level is predicted to be
             for i, pp in enumerate(perturbations):
                 if pp[0] in predictions.var_names:
-                    print(predictions[i, pp[0]].X)
                     predictions[i, pp[0]].X = pp[1]
-                    print(predictions[i, pp[0]].X)
         
         # Add noise. This is useful for simulations. 
         if add_noise:
