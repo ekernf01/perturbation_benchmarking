@@ -3,7 +3,7 @@ import os
 import numpy as np
 import pandas as pd
 import evaluator
-import predict
+import ggrn
 import scanpy as sc
 import anndata
 import gc 
@@ -63,8 +63,8 @@ def do_one_run(
   """
   r = experiments.loc[i, "cluster_resolution"]
   sc.tl.leiden(train_data, resolution=r)
-  grn = predict.GRN(train=train_data, network=networks[experiments.loc[i,'network']])
-  grn.extract_features(method = "tf_rna")
+  grn = ggrn.GRN(train=train_data, network=networks[experiments.loc[i,'network']])
+  grn.extract_tf_activity(method = "tf_rna")
   grn.fit(
       method = metadata["regression_method"], 
       cell_type_labels = experiments.loc[i, "cluster_resolution"],

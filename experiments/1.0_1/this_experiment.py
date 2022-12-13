@@ -29,15 +29,25 @@ def lay_out_runs(
       pd.DataFrame: metadata on the different conditions in this experiment
 
   """
-  downSampleFactors = [i/10.0 for i in range(3,11,2)]
   experiments = pd.DataFrame(
     {
-      "network":      ([n             for n in networks.keys()] + [list(networks.keys())[0]])*len(downSampleFactors),
-      "network_prior":(["restrictive" for _ in networks.keys()] + ["ignore"]                )*len(downSampleFactors),
-      "training_set_size":[f for f in downSampleFactors for _ in range(len(networks.keys()) + 1) ]
+      "regression_method":[
+        "mean", 
+        "median", 
+        "GradientBoostingRegressor",
+        "ExtraTreesRegressor",
+        "KernelRidge",
+        "RidgeCV", 
+        "RidgeCVExtraPenalty",
+        "LassoCV",
+        "ElasticNetCV",
+        "OrthogonalMatchingPursuitCV",
+        "BayesianRidge",
+        # "BernoulliRBM",
+        # "MLPRegressor",
+      ]
     }
   )
-  experiments = experiments.merge(pd.DataFrame({"seed":range(3)}), how='cross')
   return experiments
   
 def do_one_run(
@@ -60,19 +70,15 @@ def do_one_run(
       anndata.AnnData: Predicted expression
   """
   grn = ggrn.GRN(
-    train=evaluator.downsample(
-        train_data,
-        experiments.loc[i, "training_set_size"], 
-        seed=experiments.loc[i, "seed"], 
-      ), 
-    network=networks[experiments.loc[i,'network']]
+    train=train_data,
   )
   grn.extract_tf_activity(method = "tf_rna")
+  assert metadata["regression_method"] is None # We want to get this from the csv, not the metadata
   grn.fit(
-      method = metadata["regression_method"], 
+      method = experiments.loc[i,"regression_method"], 
       cell_type_labels = None,
       cell_type_sharing_strategy = "identical",
-      network_prior = experiments.loc[i, "network_prior"],
+      network_prior = "ignore",
       pruning_strategy = "none", 
       projection = "none", 
   )

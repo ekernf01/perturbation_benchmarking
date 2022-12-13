@@ -3,10 +3,15 @@ import anndata
 from joblib import Parallel, delayed, cpu_count, dump
 import pandas as pd
 import os
-import sklearn.linear_model as lm
+import sklearn.linear_model
+import sklearn.ensemble
+import sklearn.neural_network
+import sklearn.kernel_ridge
+import sklearn.dummy
 import numpy as np
 import gc 
 import psutil
+import dcdfg_wrapper    
 
 # Project-specific paths
 import sys 
@@ -24,7 +29,7 @@ importlib.reload(load_perturbations)
 
 
 class LinearSimulator:
-    """Stand-in for RidgeCV to allow simulation prior to model fitting."""
+    """Stand-in for sklearn.linear_model.RidgeCV to allow simulation prior to model fitting."""
     def __init__(self, dimension) -> None:
         self.coef_ = np.ones(dimension) / dimension
     def predict(self, X):
@@ -60,7 +65,7 @@ class GRN:
     def check_perturbation_dataset(self):
         return load_perturbations.check_perturbation_dataset(ad=self.train)
 
-    def extract_features(self, train: anndata.AnnData = None, in_place: bool = True, method = "tf_rna"):
+    def extract_tf_activity(self, train: anndata.AnnData = None, in_place: bool = True, method = "tf_rna"):
         """Create a feature matrix where each row matches a row in self.train 
         each column represents activity of the corresponding TF in self.tf_list.
 
@@ -75,7 +80,7 @@ class GRN:
         if method == "tf_rna":
             features = train[:,self.tf_list].X
         else:
-            raise NotImplementedError("Only 'tf_rna' feature extraction is so far available.")
+            raise NotImplementedError("Only method='tf_rna' is available so far.")
         
         if in_place:
             self.features = features # shallow copy is best here too
@@ -261,6 +266,7 @@ class GRN:
             self.training_args["cell_type_sharing_strategy"] = "identical"
             self.training_args["confounders"] = []
             self.training_args["time_strategy"] = "steady_state"
+            self.training_args["method"] = "RidgeCV"
             for i in range(len(self.train.var_names)):
                 self.models[i] = LinearSimulator(dimension=len(get_regulators(
                     self.tf_list, 
@@ -269,7 +275,7 @@ class GRN:
                     network = self.network,
                     network_prior=self.training_args["network_prior"],
                 )))
-            self.extract_features(method = feature_extraction_method)
+            self.extract_tf_activity(method = feature_extraction_method)
             adata = self.predict(perturbations, add_noise=True, noise_sd=noise_sd, seed = seed)
         else:
             raise ValueError("'effects' must be one of 'fitted_models' or 'uniform_on_provided_network'.")
@@ -288,7 +294,7 @@ class GRN:
         Args:
             folder_name (str): Where to save files.
         """
-        os.makedirs(folder_name)
+        os.makedirs(folder_name, exist_ok=True)
         for i,target in enumerate(self.train.var_names):
             dump(self.models[i], os.path.join(folder_name, f'{target}.joblib'))
         return
@@ -306,6 +312,7 @@ class GRN:
         predict_self = False,   
         time_strategy: str = "steady_state",  
         do_parallel: bool = True,
+        kwargs = None,
     ):
         """Fit the model.
 
@@ -332,6 +339,7 @@ class GRN:
                 from sample i. 'two_step' trains a model to gradually transform control samples into perturbed samples by
                 first perturbing the targeted gene, then propagating the perturbation to other TFs, then propagating throughout the genome. 
                 Under development circa 2022-Dec-01; see Eric's slides for a cleaner explanation.
+            kwargs: Passed to DCDFG. See help(dcdfg_wrapper.DCDFGWrapper.train). 
         """
         # Save some training args to later ensure prediction is consistent with training.
         self.training_args["confounders"]                = confounders
@@ -339,6 +347,7 @@ class GRN:
         self.training_args["cell_type_sharing_strategy"] = cell_type_sharing_strategy
         self.training_args["cell_type_labels"]           = cell_type_labels
         self.training_args["predict_self"]               = predict_self
+        self.training_args["method"]                     = method
         self.training_args["time_strategy"]              = time_strategy
         if network_prior != "ignore" and self.training_args["cell_type_sharing_strategy"] != 'identical':
             ct_from_network = self.network.get_all_one_field("cell_type")
@@ -353,18 +362,92 @@ class GRN:
                         "Networks: \n" f"{prettyprint(ct_from_network)}"
                         "Missing:  \n" f"{prettyprint(ct_missing)}"
                     )
-
-        if method == "RidgeCV":
+        if method.startswith("DCDFG"):
+            assert len(confounders)==0, "DCDFG cannot currently include confounders."
+            assert network_prior=="ignore", "DCDFG cannot currently include known network structure."
+            assert cell_type_sharing_strategy=="identical", "DCDFG cannot currently fit each cell type separately."
+            assert not predict_self, "DCDFG cannot include autoregulation."
+            assert time_strategy == 'steady_state', "DCDFG assumes steady state."
+            factor_graph_model = dcdfg_wrapper.DCDFGWrapper()
+            _, constraint_mode, model_type, do_use_polynomials = method.split("-")
+            print(f"""DCDFG args parsed as:")
+               constraint_mode: {constraint_mode}"
+                    model_type: {model_type}"
+            do_use_polynomials: {do_use_polynomials}"
+            """)
+            do_use_polynomials = do_use_polynomials =="True"
+            self.models = factor_graph_model.train(
+                self.train,
+                constraint_mode = constraint_mode,
+                model_type = model_type,
+                do_use_polynomials = do_use_polynomials,
+                **kwargs,
+            )
+            return 
+        elif method == "mean":
             def FUN(X,y):
-                return lm.RidgeCV(
+                return sklearn.dummy.DummyRegressor(strategy="mean").fit(X, y)
+        elif method == "median":
+            def FUN(X,y):
+                return sklearn.dummy.DummyRegressor(strategy="median").fit(X, y)
+        elif method == "GradientBoostingRegressor":
+            def FUN(X,y):
+                return sklearn.ensemble.GradientBoostingRegressor().fit(X, y)
+        elif method == "ExtraTreesRegressor":
+            def FUN(X,y):
+                return sklearn.ensemble.ExtraTreesRegressor().fit(X, y)
+        elif method == "KernelRidge":
+            def FUN(X,y):
+                return sklearn.kernel_ridge.KernelRidge().fit(X, y)
+        elif method == "ElasticNetCV":
+            def FUN(X,y):
+                return sklearn.linear_model.ElasticNetCV(
+                    fit_intercept=True,
+                ).fit(X, y)
+        elif method == "LarsCV":
+            def FUN(X,y):
+                return sklearn.linear_model.LarsCV(
+                    fit_intercept=True,
+                    normalize=False,
+                ).fit(X, y)
+        elif method == "OrthogonalMatchingPursuitCV":
+            def FUN(X,y):
+                return sklearn.linear_model.OrthogonalMatchingPursuitCV(
+                    fit_intercept=True, 
+                    normalize=False,
+                ).fit(X, y)
+        elif method == "ARDRegression":
+            def FUN(X,y):
+                return sklearn.linear_model.ARDRegression(
+                    fit_intercept=True,
+                ).fit(X, y)
+        elif method == "BayesianRidge":
+            def FUN(X,y):
+                return sklearn.linear_model.BayesianRidge(
+                    fit_intercept=True,
+                ).fit(X, y)
+        elif method == "LassoCV":
+            def FUN(X,y):
+                return sklearn.linear_model.LassoCV(
+                    fit_intercept=True,
+                ).fit(X, y)
+        elif method == "LassoLarsIC":
+            def FUN(X,y):
+                return sklearn.linear_model.LassoLarsIC(
+                    fit_intercept=True,
+                    normalize=False,
+                ).fit(X, y)
+        elif method == "RidgeCV":
+            def FUN(X,y):
+                return sklearn.linear_model.RidgeCV(
                     alphas=(0.01, 0.1, 1.0, 10.0, 100), 
                     fit_intercept=True,
                     alpha_per_target=False, 
                     store_cv_values=True, #this lets us use ._cv_values later for simulating data.
                 ).fit(X, y)
-        if method == "RidgeCVExtraPenalty":
+        elif method == "RidgeCVExtraPenalty":
             def FUN(X,y):
-                rcv = lm.RidgeCV(
+                rcv = sklearn.linear_model.RidgeCV(
                     alphas=(0.01, 0.1, 1.0, 10.0, 100), 
                     fit_intercept=True,
                     alpha_per_target=False, 
@@ -372,16 +455,15 @@ class GRN:
                 ).fit(X, y)
                 if rcv.alpha_ == np.max(rcv.alphas):
                     bigger_alphas = rcv.alpha_ * np.array([0.1, 1, 10, 100, 1000, 10000, 100000])
-                    rcv = lm.RidgeCV(
+                    rcv = sklearn.linear_model.RidgeCV(
                         alphas=bigger_alphas, 
                         fit_intercept=True,
                         alpha_per_target=False, 
                         store_cv_values=True,
                     ).fit(X, y)
                 return rcv
-
         else:
-            raise NotImplementedError("Only 'RidgeCV', RidgeCVExtraPenalty are supported so far.")
+            raise NotImplementedError(f"Method {method} is not supported.")
         self.apply_supervised_ml(
             FUN, 
             network_prior=network_prior, 
@@ -441,6 +523,7 @@ class GRN:
             columns_to_transfer.append(self.training_args["cell_type_labels"])
         predictions = anndata.AnnData(
             X = np.zeros((nrow, len(self.train.var_names))),
+            dtype=np.float32,
             var = self.train.var.copy(),
             obs = pd.DataFrame(
                 {
@@ -466,61 +549,64 @@ class GRN:
                 predictions.obs.loc[idx_str, col] = self.train.obs.loc[starting_states, col].values
 
         # Make predictions
-        if self.training_args["cell_type_sharing_strategy"] == "distinct":
-            cell_type_labels = predictions.obs[self.training_args["cell_type_labels"]]
+        if self.training_args["method"].startswith("DCDFG"):
+            predictions = self.models.predict(perturbations)     
         else:
-            cell_type_labels = None
-        if do_parallel:
-            def do_loop(network = self.network, features=features):
-                return Parallel(n_jobs=cpu_count()-1, verbose = 1, backend="loky")(
-                    delayed(predict_one_gene)(
-                        target = self.train.var_names[i],
-                        model = self.models[i],
-                        features = features, 
-                        network = network,
-                        training_args = self.training_args,
-                        tf_list = self.tf_list,
-                        cell_type_labels = cell_type_labels,                     
+            if self.training_args["cell_type_sharing_strategy"] == "distinct":
+                cell_type_labels = predictions.obs[self.training_args["cell_type_labels"]]
+            else:
+                cell_type_labels = None
+            if do_parallel:
+                def do_loop(network = self.network, features=features):
+                    return Parallel(n_jobs=cpu_count()-1, verbose = 1, backend="loky")(
+                        delayed(predict_one_gene)(
+                            target = self.train.var_names[i],
+                            model = self.models[i],
+                            features = features, 
+                            network = network,
+                            training_args = self.training_args,
+                            tf_list = self.tf_list,
+                            cell_type_labels = cell_type_labels,                     
+                        )
+                        for i in range(len(self.train.var_names))
                     )
-                    for i in range(len(self.train.var_names))
-                )
-        else:
-            def do_loop(network = self.network, features=features):
-                return [
-                    predict_one_gene(
-                        target = self.train.var_names[i],
-                        model = self.models[i],
-                        features = features, 
-                        network = self.network,
-                        training_args = self.training_args,
-                        tf_list = self.tf_list,
-                        cell_type_labels = cell_type_labels, 
-                    )
-                    for i in range(len(self.train.var_names))
-                ]
-        y = do_loop()
-        for i in range(len(self.train.var_names)):
-            predictions.X[:,i] = y[i]
-        # Set perturbed genes equal to user-specified expression, not whatever the endogenous level is predicted to be
-        for i, pp in enumerate(perturbations):
-            if pp[0] in predictions.var_names:
-                predictions[i, pp[0]].X = pp[1]
-        # Do one more time-step
-        if self.training_args["time_strategy"] == "two_step":
-            y = do_loop(
-                features = self.extract_features(
-                    train = predictions, 
-                    in_place = False,
-                    method = "tf_rna",
-                )
-            )
+            else:
+                def do_loop(network = self.network, features=features):
+                    return [
+                        predict_one_gene(
+                            target = self.train.var_names[i],
+                            model = self.models[i],
+                            features = features, 
+                            network = self.network,
+                            training_args = self.training_args,
+                            tf_list = self.tf_list,
+                            cell_type_labels = cell_type_labels, 
+                        )
+                        for i in range(len(self.train.var_names))
+                    ]
+            y = do_loop()
             for i in range(len(self.train.var_names)):
                 predictions.X[:,i] = y[i]
             # Set perturbed genes equal to user-specified expression, not whatever the endogenous level is predicted to be
             for i, pp in enumerate(perturbations):
                 if pp[0] in predictions.var_names:
                     predictions[i, pp[0]].X = pp[1]
-        
+            # Do one more time-step
+            if self.training_args["time_strategy"] == "two_step":
+                y = do_loop(
+                    features = self.extract_tf_activity(
+                        train = predictions, 
+                        in_place = False,
+                        method = "tf_rna",
+                    )
+                )
+                for i in range(len(self.train.var_names)):
+                    predictions.X[:,i] = y[i]
+                # Set perturbed genes equal to user-specified expression, not whatever the endogenous level is predicted to be
+                for i, pp in enumerate(perturbations):
+                    if pp[0] in predictions.var_names:
+                        predictions[i, pp[0]].X = pp[1]
+            
         # Add noise. This is useful for simulations. 
         if add_noise:
             np.random.seed(seed)

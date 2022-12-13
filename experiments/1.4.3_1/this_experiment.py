@@ -3,7 +3,7 @@ import os
 import numpy as np
 import pandas as pd
 import evaluator
-import predict
+import ggrn
 import scanpy as sc
 import anndata
 import gc 
@@ -61,11 +61,11 @@ def do_one_run(
   Returns:
       anndata.AnnData: Predicted expression
   """
-  grn = predict.GRN(
+  grn = ggrn.GRN(
     train=train_data, 
     network=networks[experiments.loc[i,'network']]
   )
-  grn.extract_features(method = "tf_rna")
+  grn.extract_tf_activity(method = "tf_rna")
   grn.fit(
       method = metadata["regression_method"], 
       cell_type_labels = None,
@@ -74,6 +74,7 @@ def do_one_run(
       pruning_strategy = "none", 
       pruning_parameter = None,
       projection = "none", 
+      time_strategy = metadata["time_strategy"],
   )
   return grn
 

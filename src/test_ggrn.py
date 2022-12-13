@@ -10,8 +10,8 @@ os.chdir(PROJECT_PATH + "perturbation_benchmarking")
 import sys
 import importlib
 sys.path.append("src")
-import predict
-importlib.reload(predict)
+import ggrn
+importlib.reload(ggrn)
 sys.path.append(os.path.expanduser(os.path.join(PROJECT_PATH, 'network_collection', 'load_networks'))) 
 import load_networks
 importlib.reload(load_networks)
@@ -22,33 +22,63 @@ example_perturbations = (("KLF8", 0), ("GATA1", 0), ("empty_vector", np.nan))
 class TestModelRuns(unittest.TestCase):
     def test_make_GRN(self):
         self.assertIsInstance(
-            predict.GRN(train, network = network), predict.GRN
+            ggrn.GRN(train, network = network), ggrn.GRN
         )
         self.assertIsInstance(
-            predict.GRN(train), predict.GRN
+            ggrn.GRN(train), ggrn.GRN
         )
-        grn = predict.GRN(train, network = network)
+        grn = ggrn.GRN(train, network = network)
 
     def test_validate_input(self):
         self.assertTrue(
-            predict.GRN(train, network = network).check_perturbation_dataset() 
+            ggrn.GRN(train, network = network).check_perturbation_dataset() 
         )    
         self.assertTrue(
-            predict.GRN(train).check_perturbation_dataset() 
+            ggrn.GRN(train).check_perturbation_dataset() 
         )    
-    def test_extract_features(self):
-        grn    = predict.GRN(train, network = network)
+    def test_extract_tf_activity(self):
+        grn    = ggrn.GRN(train, network = network)
         self.assertIsNone(
-            grn.extract_features(method = "tf_rna")
+            grn.extract_tf_activity(method = "tf_rna")
         )    
-        grn    = predict.GRN(train)
+        grn    = ggrn.GRN(train)
         self.assertIsNone(
-            grn.extract_features(method = "tf_rna")
+            grn.extract_tf_activity(method = "tf_rna")
         )    
 
+    def test_fit_various_methods(self):
+        grn    = ggrn.GRN(train[0:100, 0:100].copy(), validate_immediately=False)
+        grn.extract_tf_activity(method = "tf_rna")
+        for regression_method in [
+                "mean", 
+                "median", 
+                "GradientBoostingRegressor",
+                "ExtraTreesRegressor",
+                "KernelRidge",
+                "RidgeCV", 
+                "RidgeCVExtraPenalty",
+                "LassoCV",
+                "ElasticNetCV",
+                "LarsCV",
+                "LassoLarsIC",
+                "OrthogonalMatchingPursuitCV",
+                "ARDRegression",
+                "BayesianRidge",
+                # "BernoulliRBM",
+                # "MLPRegressor",
+            ]:
+            grn.fit(
+                method = regression_method, 
+                cell_type_sharing_strategy = "identical", 
+                network_prior = "ignore",
+                pruning_strategy = "none", 
+                pruning_parameter = None, 
+                do_parallel=False, #catch bugs easier
+            )    
+    
     def test_simple_fit_and_predict(self):
-        grn    = predict.GRN(train[0:100, 0:100].copy(), validate_immediately=False)
-        grn.extract_features(method = "tf_rna")
+        grn    = ggrn.GRN(train[0:100, 0:100].copy(), validate_immediately=False)
+        grn.extract_tf_activity(method = "tf_rna")
         grn.fit(
             method = "RidgeCVExtraPenalty", 
             cell_type_sharing_strategy = "identical", 
@@ -73,8 +103,8 @@ class TestModelRuns(unittest.TestCase):
         )
 
     def test_network_fit_and_predict(self):
-        grn    = predict.GRN(train[0:100, 0:100].copy(), network = network, validate_immediately=False)
-        grn.extract_features(method = "tf_rna")
+        grn    = ggrn.GRN(train[0:100, 0:100].copy(), network = network, validate_immediately=False)
+        grn.extract_tf_activity(method = "tf_rna")
         grn.fit(
             method = "RidgeCVExtraPenalty", 
             cell_type_sharing_strategy = "identical", 
@@ -88,12 +118,12 @@ class TestModelRuns(unittest.TestCase):
         )
 
     def test_simulation_works(self):
-        grn    = predict.GRN(train[0:100, 0:100].copy(), network = network, validate_immediately=False)
+        grn    = ggrn.GRN(train[0:100, 0:100].copy(), network = network, validate_immediately=False)
         # network-based
         p = grn.simulate_data(example_perturbations, effects = "uniform_on_provided_network", noise_sd=1)
-        self.assert_(predict.GRN(p, validate_immediately=True))
+        self.assertTrue(ggrn.GRN(p, validate_immediately=True))
         # trained model-based
-        grn.extract_features(method = "tf_rna")
+        grn.extract_tf_activity(method = "tf_rna")
         grn.fit(
             method = "RidgeCVExtraPenalty", 
             cell_type_sharing_strategy = "identical", 
@@ -105,13 +135,13 @@ class TestModelRuns(unittest.TestCase):
         p2 = grn.simulate_data(example_perturbations, effects = "fitted_models")     
         p3 = grn.simulate_data(example_perturbations, effects = "fitted_models", noise_sd=1)     
         np.testing.assert_almost_equal(p1.X, p2.X)
-        self.assert_(predict.GRN(p1, validate_immediately=True))
-        self.assert_(predict.GRN(p2, validate_immediately=True))
-        self.assert_(predict.GRN(p3, validate_immediately=True))
+        self.assertTrue(ggrn.GRN(p1, validate_immediately=True))
+        self.assertTrue(ggrn.GRN(p2, validate_immediately=True))
+        self.assertTrue(ggrn.GRN(p3, validate_immediately=True))
 
     def test_pruned_fit_and_predict(self):
-        grn    = predict.GRN(train[0:100, 0:100].copy(), network=network, validate_immediately=False)
-        grn.extract_features(method = "tf_rna")
+        grn    = ggrn.GRN(train[0:100, 0:100].copy(), network=network, validate_immediately=False)
+        grn.extract_tf_activity(method = "tf_rna")
         grn.fit(
             method = "RidgeCVExtraPenalty", 
             cell_type_sharing_strategy = "identical", 
@@ -128,6 +158,7 @@ class TestModelRuns(unittest.TestCase):
 
 # Make some simulated data that ridge regressions should be able to get exactly right
 easy_simulated = anndata.AnnData(
+    dtype=np.float32,
     obs = pd.DataFrame(
         {"is_control": True,
         "perturbation": "control",
@@ -163,8 +194,8 @@ dense_network = load_networks.LightNetwork(df = pd.DataFrame({
 
 class TestModelExactlyRightOnEasySimulation(unittest.TestCase):
     def test_simple_dense(self):
-        grn = predict.GRN(easy_simulated, validate_immediately=False, tf_list=easy_simulated.var_names)
-        grn.extract_features(method = "tf_rna")
+        grn = ggrn.GRN(easy_simulated, validate_immediately=False, tf_list=easy_simulated.var_names)
+        grn.extract_tf_activity(method = "tf_rna")
         grn.fit(
             method = "RidgeCVExtraPenalty", 
             cell_type_sharing_strategy = "identical", 
@@ -175,8 +206,8 @@ class TestModelExactlyRightOnEasySimulation(unittest.TestCase):
         np.testing.assert_almost_equal(p[:, "g0"].X.squeeze(), [0,2,4], decimal=1)
 
     def test_simple_dense_parallel_predict(self):
-        grn = predict.GRN(easy_simulated, validate_immediately=False, tf_list=easy_simulated.var_names)
-        grn.extract_features(method = "tf_rna")
+        grn = ggrn.GRN(easy_simulated, validate_immediately=False, tf_list=easy_simulated.var_names)
+        grn.extract_tf_activity(method = "tf_rna")
         grn.fit(
             method = "RidgeCVExtraPenalty", 
             cell_type_sharing_strategy = "identical", 
@@ -187,8 +218,8 @@ class TestModelExactlyRightOnEasySimulation(unittest.TestCase):
         np.testing.assert_almost_equal(p[:, "g0"].X.squeeze(), [0,2,4], decimal=1)
 
     def test_network_dense(self):
-        grn = predict.GRN(easy_simulated, network = dense_network, validate_immediately=False, tf_list=easy_simulated.var_names)
-        grn.extract_features(method = "tf_rna")
+        grn = ggrn.GRN(easy_simulated, network = dense_network, validate_immediately=False, tf_list=easy_simulated.var_names)
+        grn.extract_tf_activity(method = "tf_rna")
         grn.fit(
             method = "RidgeCVExtraPenalty", 
             cell_type_sharing_strategy = "identical", 
@@ -199,8 +230,8 @@ class TestModelExactlyRightOnEasySimulation(unittest.TestCase):
         np.testing.assert_almost_equal(p[:, "g0"].X.squeeze(), [0,2,4], decimal=1)
 
     def test_network_correct(self):
-        grn = predict.GRN(easy_simulated, network = correct_network, validate_immediately=False, tf_list=easy_simulated.var_names)
-        grn.extract_features(method = "tf_rna")
+        grn = ggrn.GRN(easy_simulated, network = correct_network, validate_immediately=False, tf_list=easy_simulated.var_names)
+        grn.extract_tf_activity(method = "tf_rna")
         grn.fit(
             method = "RidgeCVExtraPenalty", 
             cell_type_sharing_strategy = "identical", 
@@ -211,8 +242,8 @@ class TestModelExactlyRightOnEasySimulation(unittest.TestCase):
         np.testing.assert_almost_equal(p[:, "g0"].X.squeeze(), [0,2,4], decimal=1)
 
     def test_network_empty(self):
-        grn = predict.GRN(easy_simulated, network = empty_network, validate_immediately=False, tf_list=easy_simulated.var_names)
-        grn.extract_features(method = "tf_rna")
+        grn = ggrn.GRN(easy_simulated, network = empty_network, validate_immediately=False, tf_list=easy_simulated.var_names)
+        grn.extract_tf_activity(method = "tf_rna")
         grn.fit(
             method = "RidgeCVExtraPenalty", 
             cell_type_sharing_strategy = "identical", 
@@ -223,8 +254,8 @@ class TestModelExactlyRightOnEasySimulation(unittest.TestCase):
         np.testing.assert_almost_equal(p[:, "g0"].X.squeeze(), [0,0,0], decimal=1)
 
     def test_ct_specific(self):
-        grn = predict.GRN(easy_simulated, validate_immediately=False, tf_list=easy_simulated.var_names)
-        grn.extract_features(method = "tf_rna")
+        grn = ggrn.GRN(easy_simulated, validate_immediately=False, tf_list=easy_simulated.var_names)
+        grn.extract_tf_activity(method = "tf_rna")
         grn.fit(
             method = "RidgeCVExtraPenalty", 
             cell_type_sharing_strategy = "distinct", 
@@ -246,6 +277,7 @@ class TestModelExactlyRightOnEasySimulation(unittest.TestCase):
 
 # Make some simulated data that ridge regressions should be able to get exactly right
 timeseries_simulated = anndata.AnnData(
+    dtype=np.float64,
     obs = pd.DataFrame(
         {
             "is_control":   np.resize([True,  False, False, False, False], 1000),
@@ -279,8 +311,8 @@ timeseries_simulated.X[:,         4] = timeseries_simulated.X[:,0].copy() + time
 timeseries_simulated.uns["perturbed_and_measured_genes"] = {"g1", "g2"}
 class TestModelExactlyRightOnTimeSeriesSimulation(unittest.TestCase):
     def test_timeseries(self):
-        grn = predict.GRN(timeseries_simulated, validate_immediately=False, tf_list=["g0", "g1"])
-        grn.extract_features(method = "tf_rna")
+        grn = ggrn.GRN(timeseries_simulated, validate_immediately=False, tf_list=["g0", "g1"])
+        grn.extract_tf_activity(method = "tf_rna")
         grn.fit(
             method = "RidgeCVExtraPenalty", 
             cell_type_sharing_strategy = "identical", 

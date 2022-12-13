@@ -1,7 +1,6 @@
 
 import os
 import numpy as np
-import re
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 plt.rcParams['figure.figsize'] = [6, 4.5]
@@ -9,17 +8,15 @@ plt.rcParams["savefig.dpi"] = 300
 import pandas as pd
 import scanpy as sc
 import gc
-import json
-import yaml
 import argparse
 from argparse import Namespace
 import datetime
-import gc
-import predict
+import ggrn
 # User input: name of experiment and whether to fully rerun or just remake plots. 
 parser = argparse.ArgumentParser("experimenter")
 parser.add_argument("--experiment_name", help="Unique id for the experiment.", type=str)
 parser.add_argument("--test_mode",       help="If true, use a small subset of the perturbation data.",     default = False, action = "store_true")
+parser.add_argument("--save_models",     help="If true, save model objects.", default = False, action = "store_true")
 parser.add_argument("--save_trainset_predictions", help="If true, make & save predictions of training data.", default = False, action = "store_true")
 parser.add_argument(
     "--amount_to_do",
@@ -98,7 +95,7 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
             perturbed_expression_data = sc.read_h5ad(os.path.join(outputs, "simulated_data.h5ad"))
         else:
             print("Simulating data.")
-            grn = predict.GRN(
+            grn = ggrn.GRN(
                 train=perturbed_expression_data, 
                 network=networks[metadata["do_simulate"]["network"]],
             )
@@ -121,7 +118,7 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
             proportion = 0.2,
             proportion_genes = 0.01,
         )
-    if any(networks):
+    if any([k not in {"dense", "empty"} for k in networks.keys()]):
         allowedRegulators = set.union(*[networks[key].get_all_regulators() for key in networks])
     else:
         allowedRegulators = perturbed_expression_data.var_names
@@ -143,6 +140,7 @@ if args.amount_to_do in {"models", "missing_models"}:
     os.makedirs(os.path.join( outputs, "predictions"   ), exist_ok=True) 
     os.makedirs(os.path.join( outputs, "fitted_values" ), exist_ok=True) 
     for i in experiments.index:
+        models      = os.path.join( outputs, "models",      str(i) )
         h5ad        = os.path.join( outputs, "predictions", str(i) + ".h5ad" )
         h5ad_fitted = os.path.join( outputs, "fitted_values", str(i) + ".h5ad" )
         if (args.amount_to_do in {"models"}) or not os.path.isfile(h5ad):
@@ -150,15 +148,22 @@ if args.amount_to_do in {"models", "missing_models"}:
                 os.unlink(h5ad)
             except FileNotFoundError:
                 pass
-            grn = this_experiment.do_one_run(
-                experiments, 
-                i,
-                train_data = perturbed_expression_data_train, 
-                test_data  = perturbed_expression_data_heldout,
-                networks = networks, 
-                outputs = outputs,
-                metadata = metadata,
-            )
+            try:
+                grn = this_experiment.do_one_run(
+                    experiments, 
+                    i,
+                    train_data = perturbed_expression_data_train, 
+                    test_data  = perturbed_expression_data_heldout,
+                    networks = networks, 
+                    outputs = outputs,
+                    metadata = metadata,
+                )
+            except Exception as e:
+                print(f"Caught exception {repr(e)} on experiment {i}; skipping.")
+                continue
+            if args.save_models:
+                print("Saving models...", flush = True)
+                predictions   = grn.save_models( models )
             print("Saving predictions...", flush = True)
             predictions   = grn.predict([
                 (r[1][0], r[1][1]) 

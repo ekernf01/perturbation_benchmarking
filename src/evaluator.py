@@ -16,8 +16,6 @@ import shutil
 import sys
 import importlib
 sys.path.append("src")
-import predict
-importlib.reload(predict)
 import altair as alt
 
 def makeMainPlots(

@@ -3,7 +3,7 @@ import os
 import numpy as np
 import pandas as pd
 import evaluator
-import predict
+import ggrn
 import scanpy as sc
 import anndata
 import gc 
@@ -29,7 +29,7 @@ def lay_out_runs(
       pd.DataFrame: metadata on the different conditions in this experiment
 
   """
-  grn = predict.GRN(train=train_data)
+  grn = ggrn.GRN(train=train_data)
   size_of_dense_network = len(train_data.var_names)*len(grn.tf_list)
   threshold_number = [1] + [int(f) for f in np.logspace(np.log10(20000), np.log10(size_of_dense_network), 10)]
   experiments = pd.DataFrame({"threshold_number":threshold_number})
@@ -48,8 +48,8 @@ def do_one_run(
   """See help(lay_out_runs)."""
   print("Running setting " + str(i))
   sys.stdout.flush()
-  grn = predict.GRN(train=train_data)
-  grn.extract_features(method = "tf_rna")
+  grn = ggrn.GRN(train=train_data)
+  grn.extract_tf_activity(method = "tf_rna")
   grn.fit(
       method = metadata["regression_method"], 
       cell_type_labels = None,

@@ -2,7 +2,7 @@ import sys
 import os
 import numpy as np
 import evaluator
-import predict
+import ggrn
 import scanpy as sc
 import anndata
 import pandas as pd
