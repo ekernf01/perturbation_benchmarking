@@ -205,14 +205,16 @@ class LinearGaussianModel(pl.LightningModule):
         """Simulate a knockout experiment outcome given control expression and given which gene is KO'd."""
         if not self.module.check_acyclicity():
             print(f"Warning: graph is not acyclic. Predictions may diverge (give NaN's). Setting maxiter to {maxiter_cyclic}.")
-            maxiter = maxiter_cyclic
+            maxiter = maxiter_cyclic            
+        if len(control_expression.shape) > 1:
+            raise ValueError("simulateKO only accepts 1d input for control expression.")
         x = torch.from_numpy(control_expression)
         x = x.float()
         for i in range(maxiter):
             xold = x
-            x[:, KO_gene_idx] = KO_gene_value
+            x[KO_gene_idx] = KO_gene_value
             x = self.module.forward(x)
-            x[:, KO_gene_idx] = KO_gene_value
             if torch.linalg.vector_norm(xold - x) < 1e-12:
                 break
+        x[KO_gene_idx] = KO_gene_value
         return x.detach().numpy()
