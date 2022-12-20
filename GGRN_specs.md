@@ -70,7 +70,7 @@ where:
 
 - $treated$ is a set of indices for samples that have undergone treatment.
 - $steady$ is a set of samples that is assumed to have reached a steady state (usually, all controls).
-- $Q$ is a projection matrix and $R$ is some attempt to invert $Q$. $Q$ and $R$ can be learned by PCA, OR learned by backprop, OR specified by the user as e.g. motif counts + pseudoinverse, OR set to the identity matrix. Maybe eventually we could have some rows fixed by the user and others optimized.
+- $Q$ is a projection matrix and $R$ is a right-inverse for $Q$. To be clear, we want $z=Q(R(z))$ for lower-dimensional $z$, but we cannot expect $R(Q(x))$ for higher-dimensional $x$. $Q$ and $R$ can be learned by PCA, OR learned by backprop, OR specified by the user as e.g. motif counts + pseudoinverse, OR set to the identity matrix. Maybe eventually we could have some rows fixed by the user and others optimized.
 - $G$ predicts a single step forward in time by $T/S$ hours, where $T$ is the duration of treatment.
 - $P_i$ enforces interventions on genes perturbed in sample $i$.
 - $F^S(X) = F(F(...F(X)))$ ($S$ iterations of $F(X)$).
@@ -79,6 +79,6 @@ where:
 
 This framework can be trained on time-series data, interventional data, or a mixture. This will already be a distinctive advantage whether or not it actually wins benchmarks. For time-series data, $S$ should be adjusted per-sample so it is proportional to the time elapsed. 
 
-It is not clear to me whether and how prior information should be included, but the most likely method is to include motif information the way ARMADA does: by fixing $Q$ and $R$. One can imagine various schemes for sharing information across cell types but I think we may omit that from the project scope for now. 
+This backend has some deliberate omissions. First, it is not clear to me whether and how prior information should be included, but the most likely method is to include motif information the way ARMADA does: by fixing $Q$ and $R$. Second, you can imagine various schemes for sharing information across cell types but we omit that goal from the project scope for now. Third, there is no separation between true and observed expression levels; a true measurement model would require separate quantities for our predictions about the true expression state, similar to the output of a Kalman filter.
 
-We will probably implement this in Pytorch, so that we can fit basically any differentiable functions for R, P, G, Q, and J. 
+We will implement this in Pytorch, so that we can fit any differentiable functions for R, P, G, Q, and J. It is probably hard to train this type of model when $S>2$. A possible work-around would be to add some intermediates: instead of minimizing $||Y - F^4(X)||^2$, minimize $||Y - H^2(X)||^2 + \lambda||F^2(X) - H(X)||^2$. Another possible pitfall is if $z\neq Q(R(z))$. Adding $||Q(R(z)) - z||^2$ to $J$ could help, or $R$ could be absorbed into $G$ as in DCD-FG.
