@@ -1,0 +1,18 @@
+{
+    "unique_id": "1.0_1",
+    "nickname": "ml methods",
+    "readme": "We test a slate of regression methods to see if anything can beat ... the mean of the training data.",
+    "question": "1.0",
+    "regression_method": null,
+    "is_active": true,
+    "facet_by": null,
+    "color_by": null,
+    "factor_varied": "regression_method",
+    "default_level": null,
+    "merge_replicates": true,
+    "perturbation_dataset": "nakatake",
+    "network_datasets": {
+        "dense":{}
+    }
+}
+

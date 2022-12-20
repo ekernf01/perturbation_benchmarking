@@ -1,0 +1,12 @@
+{
+    "unique_id": "1.4.3_6",
+    "nickname": "base_network",
+    "refers_to": "1.4.3_1",
+    "readme": "This is like experiment 1.4.3_2, except we use more conservative penalty param selection and we use the 'two-step' time strategy.",
+    "merge_replicates": true,
+    "question": "1.4",
+    "is_active": true,
+    "regression_method": "RidgeCVExtraPenalty",
+    "time_strategy": "two_step"
+}
+
