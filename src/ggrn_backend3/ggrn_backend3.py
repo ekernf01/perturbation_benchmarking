@@ -5,8 +5,9 @@ import anndata
 import math
 import pandas as pd
 import numpy as np
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
-class AnnDataSetMatchedControls(torch.utils.data.Dataset):
+class AnnDataMatchedControlsDataSet(torch.utils.data.Dataset):
     def __init__(self, adata: anndata.AnnData, matching_method: str) -> None:
         super().__init__()
         self.adata = adata
@@ -23,7 +24,7 @@ class AnnDataSetMatchedControls(torch.utils.data.Dataset):
             raise KeyError("train data must have a boolean column in .obs with key 'is_control'.")
         if self.adata.obs["is_control"].dtype.name != "bool":
             dt = self.adata.obs["is_control"].dtype
-            raise KeyError(f"train.obs['is_control'] must be boolean. dtype: {repr(dt)}")
+            raise TypeError(f"train.obs['is_control'] must be boolean. dtype: {repr(dt)}")
         if "is_treatment" not in set(self.adata.obs.columns):
             self.adata.obs["is_treatment"] = ~self.adata.obs["is_control"]
         if "is_steady_state" not in set(self.adata.obs.columns):
@@ -32,7 +33,8 @@ class AnnDataSetMatchedControls(torch.utils.data.Dataset):
             raise KeyError("train data must have a comma-separated str column in .obs with key 'perturbation'.")
         if "expression_level_after_perturbation" not in self.adata.obs.columns:
             raise KeyError("train data must have a comma-separated str column in .obs with key 'expression_level_after_perturbation'.")
-
+        if self.adata.obs["expression_level_after_perturbation"].dtype.name != "str":
+            self.adata.obs['expression_level_after_perturbation'] = self.adata.obs['expression_level_after_perturbation'].astype(str)
         self.adata = MatchControls(self.adata, matching_method)
 
     def __len__(self):
@@ -88,7 +90,7 @@ def kaiming_init(model):
 class GGRNAutoregressiveModel:
 
     def __init__(self, train_data, matching_method):
-        self.train_data = AnnDataSetMatchedControls(train_data, matching_method)
+        self.train_data = AnnDataMatchedControlsDataSet(train_data, matching_method)
         self.model = None
         return
 
@@ -104,7 +106,7 @@ class GGRNAutoregressiveModel:
         max_epochs = 1, 
         learning_rate = 0.001,
         batch_size = 64,
-        regularization_parameter = 1,
+        regularization_parameter = 0,
     ):
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -120,7 +122,13 @@ class GGRNAutoregressiveModel:
         kaiming_init(self.model)
 
         dataloader = torch.utils.data.DataLoader(self.train_data, batch_size=batch_size, shuffle=True)
-        trainer = pl.Trainer(limit_train_batches=limit_train_batches, max_epochs=max_epochs, accelerator=device)
+        trainer = pl.Trainer(
+            limit_train_batches=limit_train_batches, 
+            max_epochs=max_epochs,
+            accelerator=device,
+            callbacks=[EarlyStopping(monitor="training_loss", mode="min")]
+        )
+
         trainer.fit(model=self.model, train_dataloaders=dataloader)
         return 
         

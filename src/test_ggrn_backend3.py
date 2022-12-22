@@ -1,3 +1,6 @@
+
+
+
 import os
 try:
     PROJECT_PATH = '/home/ekernf01/Desktop/jhu/research/projects/perturbation_prediction/cell_type_knowledge_transfer/'
@@ -14,17 +17,57 @@ import ggrn_backend3.ggrn_backend3
 import load_networks
 import scanpy as sc
 import numpy as np
+import pandas as pd
 import torch
+import anndata
 
 train_data = sc.read_h5ad("../accessory_data/nakatake.h5ad")
 network = load_networks.LightNetwork(files=["../accessory_data/human_promoters.parquet"])
 example_perturbations = (("KLF8", 0), ("GATA1", 0), ("empty_vector", np.nan))
 
+def simple_simulation():
+    metadata = pd.DataFrame({
+        "is_control":      [True]   + [False  for _ in range(20) ],
+        "is_treatment":    [False]  + [True   for _ in range(20) ],
+        "is_steady_state": [False]  + [False  for _ in range(20) ],
+        "perturbation":    ["-999"] + [str(i) for i in range(10) ] + [str(i) for i in range(10) ],
+        "expression_level_after_perturbation":   ["0"] + ["0" for _ in range(10) ] + ["10" for _ in range(10) ],
+    })
+
+    control = np.random.random((10,1))
+    def perturb(control, perturbation, expression_level_after_perturbation):
+        x = control.copy()
+        x[int(perturbation)] = float(expression_level_after_perturbation)
+        return x
+
+    W = np.random.random((10,10))
+    linear_one_step = anndata.AnnData(
+        dtype = np.float32,
+        X = np.column_stack(
+            [control] + [
+                perturb(
+                    W.dot(
+                        perturb(
+                            control,
+                            metadata.loc[i, "perturbation"], 
+                            metadata.loc[i, "expression_level_after_perturbation"], 
+                        )
+                    ),
+                    metadata.loc[i, "perturbation"], 
+                    metadata.loc[i, "expression_level_after_perturbation"], 
+                )
+                for i in metadata.index if i != 0
+            ]
+        ).T,
+        obs = metadata,
+    )
+    return linear_one_step, W
+
 class TestBackend3(unittest.TestCase):
     def test_matching_and_loading(self):
         td = ggrn_backend3.ggrn_backend3.MatchControls(train_data, "random")
         # td = ggrn_backend3.ggrn_backend3.MatchControls(train_data, "closest")
-        torchy_dataset = ggrn_backend3.ggrn_backend3.AnnDataSetMatchedControls(td, "random")
+        torchy_dataset = ggrn_backend3.ggrn_backend3.AnnDataMatchedControlsDataSet(td, "random")
         torchy_dataloader = torch.utils.data.DataLoader(torchy_dataset)
         x = torchy_dataset[0]
         batch = next(iter(torchy_dataloader))
@@ -60,6 +103,29 @@ class TestBackend3(unittest.TestCase):
                             network = network,
                         )
                         y = model.predict(example_perturbations)
+
+    def test_correctness(self):
+        linear_one_step, W = simple_simulation()
+        model = ggrn_backend3.ggrn_backend3.GGRNAutoregressiveModel(linear_one_step, matching_method = "random")
+        model.train(
+            S = 1,
+            regression_method = "linear",
+            low_dimensional_structure = "none",
+            low_dimensional_training = None,
+            network = None,     
+            max_epochs=10000,
+            regularization_parameter = 0,
+        )
+        model
+        x = linear_one_step.X[0,:].copy()
+        x[0] = 10
+        np.dot(W, x) - linear_one_step.X[11,:]
+        [p.detach().numpy()-W for n,p in model.model.named_parameters() if n=="G.weight"]
+
+
+
+
+
 
 if __name__ == '__main__':
     unittest.main()

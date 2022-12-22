@@ -1,6 +1,5 @@
 import torch
 import pytorch_lightning as pl
-
 def P(x: torch.tensor, perturbations: list) -> torch.tensor:
     """Enact a perturbation.
     Args:
@@ -57,32 +56,34 @@ class LinearAutoregressive(pl.LightningModule):
             raise ValueError(f"low_dimensional_training must be 'supervised','PCA', 'fixed'. Value: {low_dimensional_training}")
 
     def forward(self, x, perturbations):
-        torch.matmul(self.G, P(x, perturbations))
+        return self.G(P(x, perturbations))
 
     def training_step(self, input_batch):
         loss = 0
-        for i in range(len(input_batch)):
+        for i in range(len(input_batch["treatment"]["metadata"]["perturbation"])):
+            perturbations = zip(
+                [int(g)   for g in input_batch["treatment"]["metadata"]["perturbation_index"][i].split(",")],
+                [float(x) for x in input_batch["treatment"]["metadata"]["expression_level_after_perturbation"][i].split(",")],
+            )
+            perturbations = [p for p in perturbations if p[0]!=-999] #sentinel value indicates this is a control
             if input_batch["treatment"]["metadata"]["is_steady_state"][i]: 
                 # (electric slide voice) one hop this time. *BEWMP*
-                x_t = input_batch["treatment"]["expression"][i]
-                print(input_batch["treatment"]["metadata"]["perturbation_index"][i])
-                perturbations = zip(
-                    [g        for g in input_batch["treatment"]["metadata"]["perturbation_index"][i].split(",")],
-                    [float(x) for x in input_batch["treatment"]["metadata"]["expression_level_after_perturbation"][i].split(",")],
-                )
-                perturbations = [p for p in perturbations if p[0]!=-999] #sentinel value indicates this is a control
+                x_t = input_batch["treatment"]["expression"][i].clone()
                 x_t = self(x_t, perturbations)
                 loss += torch.linalg.norm(input_batch["treatment"]["expression"][i] - x_t)
             if input_batch["treatment"]["metadata"]["is_treatment"][i]: 
                 # (electric slide voice) S hops this time. *BEWMP* *BEWMP* *BEWMP* *BEWMP* 
-                x_t = input_batch["matched_control"]["expression"][i] 
-                for _ in range(self.S-1):
-                    x_t = self(x_t, perturbations[i])
-                loss += torch.linalg.norm(input_batch["matched_control"]["expression"][i] - x_t)
+                x_t = input_batch["matched_control"]["expression"][i].clone()
+                for _ in range(self.S):
+                    x_t = self(x_t, perturbations)
+                loss += torch.linalg.norm(input_batch["treatment"]["expression"][i] - x_t)
         lasso_term = torch.abs(
             [param for name, param in self.G.named_parameters() if name == "weight"][0]
         ).sum()
+        self.log("mse", loss, logger=False)
         loss += self.regularization_parameter*lasso_term
+        self.log("training_loss", loss, logger=False)
+        self.log("lasso_term", lasso_term, logger=False)
         return loss
 
     def configure_optimizers(self):
