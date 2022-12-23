@@ -58,9 +58,11 @@ class AnnDataMatchedControlsDataSet(torch.utils.data.Dataset):
 
 def MatchControls(train_data: anndata.AnnData, matching_method: str):
     if matching_method == "closest":
+        assert "matched_control" not in train_data.obs.columns, "Matched controls already present; set matching_method='user'."
         raise NotImplementedError("Cannot yet match to closest control.")
         train_data.obs["matched_control"] = "placeholder"
     elif matching_method == "random":
+        assert "matched_control" not in train_data.obs.columns, "Matched controls already present; set matching_method='user'."
         train_data.obs["matched_control"] = np.random.choice(
             np.where(train_data.obs["is_control"])[0], 
             train_data.obs.shape[0], 
@@ -97,16 +99,17 @@ class GGRNAutoregressiveModel:
     def train(
         self,
         S = 1,
-        regression_method = "linear",
-        low_dimensional_structure = "none",
-        low_dimensional_training = "PCA",
+        regression_method: str = "linear",
+        low_dimensional_structure: str = "none",
+        low_dimensional_training: str = "PCA",
         network = None,
         device = None,
-        limit_train_batches = 100,
-        max_epochs = 1, 
-        learning_rate = 0.001,
-        batch_size = 64,
-        regularization_parameter = 0,
+        max_epochs: int = 10000, 
+        learning_rate:float = 0.001,
+        batch_size:int = 64,
+        regularization_parameter:float = 0,
+        optimizer:str = "ADAM",
+        num_workers = 1,
     ):
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -118,14 +121,14 @@ class GGRNAutoregressiveModel:
             low_dimensional_training = low_dimensional_training,
             learning_rate = learning_rate, 
             regularization_parameter = regularization_parameter,
+            optimizer=optimizer,
         )
         kaiming_init(self.model)
 
-        dataloader = torch.utils.data.DataLoader(self.train_data, batch_size=batch_size, shuffle=True)
+        dataloader = torch.utils.data.DataLoader(self.train_data, batch_size=batch_size, shuffle=True, num_workers=num_workers)
         trainer = pl.Trainer(
-            limit_train_batches=limit_train_batches, 
             max_epochs=max_epochs,
-            accelerator=device,
+            accelerator=device,   
             callbacks=[EarlyStopping(monitor="training_loss", mode="min")]
         )
 

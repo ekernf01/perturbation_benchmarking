@@ -24,11 +24,13 @@ class LinearAutoregressive(pl.LightningModule):
         low_dimensional_training,
         learning_rate, 
         regularization_parameter,
+        optimizer,
     ):
         super().__init__()
         self.S = S
         self.learning_rate = learning_rate
         self.regularization_parameter = regularization_parameter
+        self.optimizer = optimizer
         if regression_method == "linear":
             self.G = torch.nn.Linear(n_genes, n_genes)
         elif regression_method in {'multilayer_perceptron', 'mlp'}:
@@ -56,27 +58,32 @@ class LinearAutoregressive(pl.LightningModule):
             raise ValueError(f"low_dimensional_training must be 'supervised','PCA', 'fixed'. Value: {low_dimensional_training}")
 
     def forward(self, x, perturbations):
-        return self.G(P(x, perturbations))
+        return P(self.G(P(x, perturbations)), perturbations)
 
     def training_step(self, input_batch):
         loss = 0
         for i in range(len(input_batch["treatment"]["metadata"]["perturbation"])):
+            perturbed_indices = [int(g)   for g in input_batch["treatment"]["metadata"]["perturbation_index"][i].split(",")]
             perturbations = zip(
-                [int(g)   for g in input_batch["treatment"]["metadata"]["perturbation_index"][i].split(",")],
+                perturbed_indices,
                 [float(x) for x in input_batch["treatment"]["metadata"]["expression_level_after_perturbation"][i].split(",")],
             )
-            perturbations = [p for p in perturbations if p[0]!=-999] #sentinel value indicates this is a control
+            perturbations = [p for p in perturbations if p[0]!=-999] #sentinel value indicates this is a control sample
+            mask  = torch.tensor( [
+                0 if g in perturbed_indices else 1 
+                for g in range(len(input_batch["treatment"]["expression"][i]))
+            ])
             if input_batch["treatment"]["metadata"]["is_steady_state"][i]: 
                 # (electric slide voice) one hop this time. *BEWMP*
                 x_t = input_batch["treatment"]["expression"][i].clone()
                 x_t = self(x_t, perturbations)
-                loss += torch.linalg.norm(input_batch["treatment"]["expression"][i] - x_t)
+                loss += torch.linalg.norm(mask*(input_batch["treatment"]["expression"][i] - x_t))
             if input_batch["treatment"]["metadata"]["is_treatment"][i]: 
                 # (electric slide voice) S hops this time. *BEWMP* *BEWMP* *BEWMP* *BEWMP* 
                 x_t = input_batch["matched_control"]["expression"][i].clone()
                 for _ in range(self.S):
                     x_t = self(x_t, perturbations)
-                loss += torch.linalg.norm(input_batch["treatment"]["expression"][i] - x_t)
+                loss += torch.linalg.norm(mask*(input_batch["treatment"]["expression"][i] - x_t))
         lasso_term = torch.abs(
             [param for name, param in self.G.named_parameters() if name == "weight"][0]
         ).sum()
@@ -87,5 +94,9 @@ class LinearAutoregressive(pl.LightningModule):
         return loss
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
-
+        if self.optimizer == "L-BFGS":
+            return torch.optim.LBFGS(self.parameters(), lr=self.learning_rate)        
+        elif self.optimizer == "ADAM":
+            return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+        else:
+            raise ValueError(f"Optimizer must be 'ADAM' or 'L-BFGS'. Value: {self.optimizer}")
