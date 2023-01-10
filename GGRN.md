@@ -45,15 +45,15 @@ Some methods' estimates of $F$ are heavily affected by assumptions about low-ran
  
 #### Sparse structure
 
-Estimates of $F$ are also heavily affected by assumptions about sparsity. DCD-FG and NOTEARS variants use an L1 penalty so that each coordinate of $F(X)$ (or $Q(X)$) is a function of just a few coordinates of $X$. ScanBMA uses Bayesian model scoring tools toward the same end, selecting a model with high BIC and averaging its predictions with nearby models above a certain performance threshold. CellOracle and SCENIC use ML methods that yield dense solutions, but they each include a step to prune weak coefficients and re-fit each regression with fewer inputs. LLC, ARMADA, PRESCIENT and Dynamo do not assume any sparsity.
+Estimates of $F$ are also heavily affected by assumptions about sparsity. DCD-FG and NOTEARS variants use an L1 penalty so that each coordinate of $F(X)$ (or $Q(X)$) is a function of just a few coordinates of $X$. ScanBMA uses Bayesian model scoring tools toward the same end, selecting a model with high BIC and averaging its predictions with nearby models above a certain performance threshold. CellOracle and SCENIC use ML methods that yield dense solutions, but they each include a step to prune weak coefficients and re-fit each regression with fewer inputs. LLC uses an L1 penalty to induce sparsity for some applications. PRESCIENT and Dynamo do not assume any sparsity. ARMADA does not assume any additional sparsity beyond what is implied by motif analysis (discussed below).
 
-#### Prior knowledge
+#### Known or suspected interactions
 
-The specific pattern of sparsity can be informed by prior knowledge about regulatory relationships -- most often, motif analysis. CellOracle, ARMADA, and SCENIC+ allow regulation of gene $j$ by regulator $k$ only if a matching motif is found near the promoter of $j$ or in a paired cis-regulatory element. Earlier iterations of ScanBMA used a similar hard *a priori* threshold, while later ScanBMA papers include the same information as an informative prior on network structure. 
+The specific pattern of connections in the network can be informed by prior knowledge about regulatory relationships -- most often, motif analysis. CellOracle, ARMADA, and SCENIC+ allow regulation of gene $j$ by regulator $k$ only if a matching motif is found near the promoter of $j$ or in a paired enhancer. Earlier iterations of ScanBMA used a similar hard *a priori* threshold, while later ScanBMA papers include the same information as an informative prior on network structure. 
 
-CellOracle, Dictys, and SCENIC+ each include analysis of ATAC-seq data to find motifs and pair CRE's with genes. This may fall outside the scope of our project, but is consistently helpful when comparing learned network structure to ChIP-seq data.
+CellOracle, Dictys, and SCENIC+ each include analysis of ATAC-seq data to find motifs and pair enhancers with genes. This may fall outside the scope of our project, but is consistently helpful when comparing learned network structure to ChIP-seq data.
 
-DCD-FG and NOTEARS variants do not use prior knowledge about structure. 
+DCD-FG and NOTEARS variants do not use motif analysis. 
 
 #### Cell-type specificity
 
@@ -73,7 +73,7 @@ Each method can be described as a combination of:
 - The regression method
 - The low-dimensional structure
 - A method of encouraging sparsity
-- A source of prior knowledge and a method of integrating it into the sparsity pattern
+- A method of integrating user-provided known or suspected interactions into the sparsity pattern
 - A choice to fit cell type-specific or shared models
 - A choice to treat random model components as measurement error or biological reality
 
@@ -90,7 +90,7 @@ CellOracle:
         "low_dimensional_structure": "QiQG",
         "low_dimensional_training": "PCA",
         "sparsity": "prune_refit",
-        "prior": "hard",
+        "prior": "hard_threshold",
         "do_cell_type_specific": true,
         "is_noise_biological": false, 
     }
@@ -154,7 +154,7 @@ ARMADA:
         "low_dimensional_structure": "QiGQ",
         "low_dimensional_training": "fixed",
         "sparsity": "none",
-        "prior": "hard",
+        "prior": "hard_threshold",
         "do_cell_type_specific": false,
         "is_noise_biological": none, 
     }
@@ -170,7 +170,7 @@ ScanBMA:
         "low_dimensional_structure": none,
         "low_dimensional_training": none,
         "sparsity": "BMA",
-        "prior": "soft",
+        "prior": "probabilistic",
         "do_cell_type_specific": false,
         "is_noise_biological": true, 
     }
