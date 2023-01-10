@@ -1,10 +1,12 @@
-PROJECT_PATH = '/home/ekernf01/Desktop/jhu/research/projects/perturbation_prediction/cell_type_knowledge_transfer/'
+PROJECT_PATH = '/home/gary/cahan_rotation/'
 import os
 import shutil
 import unittest
 import pandas as pd
 import numpy as np
 import scanpy as sc 
+import torch
+import torch.nn as nn
 import anndata
 os.chdir(PROJECT_PATH + "perturbation_benchmarking")
 import sys
@@ -16,9 +18,12 @@ sys.path.append(os.path.expanduser(os.path.join(PROJECT_PATH, 'network_collectio
 import load_networks
 importlib.reload(load_networks)
 
+
+
 train   = sc.read_h5ad("../accessory_data/nakatake.h5ad")
 network = load_networks.LightNetwork(files=["../accessory_data/human_promoters.parquet"])
 example_perturbations = (("KLF8", 0), ("GATA1", 0), ("empty_vector", np.nan))
+
 class TestModelRuns(unittest.TestCase):
     def test_make_GRN(self):
         self.assertIsInstance(
@@ -342,6 +347,129 @@ class TestModelExactlyRightOnTimeSeriesSimulation(unittest.TestCase):
             np.testing.assert_almost_equal(p[:, "g2"].X.squeeze(), [1.2,0.7,0.3], decimal=1)
             np.testing.assert_almost_equal(p[:, "g3"].X.squeeze(), [1.2,1.7,2.3], decimal=1)
             np.testing.assert_almost_equal(p[:, "g4"].X.squeeze(), [2.4,2.5,2.5], decimal=1)
+
+
+class TestDCDFG(unittest.TestCase):
+    
+    os.environ['WANDB_MODE'] = 'offline'
+
+    test_data = sc.read_h5ad("../accessory_data/simulation.h5ad")
+
+    # def test_NOTEARS_run(self):
+    #     grn = ggrn.GRN(
+    #             train=test_data,
+    #             )
+    #     grn.extract_tf_activity(method = "tf_rna")
+    #     grn.fit(
+    #         method = "DCDFG-exp-linear-False",
+    #         cell_type_sharing_strategy = "identical",
+    #         network_prior = "ignore",
+    #         kwargs = { 
+    #             "num_train_epochs": 20, 
+    #             "num_fine_epochs": 10,
+    #             "num_gpus": 1 if torch.cuda.is_available() else 0,
+    #             "train_batch_size": 64
+    #             }
+    #     )
+        
+    # def test_NOTEARSLR_run(self):
+    #     grn = ggrn.GRN(
+    #             train=test_data,
+    #             )
+    #     grn.extract_tf_activity(method = "tf_rna")
+    #     grn.fit(
+    #         method = "DCDFG-spectral_radius-linearlr-False",
+    #         cell_type_sharing_strategy = "identical",
+    #         network_prior = "ignore",
+    #         kwargs = { 
+    #             "num_train_epochs": 20, 
+    #             "num_fine_epochs": 10,
+    #             "num_gpus": 1 if torch.cuda.is_available() else 0,
+    #             "train_batch_size": 64
+    #             }
+    #     )
+        
+    # def test_NOBEARS_run(self):
+    #     grn = ggrn.GRN(
+    #             train=test_data,
+    #             )
+    #     grn.extract_tf_activity(method = "tf_rna")
+    #     grn.fit(
+    #         method = "DCDFG-exp-linear-True",
+    #         cell_type_sharing_strategy = "identical",
+    #         network_prior = "ignore",
+    #         kwargs = { 
+    #             "num_train_epochs": 20, 
+    #             "num_fine_epochs": 10,
+    #             "num_gpus": 1 if torch.cuda.is_available() else 0,
+    #             "train_batch_size": 64
+    #             }
+    #     )  
+        
+    # def test_DCDFG_run(self):
+    #     grn = ggrn.GRN(
+    #             train=test_data,
+    #             )
+    #     grn.extract_tf_activity(method = "tf_rna")
+    #     grn.fit(
+    #         method = "DCDFG-spectral_radius-mlplr-False",
+    #         cell_type_sharing_strategy = "identical",
+    #         network_prior = "ignore",
+    #         kwargs = { 
+    #             "num_train_epochs": 20, 
+    #             "num_fine_epochs": 10,
+    #             "num_gpus": 1 if torch.cuda.is_available() else 0,
+    #             "train_batch_size": 64
+    #             }
+    #     )    
+
+    
+    def test_NOTEARS_run_and_predict(self):
+        grn = ggrn.GRN(train=test_data, tf_list=test_data.var_names, validate_immediately=False)
+        grn.extract_tf_activity(method = "tf_rna")
+        grn.fit(
+            method = "DCDFG-exp-linear-False",
+            # method = "DCDFG-spectral_radius-mlplr-False",
+            cell_type_sharing_strategy = "identical",
+            network_prior = "ignore",
+            kwargs = { 
+                "num_train_epochs": 600, 
+                "num_fine_epochs": 100,
+                "num_gpus": [1] if torch.cuda.is_available() else 0,
+                "train_batch_size": 64,
+                "num_modules": 6,
+                "regularization_parameter": 0.1,
+                }
+        )
+
+        posWeight = (grn.models.model.module.weights * grn.models.model.module.weight_mask).detach().cpu().numpy()
+        posWeightAnswer = np.array(
+            [[0, 1, 0, 0, 0],
+             [0, 0, 1, 0, 0],
+             [0, 0, 0, 1, 0],
+             [0, 0, 0, 0, 1],
+             [0, 0, 0, 0, 0]])
+        
+        bias = grn.models.model.module.biases.detach().cpu().numpy()
+        biasAnswer = np.array([5.0, 0.0, 0.0, 0.0, 0.0])
+
+        print(posWeight)
+        print(bias)
+        np.testing.assert_almost_equal(posWeight, posWeightAnswer, decimal=2)
+        np.testing.assert_almost_equal(bias, biasAnswer, decimal=2)
+
+    
+        control = test_data.X[-1,:]
+        koAnswer1 = np.vstack([grn.models.model.simulateKO(control.copy(), 0, 0), 
+                               grn.models.model.simulateKO(control.copy(), 1, 0),
+                               grn.models.model.simulateKO(control.copy(), 2, 0),
+                               grn.models.model.simulateKO(control.copy(), 3, 0),
+                               grn.models.model.simulateKO(control.copy(), 4, 0)])
+        koAnswer2 = grn.models.model.simulateKOBatched(control.copy(), 
+                                                       [0, 1, 2, 3, 4], 
+                                                       [0.0, 0.0, 0.0, 0.0, 0.0])
+        np.testing.assert_almost_equal(koAnswer1, koAnswer2, decimal=5)
+        
 
 if __name__ == '__main__':
     unittest.main()

@@ -12,11 +12,10 @@ class PerturbSeqDataset(Dataset):
 
     def __init__(
         self,
-        adata,
+        adata
     ) -> None:
         """
         :param str adata: AnnData object
-        :param list regimes_to_ignore: fractions of regimes that are ignored during training
         """
         super(PerturbSeqDataset, self).__init__()
         # load data
@@ -41,27 +40,57 @@ class PerturbSeqDataset(Dataset):
         self.dim = self.data.shape[1]
 
     def __getitem__(self, idx):
-        if self.intervention:
-            # binarize mask from list
-            masks_list = self.masks[idx]
-            masks = np.ones((self.dim,))
-            for j in masks_list:
-                masks[j] = 0
-            return (
-                self.data[idx].A[0].astype(np.float32),
-                masks.astype(np.float32),
-                self.regimes[idx],
-            )
-        else:
-            # put full ones mask
-            return (
-                self.data[idx].A[0].astype(np.float32),
-                np.ones_like(self.regimes[idx]).astype(np.float32),
-                self.regimes[idx],
-            )
+        # binarize mask from list
+        masks_list = self.masks[idx]
+        masks = np.ones((self.dim,))
+        for j in masks_list:
+            masks[j] = 0
+        return (
+            self.data[idx].astype(np.float64),
+            masks.astype(np.float64),
+            self.regimes[idx],
+        )
 
     def __len__(self):
         return self.data.shape[0]
+
+    def assign_regimes(self):
+        # check gene sets and ensure matching with measurements
+        obs_genes = {}
+        unfound_genes = {}
+        targets = []
+        for index, row in tqdm(self.adata.obs.iterrows(), total=self.adata.n_obs):
+            current_target = []
+            if not row["is_control"]:                # Only cells with treatment
+                # get all guides in cells
+                sg = row["perturbation"].split(",")
+                # get gene name by stripping guide specific info
+                sg_genes = [guide.rsplit("_", maxsplit=1)[0] for guide in sg]
+                for gene in sg_genes:
+                    if gene in self.adata.var.index:
+                        # gene is found
+                        current_target += [gene]
+                        if gene not in obs_genes:
+                            obs_genes[gene] = 1
+                        else:
+                            obs_genes[gene] += 1
+                    else:
+                        if gene not in unfound_genes:
+                            unfound_genes[gene] = 1
+                        else:
+                            unfound_genes[gene] += 1
+            # end gene list
+            targets += [",".join(current_target)]
+
+        print(f"""
+            Perturbed and measured genes: {len(obs_genes)}
+        Perturbed but not measured genes: {len(unfound_genes)} {list(unfound_genes.keys())[:5]}
+        """)
+        regimes = np.unique(targets, return_inverse=True)[1]
+
+        self.adata.obs["targets"] = targets
+        self.adata.obs["regimes"] = regimes
+
 
     def set_up_masks(self, normalized_data=True):
         """
@@ -71,6 +100,9 @@ class PerturbSeqDataset(Dataset):
             data = self.adata.X
         else:
             data = self.adata.layers["counts"]
+
+        print(f"Data shape {data.shape}")
+        self.assign_regimes()
 
         # Load intervention masks and regimes
         regimes = self.adata.obs["regimes"].astype(int)

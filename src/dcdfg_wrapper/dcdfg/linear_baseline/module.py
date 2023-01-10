@@ -115,8 +115,13 @@ class LinearGaussianModule(nn.Module):
         if self.poly:
             x2 = x**2
             x3 = x**3
+            if len(x.shape) == 1:
+                x   = x.unsqueeze(0)
+                x2  = x2.unsqueeze(0)
+                x3  = x3.unsqueeze(0)
             y = torch.sum(torch.stack([x, x2, x3], axis=2) * self.poly_coeff, -1)
             x = torch.matmul(y, self.weight_mask * self.weights) + self.biases
+            x = x.squeeze()
         else:
             x = torch.matmul(x, self.weight_mask * self.weights) + self.biases
         return x

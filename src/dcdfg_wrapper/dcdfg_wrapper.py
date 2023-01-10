@@ -11,14 +11,17 @@ from torch.utils.data import DataLoader, random_split
 
 import wandb
 import sys
-os.chdir("/home/ekernf01/Desktop/jhu/research/projects/perturbation_prediction/cell_type_knowledge_transfer/dcdfg")
-sys.path.append("/home/ekernf01/Desktop/jhu/research/projects/perturbation_prediction/cell_type_knowledge_transfer/dcdfg")
+os.chdir("/home/gary/cahan_rotation/perturbation_benchmarking/src/dcdfg_wrapper")
+sys.path.append("/home/gary/cahan_rotation/perturbation_benchmarking/src/dcdfg_wrapper")
 from dcdfg.callback import (AugLagrangianCallback, ConditionalEarlyStopping,
                             CustomProgressBar)
 from dcdfg.linear_baseline.model import LinearGaussianModel
 from dcdfg.lowrank_linear_baseline.model import LinearModuleGaussianModel
 from dcdfg.lowrank_mlp.model import MLPModuleGaussianModel
 from dcdfg.perturbseq_data import PerturbSeqDataset
+
+import torch
+torch.set_default_tensor_type(torch.DoubleTensor)
 
 class DCDFGWrapper:
     def __init__(self):
@@ -37,17 +40,18 @@ class DCDFGWrapper:
         constraint_mode: str = "spectral_radius",
         model_type: str = "linearlr",    
         do_use_polynomials: bool = False,
-        num_gpus: int = 0,
-        logfile: str = "logs"
+        logfile: str = "logs",
+        num_gpus = 0,
     ):
         # TODO: figure out how to feed this an anndata object instead of a filename
-        train_dataset = PerturbSeqDataset(
-            adata, number_genes=1000, fraction_regimes_to_ignore=0.2
-        )
+        train_dataset = PerturbSeqDataset(adata)
+        print("Train dataset size", train_dataset.dim, len(train_dataset))
         nb_nodes = train_dataset.dim
         train_size = int(0.8 * len(train_dataset))
         val_size = len(train_dataset) - train_size
         train_dataset, val_dataset = random_split(train_dataset, [train_size, val_size])
+        self.train_dataset = train_dataset
+        
         if model_type == "linear":
             # create model
             self.model = LinearGaussianModel(
@@ -148,6 +152,7 @@ class DCDFGWrapper:
 
         # Original implementation extracts the network structure for later inspection
         pred_adj = self.model.module.weight_mask.detach().cpu().numpy()
+        
         assert np.equal(np.mod(pred_adj, 1), 0).all()
 
         # Step 4: add valid nll and dump metrics
@@ -179,31 +184,47 @@ class DCDFGWrapper:
                 "n_edges": pred_adj.sum(),
             }
         )
+        
+        wandb.finish()
+        
+        return self
 
     def predict(self, perturbations, baseline_expression = None):
         if baseline_expression is None:
             baseline_expression = self.train_dataset.dataset.adata.X[
                 self.train_dataset.dataset.adata.obs["is_control"],:
-            ].toarray().mean(axis=0)
+            ].mean(axis=0)
         genes = self.train_dataset.dataset.adata.var_names
         predicted_adata = anndata.AnnData(
             X = np.zeros((len(perturbations), len(genes))),
             var = self.train_dataset.dataset.adata.var.copy(),
             obs = pd.DataFrame(
                 {
-                    "perturbation"                 :[p[0] for p in perturbations], 
-                    "expression_after_perturbation":[p[1] for p in perturbations],
+                    "perturbation"                       :[p[0] for p in perturbations], 
+                    "expression_level_after_perturbation":[p[1] for p in perturbations],
                 },
-                index = genes, 
-            )
+                index = range(len(perturbations)), 
+            ),
+            dtype = np.float64
         )
         def convert_gene_symbol_to_index(gene):
             return [i for i,g in enumerate(genes) if g==gene]
-        for i,pp in enumerate(perturbations):
-            predicted_adata.X[i,:] = self.model.simulateKO(
+        
+        with torch.no_grad():
+            predicted_adata.X = self.model.simulateKOBatched(
                 control_expression = baseline_expression,
-                KO_gene_idx = convert_gene_symbol_to_index(pp[0]),
-                KO_gene_value = pp[1],
-                maxiter=100
+                KO_gene_indices    = [convert_gene_symbol_to_index(pp[0]) for pp in perturbations],
+                KO_gene_values     = [pp[1] for pp in perturbations],
+                maxiter            = 100
             )
         return predicted_adata
+            
+        # with torch.no_grad():
+        #     for i,pp in enumerate(perturbations):
+        #         predicted_adata.X[i,:] = self.model.simulateKO(
+        #             control_expression = baseline_expression,
+        #             KO_gene_idx = convert_gene_symbol_to_index(pp[0]),
+        #             KO_gene_value = pp[1],
+        #             maxiter=100
+        #         )
+        # return predicted_adata

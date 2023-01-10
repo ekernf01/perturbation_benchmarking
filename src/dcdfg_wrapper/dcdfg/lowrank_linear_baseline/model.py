@@ -216,7 +216,7 @@ class LinearModuleGaussianModel(pl.LightningModule):
         if len(control_expression.shape) > 1:
             raise ValueError("simulateKO only accepts 1d input for control expression.")
         x = torch.from_numpy(control_expression)
-        x = x.float()
+        x = x.double()
         for i in range(maxiter):
             xold = x
             x[KO_gene_idx] = KO_gene_value
@@ -224,4 +224,29 @@ class LinearModuleGaussianModel(pl.LightningModule):
             if torch.linalg.vector_norm(xold - x) < 1e-12:
                 break
         x[KO_gene_idx] = KO_gene_value
+        return x.detach().numpy()
+
+    
+    def simulateKOBatched(self, control_expression: np.ndarray, KO_gene_indices: list, KO_gene_values: list, maxiter=100, maxiter_cyclic=1):
+        """ A parallelized version of the simulateKO function. 
+            Instead of taking in one target gene to perturb along with
+            the perturbation value; this function takes in a list of 
+            target genes indices and their corresponding perturbation values. """
+        if not self.module.check_acyclicity():
+            print(f"Warning: graph is not acyclic. Predictions may diverge (give NaN's). Setting maxiter to {maxiter_cyclic}.")
+            maxiter = maxiter_cyclic            
+        if len(control_expression.shape) > 1:
+            raise ValueError("simulateKOBatched only accepts 1d input for control expression.")
+                    
+        num_perturbation = len(KO_gene_indices)
+        KO_gene_values   = torch.from_numpy(np.array(KO_gene_values))
+        KO_gene_indices  = np.array(KO_gene_indices)
+        with torch.no_grad():
+            x = torch.from_numpy(control_expression)
+            x = x.unsqueeze(0).repeat(num_perturbation, 1)
+            x = x.double()
+            for i in range(maxiter):
+                x[range(num_perturbation), KO_gene_indices] = KO_gene_values
+                x = self.module.forward(x)
+            x[range(num_perturbation), KO_gene_indices] = KO_gene_values
         return x.detach().numpy()

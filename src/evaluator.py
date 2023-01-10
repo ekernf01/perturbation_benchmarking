@@ -393,6 +393,7 @@ def averageWithinPerturbation(ad: anndata.AnnData, confounders = []):
             columns=ad.obs.columns.copy(),
         ),
         var = ad.var,
+        dtype = np.float32
     )
     for p in perts:
         p_idx = ad.obs["perturbation"]==p

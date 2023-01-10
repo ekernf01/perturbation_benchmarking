@@ -129,7 +129,6 @@ class LinearModularGaussianModule(nn.Module):
 
     def threshold(self):
         pos_adj = torch.abs(self.get_w_adj()).cpu().detach().numpy()
-
         def acyc(t):
             return float(is_acyclic(pos_adj >= t)) - 0.5
 

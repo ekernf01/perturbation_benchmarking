@@ -11,12 +11,12 @@ import sklearn.dummy
 import numpy as np
 import gc 
 import psutil
-import dcdfg_wrapper    
+import dcdfg_wrapper.dcdfg_wrapper as dcdfg_wrapper #import DCDFGWrapper
 
 # Project-specific paths
 import sys 
 import importlib
-PROJECT_PATH = '/home/ekernf01/Desktop/jhu/research/projects/perturbation_prediction/cell_type_knowledge_transfer/'
+PROJECT_PATH = '/home/gary/cahan_rotation/'
 os.chdir(PROJECT_PATH + "perturbation_benchmarking")
 DEFAULT_TF_LIST = pd.read_csv("../accessory_data/humanTFs.csv")
 DEFAULT_TF_LIST = [g for g in DEFAULT_TF_LIST.loc[DEFAULT_TF_LIST["Is TF?"]=="Yes","HGNC symbol"]]
@@ -78,6 +78,7 @@ class GRN:
             train = self.train # shallow copy is best here
 
         if method == "tf_rna":
+            print(self.tf_list)
             features = train[:,self.tf_list].X
         else:
             raise NotImplementedError("Only method='tf_rna' is available so far.")
@@ -294,6 +295,13 @@ class GRN:
         Args:
             folder_name (str): Where to save files.
         """
+        if ("model" in self.models.__dict__.keys() and
+            self.models.model.__class__.__name__ in ["LinearGaussianModel", 
+                                                     "LinearGaussianModel_poly", 
+                                                     "LinearModuleGaussianModel", 
+                                                     "MLPModuleGaussianModel"]):
+            raise NotImplementedError(f"Parameter saving/loading is not supported for DCDFG")
+        
         os.makedirs(folder_name, exist_ok=True)
         for i,target in enumerate(self.train.var_names):
             dump(self.models[i], os.path.join(folder_name, f'{target}.joblib'))
@@ -370,10 +378,10 @@ class GRN:
             assert time_strategy == 'steady_state', "DCDFG assumes steady state."
             factor_graph_model = dcdfg_wrapper.DCDFGWrapper()
             _, constraint_mode, model_type, do_use_polynomials = method.split("-")
-            print(f"""DCDFG args parsed as:")
-               constraint_mode: {constraint_mode}"
-                    model_type: {model_type}"
-            do_use_polynomials: {do_use_polynomials}"
+            print(f"""DCDFG args parsed as:
+               constraint_mode: {constraint_mode}
+                    model_type: {model_type}
+            do_use_polynomials: {do_use_polynomials}
             """)
             do_use_polynomials = do_use_polynomials =="True"
             self.models = factor_graph_model.train(
@@ -548,6 +556,7 @@ class GRN:
             for col in columns_to_transfer:
                 predictions.obs.loc[idx_str, col] = self.train.obs.loc[starting_states, col].values
 
+        print(perturbations)
         # Make predictions
         if self.training_args["method"].startswith("DCDFG"):
             predictions = self.models.predict(perturbations)     
