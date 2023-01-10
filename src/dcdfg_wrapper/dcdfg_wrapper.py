@@ -211,20 +211,10 @@ class DCDFGWrapper:
             return [i for i,g in enumerate(genes) if g==gene]
         
         with torch.no_grad():
-            predicted_adata.X = self.model.simulateKOBatched(
+            predicted_adata.X = self.model.simulateKO(
                 control_expression = baseline_expression,
                 KO_gene_indices    = [convert_gene_symbol_to_index(pp[0]) for pp in perturbations],
                 KO_gene_values     = [pp[1] for pp in perturbations],
                 maxiter            = 100
             )
         return predicted_adata
-            
-        # with torch.no_grad():
-        #     for i,pp in enumerate(perturbations):
-        #         predicted_adata.X[i,:] = self.model.simulateKO(
-        #             control_expression = baseline_expression,
-        #             KO_gene_idx = convert_gene_symbol_to_index(pp[0]),
-        #             KO_gene_value = pp[1],
-        #             maxiter=100
-        #         )
-        # return predicted_adata
