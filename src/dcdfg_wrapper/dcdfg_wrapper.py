@@ -210,11 +210,37 @@ class DCDFGWrapper:
         def convert_gene_symbol_to_index(gene):
             return [i for i,g in enumerate(genes) if g==gene]
         
+        target_loc = [convert_gene_symbol_to_index(pp[0]) for pp in perturbations]
+        target_val = [pp[1] for pp in perturbations]
+        
+        valid_tuple= [(idx, loc, val) for idx, (loc,val) in enumerate(zip(target_loc, target_val)) if loc]
+        valid_idx  = np.array([i[0] for i in valid_tuple], dtype=int)
+        valid_loc  = np.array([i[1] for i in valid_tuple], dtype=int)
+        valid_val  = np.array([i[2] for i in valid_tuple], dtype=np.float64)
+        
+        cntrl_idx = np.array([idx for idx, loc in enumerate(target_loc) if not loc], dtype=int)
+        
+        for idx in cntrl_idx:
+            if not np.isnan(target_val[idx]):
+                print(f"Warning: Post-perturbation expression is not NaN. But because the perturbed gene {perturbations[0][idx]} cannot be located, the profile is treated as a control sample lacking perturbation.")
+                            
+        # print(valid_idx, cntrl_idx)
+        
         with torch.no_grad():
-            predicted_adata.X = self.model.simulateKO(
+            predicted_adata.X[valid_idx, :] = self.model.simulateKO(
                 control_expression = baseline_expression,
-                KO_gene_indices    = [convert_gene_symbol_to_index(pp[0]) for pp in perturbations],
-                KO_gene_values     = [pp[1] for pp in perturbations],
+                KO_gene_indices    = valid_loc,
+                KO_gene_values     = valid_val,
                 maxiter            = 100
             )
+            
+            predicted_adata.X[cntrl_idx, :] = self.model.simulateKO(
+                control_expression = baseline_expression,
+                KO_gene_indices    = [[]] * cntrl_idx.shape[0],
+                KO_gene_values     = [[np.nan]] * cntrl_idx.shape[0],
+                maxiter            = 100,
+                is_control         = True
+            )
+            
+        
         return predicted_adata

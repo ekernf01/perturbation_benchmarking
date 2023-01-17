@@ -209,7 +209,8 @@ class LinearModuleGaussianModel(pl.LightningModule):
             self.trainer.satisfied_constraints = True
 
 
-    def simulateKO(self, control_expression: np.ndarray, KO_gene_indices: list, KO_gene_values: list, maxiter=100, maxiter_cyclic=1):
+
+    def simulateKO(self, control_expression: np.ndarray, KO_gene_indices: list, KO_gene_values: list, maxiter=100, maxiter_cyclic=1, is_control=False):
         """Simulate one or more perturbation experiment outcome(s) given a control expression,
         and given which gene(s) and corresponding perturbation value(s). 
         
@@ -223,6 +224,7 @@ class LinearModuleGaussianModel(pl.LightningModule):
                 genes. The length of this list should be the same as "KO_gene_indices".
             maxiter            (int)          : The maximum number of iterations to propagate.
             maxiter_cyclic     (int)          : The maximum number of iterations to propagate when the graph is cyclic.
+            is_control         (bool)         : If this option evaluates to true, perturbation gets suppressed. 
 
           Returns:
               np.ndarray: The predicted expression profiles after perturbing the genes at specified values.
@@ -241,8 +243,10 @@ class LinearModuleGaussianModel(pl.LightningModule):
             x = x.unsqueeze(0).repeat(num_perturbation, 1)
             x = x.double()
             for i in range(maxiter):
-                x[range(num_perturbation), KO_gene_indices] = KO_gene_values
+                if not is_control:
+                    x[range(num_perturbation), KO_gene_indices] = KO_gene_values
                 x = self.module.forward(x)
-            x[range(num_perturbation), KO_gene_indices] = KO_gene_values
+            if not is_control:
+                x[range(num_perturbation), KO_gene_indices] = KO_gene_values
         return x.detach().numpy()
-
+            
