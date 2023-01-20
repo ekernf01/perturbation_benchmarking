@@ -80,8 +80,67 @@ def makeMainPlots(
                 facet_by + ':N',
                 columns=int(np.ceil(np.sqrt(len(evaluationPerPert[facet_by].unique()))))
             )
-        vlnplot[metric].save(f'{outputs}/{metric}.pdf')
+        vlnplot[metric].save(f'{outputs}/{metric}.html')
     return vlnplot
+
+def plotDispersionVersusMSE(evaluationPerTarget, train_data, save_path, factor_varied):
+    evaluationPerTarget = pd.merge(
+        train_data.var,
+        evaluationPerTarget,
+        left_index=True, 
+        right_on="target")
+    evaluationPerTarget.reset_index(inplace=True)
+    chart = alt.Chart(evaluationPerTarget).mark_bar().encode(
+        x=alt.X("dispersions_norm:Q", bin=True),
+        y="count()",
+        color='model_beats_mean_on_this_gene',
+    ).facet(
+        factor_varied, 
+        columns = 4,
+    ).properties(
+        title='Dispersion versus modeling success'
+    )
+    alt.data_transformers.disable_max_rows()
+    chart.save(os.path.join(save_path, "DispersionVersusMSE.html"))
+    return evaluationPerTarget
+
+def plotOneTargetGene(gene, outputs, experiments, factor_varied, train_data, heldout_data, fitted_values, predictions):
+    """For one gene, plot predicted + observed values for train + test."""
+    expression = {
+        e:pd.DataFrame({
+            "index": [i for i in range(
+                fitted_values[e][:,gene].shape[0] + 
+                predictions[e][:,gene].shape[0]
+            )],
+            "experiment": e,
+            "observed": np.concatenate([
+                train_data[:,gene].X.squeeze(), 
+                heldout_data[:,gene].X.squeeze(), 
+            ]), 
+            "predicted": np.concatenate([
+                fitted_values[e][:,gene].X.squeeze(), 
+                predictions[e][:,gene].X.squeeze(), 
+            ]), 
+            "is_trainset": np.concatenate([
+                np.ones (fitted_values[e][:,gene].shape[0]), 
+                np.zeros(  predictions[e][:,gene].shape[0]), 
+            ]), 
+        }) for e in predictions.keys() 
+    }
+    expression = pd.concat(expression)
+    expression = expression.reset_index()
+    expression = expression.merge(experiments, left_on="experiment", right_index=True)
+    os.makedirs(os.path.join(outputs), exist_ok=True)
+    alt.Chart(data=expression).mark_point().encode(
+        x = "observed:Q",y = "predicted:Q", color = "is_trainset:N"
+    ).properties(
+        title=gene
+    ).facet(
+        facet = factor_varied, 
+        columns=3,
+    ).save(os.path.join(outputs, gene + ".html"))
+    return 
+    
 
 def evaluateCausalModel(
     heldout:anndata.AnnData, 
@@ -90,7 +149,7 @@ def evaluateCausalModel(
     experiments: pd.DataFrame, 
     outputs: str, 
     factor_varied: str,
-    default_level, 
+    default_level = None, 
     classifier = None, 
     do_scatterplots = True):
     """Compile plots and tables comparing heldout data and predictions for same. 
@@ -107,6 +166,8 @@ def evaluateCausalModel(
         outputs (String): Saves output here.
     """
     # Get spearman and classifier accuracy 
+    if default_level is None:
+        default_level = experiments.loc[0,factor_varied]
     evaluationPerPert = {}
     evaluationPerTarget = {}
     shared_var_names = list(set.intersection(*[set(predictions[experiment].var_names) for experiment in predictions.keys()]))
@@ -117,7 +178,8 @@ def evaluateCausalModel(
                 predictedExpression=predictions[experiment][:, shared_var_names],   
                 baseline =                         baseline[:, shared_var_names],     
                 doPlots=do_scatterplots, 
-                outputs = os.path.join(outputs, "plots", str(experiment)),
+                outputs = outputs,
+                experiment_name = experiment,
                 classifier=classifier
             )
         evaluationPerPert[experiment]["index"]   = experiment
@@ -128,6 +190,20 @@ def evaluateCausalModel(
     evaluationPerTarget = evaluationPerTarget.merge(experiments, how = "left", right_index = True, left_on = "index")
     evaluationPerPert   = pd.DataFrame(evaluationPerPert.to_dict())
     evaluationPerTarget = pd.DataFrame(evaluationPerTarget.to_dict())
+    # Add some info on each evaluation-per-target, such as the baseline MSE
+    evaluationPerTarget["target"] = [i[1] for i in evaluationPerTarget.index]
+    is_baseline = [f==default_level for f in evaluationPerTarget[factor_varied]]
+    evaluationPerTarget["mse_baseline"] = np.NaN
+    evaluationPerTarget.loc[is_baseline, "mse_baseline"] = evaluationPerTarget.loc[is_baseline, "mse"]
+    evaluationPerTarget = evaluationPerTarget.groupby("target").apply(
+        lambda x:
+            x.fillna(
+                x.loc[x[factor_varied] == default_level, "mse"].values[0]
+            )
+    )
+    evaluationPerTarget["mse_benefit"] = evaluationPerTarget["mse_baseline"] - evaluationPerTarget["mse"]
+    evaluationPerTarget = evaluationPerTarget.sort_values("mse_benefit", ascending=False)
+    evaluationPerTarget["model_beats_mean_on_this_gene"] = evaluationPerTarget["mse_benefit"]>0
     # Mark anything where predictions were unavailable
     noPredictionMade = evaluationPerPert.iloc[[x==0 for x in evaluationPerPert["spearman"]],:]['perturbation']
     noPredictionMade = set(noPredictionMade)
@@ -140,6 +216,7 @@ def evaluateOnePrediction(
     predictedExpression: anndata.AnnData, 
     baseline: anndata.AnnData, 
     outputs,
+    experiment_name: str,
     doPlots=False, 
     classifier = None, 
     do_careful_checks = True):
@@ -178,7 +255,7 @@ def evaluateOnePrediction(
         observed  = expression[         :,target].X.squeeze()
         predicted = predictedExpression[:,target].X.squeeze()
         metrics_per_target.loc[target,["mse"]] = np.linalg.norm(observed - predicted)**2
-    
+
     for pert in predictedExpression.obs.index:
         if do_careful_checks:
             assert all(
@@ -202,13 +279,14 @@ def evaluateOnePrediction(
     metrics["spearman"] = metrics["spearman"].astype(float)
     hardest = metrics["spearman"].idxmin()
     easiest = metrics["spearman"].idxmax()
+    perturbation_plot_path = os.path.join(outputs, "samples_best_worst", str(experiment_name))
     for pert in metrics.index:
         observed  = expression[         pert,:].X.squeeze()
         predicted = predictedExpression[pert,:].X.squeeze()
         is_hardest = hardest==pert
         is_easiest = easiest==pert
         if doPlots | is_hardest | is_easiest:
-            os.makedirs(outputs, exist_ok = True)
+            os.makedirs(perturbation_plot_path, exist_ok = True)
             diagonal = alt.Chart(
                 pd.DataFrame({
                     "x":[-1, 1],
@@ -231,11 +309,13 @@ def evaluateOnePrediction(
             ).properties(
                 title=pert + " (Spearman rho="+ str(round(metrics.loc[pert,"spearman"], ndigits=2)) +")"
             ) + diagonal
-            scatterplot.save(os.path.join(outputs, f"{pert}.pdf"))
+            alt.data_transformers.disable_max_rows()
+            pd.DataFrame().to_csv(os.path.join(perturbation_plot_path, f"{pert}.txt"))
+            scatterplot.save(os.path.join(perturbation_plot_path, f"{pert}.html"))
             if is_easiest:
-                scatterplot.save(os.path.join(outputs, f"_easiest({pert}).pdf"))
+                scatterplot.save(os.path.join(perturbation_plot_path, f"_easiest({pert}).html"))
             if is_hardest:
-                scatterplot.save(os.path.join(outputs, f"_hardest({pert}).pdf"))
+                scatterplot.save(os.path.join(perturbation_plot_path, f"_hardest({pert}).html"))
     metrics["perturbation"] = metrics.index
     return metrics, metrics_per_target
     
@@ -311,18 +391,20 @@ def makeNetworkDense(X):
     return X
 
 
-def splitData(adata, allowedRegulators, desired_heldout_fraction = 0.5):
+def splitData(adata, allowedRegulators, desired_heldout_fraction, type_of_split):
     """Determine a train-test split satisfying constraints imposed by base networks and available data.
     
     A few factors complicate the training-test split. 
 
-    - Perturbed genes may be absent from most base GRN's due to lack of motif information or ChIP data. These are 
-        excluded from the test data to avoid obvious failure cases.
-    - Perturbed genes may not be measured. These are excluded from test data because we don't know to what extent 
-        they were overexpressed.
+    - Perturbed genes may be absent from most base GRN's due to lack of motif information or ChIP data. 
+        These perhaps should be excluded from the test data to avoid obvious failure cases.
+    - Perturbed genes may not be measured. These perhaps should be excluded from test data because we can't
+        reasonably separate their direct vs indirect effects.
 
-    In both cases, we still use those perturbed profiles as training data, hoping they will provide useful info about 
-    attainable cell states and downstream causal effects. 
+    If type_of_split=="simple", we make no provision for dealing with the above concerns.
+    If type_of_split=="interventional", the allowedRegulators arg can be specified in order to keep problem cases out of the 
+    test data. No matter what, we still use those perturbed profiles as training data, hoping they will provide 
+    useful info about attainable cell states and downstream causal effects. 
 
     For some collections of base networks, there are many factors ineligible for use as test data -- so many that 
     we use all the eligible ones for test and the only ineligible ones for training. 
@@ -330,49 +412,66 @@ def splitData(adata, allowedRegulators, desired_heldout_fraction = 0.5):
     training set at random even if we would be able to use them in the test set.
 
     parameters:
-    - adata: AnnData object satisfying the expectations outlined in the accompanying collection of perturbation data.
-    - allowedRegulators: list or set of features allowed to be in the test set. In CellOracle, this is usually constrained 
+
+    - adata (anndata.AnnData): Object satisfying the expectations outlined in the accompanying collection of perturbation data.
+    - allowedRegulators (list or set): features allowed to be in the test set. In CellOracle, this is usually constrained 
         by motif/chip availability. 
+    - type_of_split (str): if "interventional" (default), then any perturbation is placed in either the training or the test set, but not both. 
+        If "simple", then we use a simple random split, and replicates of the same perturbation are allowed to go into different folds.
 
     """
     # For a deterministic result when downsampling an iterable, setting a seed alone is not enough.
     # Must also avoid the use of sets. 
-    get_unique_keep_order = lambda x: list(dict.fromkeys(x))
-    allowedRegulators = [p for p in allowedRegulators if p in adata.uns["perturbed_and_measured_genes"]]
-    testSetEligible   = [p for p in adata.obs["perturbation"] if p     in allowedRegulators]
-    testSetIneligible = [p for p in adata.obs["perturbation"] if p not in allowedRegulators]
-    allowedRegulators = get_unique_keep_order(allowedRegulators)
-    testSetEligible   = get_unique_keep_order(testSetEligible)
-    testSetIneligible = get_unique_keep_order(testSetIneligible)
-    eligible_heldout_fraction = len(testSetEligible)/(0.0+len(allowedRegulators))
-    if eligible_heldout_fraction < desired_heldout_fraction:
-        print("Not enough profiles for the desired_heldout_fraction. Will use all available.")
-        testSetPerturbations = testSetEligible
-        trainingSetPerturbations = testSetIneligible
-    elif eligible_heldout_fraction == desired_heldout_fraction: #nailed it
-        testSetPerturbations = testSetEligible
-        trainingSetPerturbations = testSetIneligible
+    if type_of_split == "interventional":
+        get_unique_keep_order = lambda x: list(dict.fromkeys(x))
+        allowedRegulators = [p for p in allowedRegulators if p in adata.uns["perturbed_and_measured_genes"]]
+        testSetEligible   = [p for p in adata.obs["perturbation"] if p     in allowedRegulators]
+        testSetIneligible = [p for p in adata.obs["perturbation"] if p not in allowedRegulators]
+        allowedRegulators = get_unique_keep_order(allowedRegulators)
+        testSetEligible   = get_unique_keep_order(testSetEligible)
+        testSetIneligible = get_unique_keep_order(testSetIneligible)
+        eligible_heldout_fraction = len(testSetEligible)/(0.0+len(allowedRegulators))
+        if eligible_heldout_fraction < desired_heldout_fraction:
+            print("Not enough profiles for the desired_heldout_fraction. Will use all available.")
+            testSetPerturbations = testSetEligible
+            trainingSetPerturbations = testSetIneligible
+        elif eligible_heldout_fraction == desired_heldout_fraction: #nailed it
+            testSetPerturbations = testSetEligible
+            trainingSetPerturbations = testSetIneligible
+        else:
+            numExcessTestEligible = int(np.ceil((eligible_heldout_fraction - desired_heldout_fraction)*len(allowedRegulators)))
+            excessTestEligible = np.random.default_rng(seed=0).choice(
+                testSetEligible, 
+                numExcessTestEligible, 
+                replace = False)
+            testSetPerturbations = [p for p in testSetEligible if p not in excessTestEligible]                      
+            trainingSetPerturbations = list(testSetIneligible) + list(excessTestEligible) 
+        # Now that the random part is done, we can start using sets. Order may change but content won't. 
+        testSetPerturbations     = set(testSetPerturbations)
+        trainingSetPerturbations = set(trainingSetPerturbations)
+        adata_train    = adata[adata.obs["perturbation"].isin(trainingSetPerturbations),:]
+        adata_heldout  = adata[adata.obs["perturbation"].isin(testSetPerturbations),    :]
+        adata_train.uns[  "perturbed_and_measured_genes"]     = set(adata_train.uns[  "perturbed_and_measured_genes"]).intersection(trainingSetPerturbations)
+        adata_heldout.uns["perturbed_and_measured_genes"]     = set(adata_heldout.uns["perturbed_and_measured_genes"]).intersection(testSetPerturbations)
+        adata_train.uns[  "perturbed_but_not_measured_genes"] = set(adata_train.uns[  "perturbed_but_not_measured_genes"]).intersection(trainingSetPerturbations)
+        adata_heldout.uns["perturbed_but_not_measured_genes"] = set(adata_heldout.uns["perturbed_but_not_measured_genes"]).intersection(testSetPerturbations)
+        print("Test set size:")
+        print(len(testSetPerturbations))
+        print("Training set size:")
+        print(len(trainingSetPerturbations))    
+    elif type_of_split == "simple":
+        test_obs = np.random.choice(replace=False, a = adata.obs_names, size = round(adata.shape[0]*desired_heldout_fraction))
+        train_obs = [i for i in adata.obs_names if i not in test_obs]
+        adata_train    = adata[train_obs,:]
+        adata_heldout  = adata[test_obs,:]
+        trainingSetPerturbations = set(  adata_train.obs["perturbation"].unique())
+        testSetPerturbations     = set(adata_heldout.obs["perturbation"].unique())
+        adata_train.uns[  "perturbed_and_measured_genes"]     = set(adata_train.uns[  "perturbed_and_measured_genes"]).intersection(trainingSetPerturbations)
+        adata_heldout.uns["perturbed_and_measured_genes"]     = set(adata_heldout.uns["perturbed_and_measured_genes"]).intersection(testSetPerturbations)
+        adata_train.uns[  "perturbed_but_not_measured_genes"] = set(adata_train.uns[  "perturbed_but_not_measured_genes"]).intersection(trainingSetPerturbations)
+        adata_heldout.uns["perturbed_but_not_measured_genes"] = set(adata_heldout.uns["perturbed_but_not_measured_genes"]).intersection(testSetPerturbations)
     else:
-        numExcessTestEligible = int(np.ceil((eligible_heldout_fraction - desired_heldout_fraction)*len(allowedRegulators)))
-        excessTestEligible = np.random.default_rng(seed=0).choice(
-            testSetEligible, 
-            numExcessTestEligible, 
-            replace = False)
-        testSetPerturbations = [p for p in testSetEligible if p not in excessTestEligible]                      
-        trainingSetPerturbations = list(testSetIneligible) + list(excessTestEligible) 
-    # Now that the random part is done, we can start using sets. Order may change but content won't. 
-    testSetPerturbations     = set(testSetPerturbations)
-    trainingSetPerturbations = set(trainingSetPerturbations)
-    adata_train    = adata[adata.obs["perturbation"].isin(trainingSetPerturbations),:]
-    adata_heldout  = adata[adata.obs["perturbation"].isin(testSetPerturbations),    :]
-    adata_train.uns[  "perturbed_and_measured_genes"]     = set(adata_train.uns[  "perturbed_and_measured_genes"]).intersection(trainingSetPerturbations)
-    adata_heldout.uns["perturbed_and_measured_genes"]     = set(adata_heldout.uns["perturbed_and_measured_genes"]).intersection(testSetPerturbations)
-    adata_train.uns[  "perturbed_but_not_measured_genes"] = set(adata_train.uns[  "perturbed_but_not_measured_genes"]).intersection(trainingSetPerturbations)
-    adata_heldout.uns["perturbed_but_not_measured_genes"] = set(adata_heldout.uns["perturbed_but_not_measured_genes"]).intersection(testSetPerturbations)
-    print("Test set size:")
-    print(len(testSetPerturbations))
-    print("Training set size:")
-    print(len(trainingSetPerturbations))
+        raise ValueError(f"`type_of_split` must be 'simple' or 'interventional'; got {type_of_split}.")
     return adata_train, adata_heldout
 
 def averageWithinPerturbation(ad: anndata.AnnData, confounders = []):

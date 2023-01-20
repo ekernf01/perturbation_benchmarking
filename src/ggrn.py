@@ -11,12 +11,12 @@ import sklearn.dummy
 import numpy as np
 import gc 
 import psutil
-import dcdfg_wrapper.dcdfg_wrapper as dcdfg_wrapper #import DCDFGWrapper
+# import dcdfg_wrapper.dcdfg_wrapper as dcdfg_wrapper #import DCDFGWrapper
 
 # Project-specific paths
 import sys 
 import importlib
-PROJECT_PATH = '/home/gary/cahan_rotation/'
+PROJECT_PATH = '/home/ekernf01/Desktop/jhu/research/projects/perturbation_prediction/cell_type_knowledge_transfer/'
 os.chdir(PROJECT_PATH + "perturbation_benchmarking")
 DEFAULT_TF_LIST = pd.read_csv("../accessory_data/humanTFs.csv")
 DEFAULT_TF_LIST = [g for g in DEFAULT_TF_LIST.loc[DEFAULT_TF_LIST["Is TF?"]=="Yes","HGNC symbol"]]
@@ -556,7 +556,6 @@ class GRN:
             for col in columns_to_transfer:
                 predictions.obs.loc[idx_str, col] = self.train.obs.loc[starting_states, col].values
 
-        print(perturbations)
         # Make predictions
         if self.training_args["method"].startswith("DCDFG"):
             predictions = self.models.predict(perturbations)     

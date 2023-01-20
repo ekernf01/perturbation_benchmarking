@@ -11,8 +11,9 @@ from torch.utils.data import DataLoader, random_split
 
 import wandb
 import sys
-os.chdir("/home/gary/cahan_rotation/perturbation_benchmarking/src/dcdfg_wrapper")
-sys.path.append("/home/gary/cahan_rotation/perturbation_benchmarking/src/dcdfg_wrapper")
+PROJECT_PATH = '/home/ekernf01/Desktop/jhu/research/projects/perturbation_prediction/cell_type_knowledge_transfer/'
+os.chdir(PROJECT_PATH + "perturbation_benchmarking/src/dcdfg_wrapper")
+sys.path.append(PROJECT_PATH + "perturbation_benchmarking/src/dcdfg_wrapper")
 from dcdfg.callback import (AugLagrangianCallback, ConditionalEarlyStopping,
                             CustomProgressBar)
 from dcdfg.linear_baseline.model import LinearGaussianModel
