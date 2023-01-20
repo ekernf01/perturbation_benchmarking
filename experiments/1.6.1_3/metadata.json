@@ -1,0 +1,18 @@
+{
+    "unique_id": "1.6.1_3",
+    "nickname": "dcdfg",
+    "readme": "Do DCD-FG and/or its variants beat simple baselines on their or our test data?",
+    "question": "1.6",
+    "is_active": true,
+    "regression_method": null,
+    "facet_by": null,
+    "color_by": null,
+    "factor_varied": "regression_method",
+    "default_level": null,
+    "merge_replicates": true,
+    "perturbation_dataset": "frangieh_Co-culture", 
+    "network_datasets": {
+        "dense":{}
+    }
+}
+
