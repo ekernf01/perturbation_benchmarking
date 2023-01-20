@@ -39,7 +39,8 @@ if args.experiment_name is None:
         "experiment_name":'test',
         "test_mode":True,
         "amount_to_do": "models",
-        "save_trainset_predictions": False,
+        "save_trainset_predictions": True,
+        "save_models": False,
     })
 
 # Deal with various file paths specific to this project
@@ -60,14 +61,11 @@ outputs = os.path.join("experiments", args.experiment_name, "outputs")
 os.makedirs(outputs, exist_ok=True)
 
 # Load experiment code
-metadata, code_location = experimenter.validate_metadata(experiment_name=args.experiment_name)
-sys.path.append(code_location)
-import this_experiment
-importlib.reload(this_experiment)
+metadata = experimenter.validate_metadata(experiment_name=args.experiment_name)
 
 print("Starting at " + str(datetime.datetime.now()), flush = True)
 
-if args.amount_to_do in {"models", "missing_models", "evaluations"}:
+if args.amount_to_do in {"models", "missing_models", "evaluations", "plots"}:
     # Get data
     perturbed_expression_data = load_perturbations.load_perturbation(metadata["perturbation_dataset"])
     try:
@@ -123,17 +121,19 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
     else:
         allowedRegulators = perturbed_expression_data.var_names
     perturbed_expression_data_train, perturbed_expression_data_heldout = \
-        evaluator.splitData(perturbed_expression_data, allowedRegulators, desired_heldout_fraction=0.5)
+        evaluator.splitData(
+            perturbed_expression_data, 
+            allowedRegulators, 
+            desired_heldout_fraction = metadata["desired_heldout_fraction"], 
+            type_of_split            = metadata["type_of_split"]
+        )
     del perturbed_expression_data
     gc.collect()
 
 if args.amount_to_do in {"models", "missing_models"}:
     print("Running experiment", flush = True)
-    experiments = this_experiment.lay_out_runs(
-            train_data = perturbed_expression_data_train, 
-            test_data  = perturbed_expression_data_heldout,
+    experiments = experimenter.lay_out_runs(
             networks = networks, 
-            outputs = outputs,
             metadata=metadata,
             )
     experiments.to_csv( os.path.join(outputs, "experiments.csv") )
@@ -149,7 +149,7 @@ if args.amount_to_do in {"models", "missing_models"}:
             except FileNotFoundError:
                 pass
             try:
-                grn = this_experiment.do_one_run(
+                grn = experimenter.do_one_run(
                     experiments, 
                     i,
                     train_data = perturbed_expression_data_train, 
@@ -159,7 +159,11 @@ if args.amount_to_do in {"models", "missing_models"}:
                     metadata = metadata,
                 )
             except Exception as e:
-                print(f"Caught exception {repr(e)} on experiment {i}; skipping.")
+                if args.test_mode: 
+                    raise e
+                else:
+                    print(f"Caught exception {repr(e)} on experiment {i}; skipping.")
+
                 continue
             if args.save_models:
                 print("Saving models...", flush = True)
@@ -214,10 +218,43 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
         )
         evaluationPerPertTrainset.to_parquet(   os.path.join(outputs, "trainset_performance", "evaluationPerPert.parquet"))
         evaluationPerTargetTrainset.to_parquet( os.path.join(outputs, "trainset_performance", "evaluationPerTarget.parquet"))
+        
 
 if args.amount_to_do in {"plots", "models", "missing_models", "evaluations"}:
+    print("Retrieving saved predictions", flush = True)
+    experiments = pd.read_csv( os.path.join(outputs, "experiments.csv") )
+    predictions   = {i:sc.read_h5ad( os.path.join(outputs, "predictions",   str(i) + ".h5ad" ) ) for i in experiments.index}
+    try:
+        fitted_values = {i:sc.read_h5ad( os.path.join(outputs, "fitted_values", str(i) + ".h5ad" ) ) for i in experiments.index}
+    except FileNotFoundError:
+        fitted_values = None
+    print("Retrieving saved evaluations", flush = True)
     evaluationPerPert   = pd.read_parquet(os.path.join(outputs, "evaluationPerPert.parquet"))
-    evaluationPerTarget = pd.read_parquet(os.path.join(outputs, "evaluationPerPert.parquet"))
+    evaluationPerTarget = pd.read_parquet(os.path.join(outputs, "evaluationPerTarget.parquet"))
+    evaluationPerTarget = evaluator.plotDispersionVersusMSE(
+        evaluationPerTarget, 
+        perturbed_expression_data_train, 
+        save_path = outputs,
+        factor_varied = metadata["factor_varied"],
+    )
+    if fitted_values is not None:
+        for type in ["best", "worst", "random"]:
+            if type=="best":
+                genes = evaluationPerTarget.nlargest(100, "mse_benefit")["target"]
+            elif type=="worst":
+                genes = evaluationPerTarget.nsmallest(100, "mse_benefit")["target"]
+            else:
+                genes = np.random.choice(size=10, a=evaluationPerTarget["target"].unique())
+            for gene in genes:
+                evaluator.plotOneTargetGene(
+                    gene=gene, 
+                    outputs=os.path.join(outputs,"target_genes_best_worst", type), 
+                    experiments=experiments,
+                    factor_varied=metadata["factor_varied"],
+                    train_data=perturbed_expression_data_train, 
+                    heldout_data=perturbed_expression_data_heldout, 
+                    fitted_values=fitted_values, 
+                    predictions=predictions)
     evaluator.makeMainPlots(
         evaluationPerPert, 
         evaluationPerTarget, 
@@ -241,6 +278,5 @@ if args.amount_to_do in {"plots", "models", "missing_models", "evaluations"}:
         pass
     
 
-this_experiment.plot(evaluationPerPert, outputs)
 
 print("Experiment done at " + str(datetime.datetime.now()), flush = True)
