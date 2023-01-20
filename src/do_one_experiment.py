@@ -11,7 +11,21 @@ import gc
 import argparse
 from argparse import Namespace
 import datetime
+# Deal with various data and modules specific to this project
+PROJECT_PATH = '/home/ekernf01/Desktop/jhu/research/projects/perturbation_prediction/cell_type_knowledge_transfer/'
+os.chdir(PROJECT_PATH + "perturbation_benchmarking")
+import importlib
+import sys
+sys.path.append(os.path.expanduser(os.path.join(PROJECT_PATH, 'perturbation_data', 'load_perturbations'))) 
+sys.path.append(os.path.expanduser(os.path.join(PROJECT_PATH, 'perturbation_benchmarking', 'src'))) 
+import evaluator
+import experimenter
+import load_perturbations
 import ggrn
+importlib.reload(evaluator)
+importlib.reload(experimenter)
+importlib.reload(load_perturbations)
+os.environ["PERTURBATION_PATH"]  = PROJECT_PATH + "perturbation_data/perturbations"
 # User input: name of experiment and whether to fully rerun or just remake plots. 
 parser = argparse.ArgumentParser("experimenter")
 parser.add_argument("--experiment_name", help="Unique id for the experiment.", type=str)
@@ -32,117 +46,46 @@ parser.add_argument(
 args = parser.parse_args()
 print("args to experimenter.py:", flush = True)
 print(args)
-
 # For interactive sessions
 if args.experiment_name is None:
     args = Namespace(**{
-        "experiment_name":'test',
+        "experiment_name":'1.8.4_0',
         "test_mode":True,
         "amount_to_do": "models",
         "save_trainset_predictions": True,
         "save_models": False,
     })
-
-# Deal with various file paths specific to this project
-PROJECT_PATH = '/home/ekernf01/Desktop/jhu/research/projects/perturbation_prediction/cell_type_knowledge_transfer/'
-os.chdir(PROJECT_PATH + "perturbation_benchmarking")
-import importlib
-import sys
-sys.path.append(os.path.expanduser(os.path.join(PROJECT_PATH, 'perturbation_data', 'load_perturbations'))) 
-sys.path.append(os.path.expanduser(os.path.join(PROJECT_PATH, 'perturbation_benchmarking', 'src'))) 
-import evaluator
-import experimenter
-import load_perturbations
-importlib.reload(evaluator)
-importlib.reload(experimenter)
-importlib.reload(load_perturbations)
-os.environ["PERTURBATION_PATH"]  = PROJECT_PATH + "perturbation_data/perturbations"
+# Additional inputs and outputs
+print("Running experiment", flush = True)
 outputs = os.path.join("experiments", args.experiment_name, "outputs")
 os.makedirs(outputs, exist_ok=True)
-
-# Load experiment code
 metadata = experimenter.validate_metadata(experiment_name=args.experiment_name)
 
+
 print("Starting at " + str(datetime.datetime.now()), flush = True)
+perturbed_expression_data, networks, experiments = experimenter.set_up_data_networks_conditions(
+    metadata,
+    test_mode = args.test_mode, 
+    amount_to_do = args.amount_to_do, 
+    outputs = outputs,
+)
 
-if args.amount_to_do in {"models", "missing_models", "evaluations", "plots"}:
-    # Get data
-    perturbed_expression_data = load_perturbations.load_perturbation(metadata["perturbation_dataset"])
-    try:
-        perturbed_expression_data = perturbed_expression_data.to_memory()
-    except ValueError: #Object is already in memory.
-        pass
-    if metadata["merge_replicates"]:
-        perturbed_expression_data = evaluator.averageWithinPerturbation(ad=perturbed_expression_data)
-
-    # Get networks
-    networks = {}
-    for netName in list(metadata["network_datasets"].keys()):
-        networks = networks | experimenter.get_subnets(
-            netName, 
-            subnets = metadata["network_datasets"][netName]["subnets"], 
-            target_genes = perturbed_expression_data.var_names, 
-            test_mode = args.test_mode, 
-            do_aggregate_subnets = metadata["network_datasets"][netName]["do_aggregate_subnets"]
-        )
-
-    # Simulate data if needed
-    if "do_simulate" in metadata: 
-        if args.amount_to_do=="evaluations":
-            print("Finding previously simulated data.")
-            perturbed_expression_data = sc.read_h5ad(os.path.join(outputs, "simulated_data.h5ad"))
-        else:
-            print("Simulating data.")
-            grn = ggrn.GRN(
-                train=perturbed_expression_data, 
-                network=networks[metadata["do_simulate"]["network"]],
-            )
-            perturbed_expression_data = grn.simulate_data(
-                [
-                    (r[1][0], r[1][1]) 
-                    for r in perturbed_expression_data.obs[["perturbation", "expression_level_after_perturbation"]].iterrows()
-                ],
-                effects = "uniform_on_provided_network",
-                noise_sd = metadata["do_simulate"]["noise_sd"],
-                seed = 0,
-            )
-            perturbed_expression_data.write_h5ad(os.path.join(outputs, "simulated_data.h5ad"))
-
-    # split data
-    print("Splitting perturbation data.", flush = True)
-    if args.test_mode:
-        perturbed_expression_data = evaluator.downsample(
-            adata = perturbed_expression_data,
-            proportion = 0.2,
-            proportion_genes = 0.01,
-        )
-    if any([k not in {"dense", "empty"} for k in networks.keys()]):
-        allowedRegulators = set.union(*[networks[key].get_all_regulators() for key in networks])
-    else:
-        allowedRegulators = perturbed_expression_data.var_names
-    perturbed_expression_data_train, perturbed_expression_data_heldout = \
-        evaluator.splitData(
-            perturbed_expression_data, 
-            allowedRegulators, 
-            desired_heldout_fraction = metadata["desired_heldout_fraction"], 
-            type_of_split            = metadata["type_of_split"]
-        )
-    del perturbed_expression_data
-    gc.collect()
-
+perturbed_expression_data_train = {}
+perturbed_expression_data_heldout = {}
 if args.amount_to_do in {"models", "missing_models"}:
-    print("Running experiment", flush = True)
-    experiments = experimenter.lay_out_runs(
-            networks = networks, 
-            metadata=metadata,
-            )
-    experiments.to_csv( os.path.join(outputs, "experiments.csv") )
     os.makedirs(os.path.join( outputs, "predictions"   ), exist_ok=True) 
     os.makedirs(os.path.join( outputs, "fitted_values" ), exist_ok=True) 
     for i in experiments.index:
         models      = os.path.join( outputs, "models",      str(i) )
         h5ad        = os.path.join( outputs, "predictions", str(i) + ".h5ad" )
         h5ad_fitted = os.path.join( outputs, "fitted_values", str(i) + ".h5ad" )
+        perturbed_expression_data_train[i], perturbed_expression_data_heldout[i] = experimenter.splitDataWrapper(
+            perturbed_expression_data,
+            networks = networks, 
+            test_mode = args.test_mode,
+            desired_heldout_fraction = experiments.loc[i, "desired_heldout_fraction"],  
+            type_of_split            = experiments.loc[i, "type_of_split"],
+        )
         if (args.amount_to_do in {"models"}) or not os.path.isfile(h5ad):
             try:
                 os.unlink(h5ad)
@@ -152,8 +95,8 @@ if args.amount_to_do in {"models", "missing_models"}:
                 grn = experimenter.do_one_run(
                     experiments, 
                     i,
-                    train_data = perturbed_expression_data_train, 
-                    test_data  = perturbed_expression_data_heldout,
+                    train_data = perturbed_expression_data_train[i], 
+                    test_data  = perturbed_expression_data_heldout[i],
                     networks = networks, 
                     outputs = outputs,
                     metadata = metadata,
@@ -171,13 +114,13 @@ if args.amount_to_do in {"models", "missing_models"}:
             print("Saving predictions...", flush = True)
             predictions   = grn.predict([
                 (r[1][0], r[1][1]) 
-                for r in perturbed_expression_data_heldout.obs[["perturbation", "expression_level_after_perturbation"]].iterrows()
+                for r in perturbed_expression_data_heldout[i].obs[["perturbation", "expression_level_after_perturbation"]].iterrows()
             ]) 
             predictions.write_h5ad( h5ad )
             if args.save_trainset_predictions:
                 fitted_values = grn.predict([
                     (r[1][0], r[1][1]) 
-                    for r in perturbed_expression_data_train.obs[["perturbation", "expression_level_after_perturbation"]].iterrows()
+                    for r in perturbed_expression_data_train[i].obs[["perturbation", "expression_level_after_perturbation"]].iterrows()
                 ])
                 fitted_values.write_h5ad( h5ad_fitted )
             print("... done.", flush = True)
@@ -194,7 +137,10 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
     evaluationPerPert, evaluationPerTarget = evaluator.evaluateCausalModel(
         heldout = perturbed_expression_data_heldout,
         predictions = predictions,
-        baseline = perturbed_expression_data_train[perturbed_expression_data_train.obs["is_control"], :],
+        baseline = {
+            i: perturbed_expression_data_train[i][perturbed_expression_data_train[i].obs["is_control"], :] 
+            for i in perturbed_expression_data_train.keys()
+        },
         experiments = experiments,
         outputs = outputs,
         factor_varied = metadata["factor_varied"],
@@ -208,7 +154,10 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
         evaluationPerPertTrainset, evaluationPerTargetTrainset = evaluator.evaluateCausalModel(
             heldout = perturbed_expression_data_train,
             predictions = fitted_values,
-            baseline = perturbed_expression_data_train[perturbed_expression_data_train.obs["is_control"], :],
+            baseline = {
+                i: perturbed_expression_data_train[i][perturbed_expression_data_train[i].obs["is_control"], :] 
+                for i in perturbed_expression_data_train.keys()
+            },
             experiments = experiments,
             outputs = os.path.join(outputs, "trainset_performance"),
             factor_varied = metadata["factor_varied"],
@@ -233,7 +182,7 @@ if args.amount_to_do in {"plots", "models", "missing_models", "evaluations"}:
     evaluationPerTarget = pd.read_parquet(os.path.join(outputs, "evaluationPerTarget.parquet"))
     evaluationPerTarget = evaluator.plotDispersionVersusMSE(
         evaluationPerTarget, 
-        perturbed_expression_data_train, 
+        perturbed_expression_data_train[0], 
         save_path = outputs,
         factor_varied = metadata["factor_varied"],
     )

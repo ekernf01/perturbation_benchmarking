@@ -1,6 +1,6 @@
 {
     "unique_id": "1.8.4_0",
-    "nickname": "ml methods",
+    "nickname": "data split",
     "readme": "This is intended to test whether the problem actually gets harder when we split the data 'unevenly', with no common perturbations between train and test data.",
     "question": "1.8.4",
     "is_active": true,
@@ -8,7 +8,7 @@
     "color_by": null,
     "factor_varied": "regression_method",
     "regression_method": ["mean", "RidgeCV"],
-    "type_of_split": ["random", "interventional"],
+    "type_of_split": ["simple", "interventional"],
     "merge_replicates": false,
     "default_level": "mean",
     "perturbation_dataset": "nakatake",

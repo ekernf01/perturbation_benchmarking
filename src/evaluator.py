@@ -51,9 +51,12 @@ def makeMainPlots(
             group_mean_by.append(color_by)
         means = evaluationPerPert.groupby(group_mean_by, as_index=False)[[metric]].mean()
         vlnplot[metric] = alt.Chart(
-            data = evaluationPerPert, 
-            title = f"{metric} (predicted log fold change vs observed)"
-        ).mark_boxplot(extent='min-max') + alt.Chart(data = means).mark_point(color="black")
+                data = evaluationPerPert, 
+                title = f"{metric} (predicted log fold change vs observed)"
+            ).mark_boxplot(extent='min-max')
+        # Faceting fights with layering, so skip the means if faceting.
+        if facet_by is None:
+            vlnplot[metric] = vlnplot[metric] + alt.Chart(data = means).mark_point(color="black")
         if color_by is not None:
             vlnplot[metric]=vlnplot[metric].encode(
                 y=alt.Y(f'{metric}:Q'),
@@ -78,7 +81,7 @@ def makeMainPlots(
         if facet_by is not None:
             vlnplot[metric] = vlnplot[metric].facet(
                 facet_by + ':N',
-                columns=int(np.ceil(np.sqrt(len(evaluationPerPert[facet_by].unique()))))
+                columns=int(np.ceil(np.sqrt(len(evaluationPerPert[facet_by].unique())))), 
             )
         vlnplot[metric].save(f'{outputs}/{metric}.html')
     return vlnplot
@@ -114,8 +117,8 @@ def plotOneTargetGene(gene, outputs, experiments, factor_varied, train_data, hel
             )],
             "experiment": e,
             "observed": np.concatenate([
-                train_data[:,gene].X.squeeze(), 
-                heldout_data[:,gene].X.squeeze(), 
+                train_data[e][:,gene].X.squeeze(), 
+                heldout_data[e][:,gene].X.squeeze(), 
             ]), 
             "predicted": np.concatenate([
                 fitted_values[e][:,gene].X.squeeze(), 
@@ -143,9 +146,9 @@ def plotOneTargetGene(gene, outputs, experiments, factor_varied, train_data, hel
     
 
 def evaluateCausalModel(
-    heldout:anndata.AnnData, 
-    predictions:anndata.AnnData, 
-    baseline:anndata.AnnData,
+    heldout:dict, 
+    predictions:dict, 
+    baseline:dict,
     experiments: pd.DataFrame, 
     outputs: str, 
     factor_varied: str,
@@ -155,13 +158,11 @@ def evaluateCausalModel(
     """Compile plots and tables comparing heldout data and predictions for same. 
 
     Args:
-        heldout (AnnData): Test data in the format specified by this project's collection of perturbation data.
-        predictions: dictionary with keys equal to index of experiments. 
-            Each value is an AnnData object.
-        baseline (AnnData): Expression before perturbation, for use in calculating log fold change. 
+        heldout, predictions, baseline: each of these is a dictionary with keys equal to index of experiments. 
+            Each value is an AnnData object. 
+            Baseline is expression before perturbation, for use in calculating log fold change. 
         classifier (sklearn.LogisticRegression): Optional, to judge results on cell type accuracy. 
         experiments (pd.DataFrame): Metadata for the different combinations used in this experiment. 
-        factor_varied (String): Plots are automatically stratified based on this column of "experiments". 
         default_level: a value found in experiments.loc[:,factor_varied] to compare all others against. This is for use in repeated-measures analyses to remove the variation from gene to gene. 
         outputs (String): Saves output here.
     """
@@ -174,9 +175,9 @@ def evaluateCausalModel(
     for experiment in predictions.keys(): 
         evaluationPerPert[experiment], evaluationPerTarget[experiment] = \
             evaluateOnePrediction(
-                expression =                        heldout[:, shared_var_names], 
+                expression =            heldout[experiment][:, shared_var_names], 
                 predictedExpression=predictions[experiment][:, shared_var_names],   
-                baseline =                         baseline[:, shared_var_names],     
+                baseline =             baseline[experiment][:, shared_var_names],     
                 doPlots=do_scatterplots, 
                 outputs = outputs,
                 experiment_name = experiment,
@@ -420,9 +421,11 @@ def splitData(adata, allowedRegulators, desired_heldout_fraction, type_of_split)
         If "simple", then we use a simple random split, and replicates of the same perturbation are allowed to go into different folds.
 
     """
+    if desired_heldout_fraction is None:
+        desired_heldout_fraction = 0.5
     # For a deterministic result when downsampling an iterable, setting a seed alone is not enough.
     # Must also avoid the use of sets. 
-    if type_of_split == "interventional":
+    if type_of_split is None or type_of_split == "interventional":
         get_unique_keep_order = lambda x: list(dict.fromkeys(x))
         allowedRegulators = [p for p in allowedRegulators if p in adata.uns["perturbed_and_measured_genes"]]
         testSetEligible   = [p for p in adata.obs["perturbation"] if p     in allowedRegulators]

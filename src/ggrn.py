@@ -231,11 +231,11 @@ class GRN:
             self.network = load_networks.LightNetwork(df=pruned_network)
             print("Re-fitting")
             self.models = do_loop()                
-        elif pruning_strategy == "none":
+        elif pruning_strategy is None or pruning_strategy == "none":
             print("Fitting")
             self.models = do_loop() 
         else:
-            raise NotImplementedError("pruning_strategy should be one of 'none', 'lasso', 'prune_and_refit' ")
+            raise NotImplementedError(f"pruning_strategy should be one of 'none', 'lasso', 'prune_and_refit'; got {pruning_strategy} ")
     
     def simulate_data(
         self,
