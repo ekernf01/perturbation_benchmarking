@@ -4,10 +4,20 @@
     "readme": "Do DCD-FG and/or its variants beat simple baselines on their or our test data?",
     "question": "1.6",
     "is_active": true,
-    "regression_method": null,
     "facet_by": null,
     "color_by": null,
     "factor_varied": "regression_method",
+    "regression_method":[
+        "DCDFG-spectral_radius-linearlr-False",   
+        "DCDFG-spectral_radius-mlplr-False",      
+        "mean", 
+        "median"
+    ],
+    "kwargs": { 
+        "num_train_epochs": 20000, 
+        "num_fine_epochs" : 10000,
+        "train_batch_size": 64
+    },
     "default_level": null,
     "merge_replicates": true,
     "perturbation_dataset": "frangieh_IFNγ",

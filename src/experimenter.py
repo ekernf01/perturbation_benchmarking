@@ -57,6 +57,7 @@ def validate_metadata(
         "type_of_split": "interventional",
         "regression_method": "RidgeCV",
         "time_strategy": "steady_state",
+        "kwargs": None,
     }
     for k in defaults:
         if not k in metadata:
@@ -125,13 +126,15 @@ def lay_out_runs(
 
     """
     metadata = metadata.copy() # We're gonna mangle it. :)
+    # This will fuck up the cartesian product below.
+    del metadata["kwargs"]
     # See experimenter.get_networks() to see how the metadata.json evolves into this thing
     metadata["network"] = list(networks.keys())
     # Code downstream (product) splits strings if you don't do this.
     for k in metadata.keys():
         if type(metadata[k]) != list:
             metadata[k] = [metadata[k]]
-    # Combos
+    # Combos 
     experiments =  pd.DataFrame(
         [row for row in product(*metadata.values())], 
         columns=metadata.keys()
@@ -177,6 +180,7 @@ def do_one_run(
       pruning_parameter                    = experiments.loc[i,"pruning_parameter"],
       projection                           = "none",  
       time_strategy                        = experiments.loc[i,"time_strategy"],
+      kwargs                               = metadata["kwargs"],
   )
   return grn
 

@@ -8,7 +8,9 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.loggers import WandbLogger
 from torch.utils.data import DataLoader, random_split
-
+# Eventually we may try to remove this dependency entirely
+os.environ['WANDB_MODE'] = 'offline'
+os.environ["WANDB_SILENT"] = "true"
 import wandb
 import sys
 PROJECT_PATH = '/home/ekernf01/Desktop/jhu/research/projects/perturbation_prediction/cell_type_knowledge_transfer/'
@@ -42,9 +44,8 @@ class DCDFGWrapper:
         model_type: str = "linearlr",    
         do_use_polynomials: bool = False,
         logfile: str = "logs",
-        num_gpus = 0,
+        num_gpus = 1 if torch.cuda.is_available() else 0,
     ):
-        # TODO: figure out how to feed this an anndata object instead of a filename
         train_dataset = PerturbSeqDataset(adata)
         print("Train dataset size", train_dataset.dim, len(train_dataset))
         nb_nodes = train_dataset.dim

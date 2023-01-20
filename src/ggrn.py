@@ -11,7 +11,7 @@ import sklearn.dummy
 import numpy as np
 import gc 
 import psutil
-# import dcdfg_wrapper.dcdfg_wrapper as dcdfg_wrapper #import DCDFGWrapper
+import dcdfg_wrapper.dcdfg_wrapper as dcdfg_wrapper 
 
 # Project-specific paths
 import sys 
