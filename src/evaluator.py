@@ -60,7 +60,7 @@ def makeMainPlots(
         if color_by is not None:
             vlnplot[metric]=vlnplot[metric].encode(
                 y=alt.Y(f'{metric}:Q'),
-                color=color_by,
+                color=color_by + ':N',
                 x=alt.X(
                     factor_varied + ':N'
                 )
@@ -256,13 +256,13 @@ def evaluateOnePrediction(
         observed  = expression[         :,target].X.squeeze()
         predicted = predictedExpression[:,target].X.squeeze()
         metrics_per_target.loc[target,["mse"]] = np.linalg.norm(observed - predicted)**2
-
+    breakpoint()
     for pert in predictedExpression.obs.index:
         if do_careful_checks:
             assert all(
                                  expression.obs.loc[pert, ["perturbation", "expression_level_after_perturbation"]].fillna(0) == \
                         predictedExpression.obs.loc[pert, ["perturbation", "expression_level_after_perturbation"]].fillna(0) 
-                    )
+                    ), "Expression and predicted expression are different sizes."
         observed  = expression[         pert,:].X.squeeze()
         predicted = predictedExpression[pert,:].X.squeeze()
         def is_constant(x):
@@ -392,7 +392,7 @@ def makeNetworkDense(X):
     return X
 
 
-def splitData(adata, allowedRegulators, desired_heldout_fraction, type_of_split):
+def splitData(adata, allowedRegulators, desired_heldout_fraction, type_of_split, data_split_seed):
     """Determine a train-test split satisfying constraints imposed by base networks and available data.
     
     A few factors complicate the training-test split. 
@@ -403,9 +403,9 @@ def splitData(adata, allowedRegulators, desired_heldout_fraction, type_of_split)
         reasonably separate their direct vs indirect effects.
 
     If type_of_split=="simple", we make no provision for dealing with the above concerns.
-    If type_of_split=="interventional", the allowedRegulators arg can be specified in order to keep problem cases out of the 
-    test data. No matter what, we still use those perturbed profiles as training data, hoping they will provide 
-    useful info about attainable cell states and downstream causal effects. 
+    If type_of_split=="interventional", the `allowedRegulators` arg can be specified in order to keep any user-specified
+    problem cases out of the test data. No matter what, we still use those perturbed profiles as training data, hoping 
+    they will provide useful info about attainable cell states and downstream causal effects. 
 
     For some collections of base networks, there are many factors ineligible for use as test data -- so many that 
     we use all the eligible ones for test and the only ineligible ones for training. 
@@ -415,25 +415,27 @@ def splitData(adata, allowedRegulators, desired_heldout_fraction, type_of_split)
     parameters:
 
     - adata (anndata.AnnData): Object satisfying the expectations outlined in the accompanying collection of perturbation data.
-    - allowedRegulators (list or set): features allowed to be in the test set. In CellOracle, this is usually constrained 
-        by motif/chip availability. 
+    - allowedRegulators (list or set): interventions allowed to be in the test set. 
     - type_of_split (str): if "interventional" (default), then any perturbation is placed in either the training or the test set, but not both. 
         If "simple", then we use a simple random split, and replicates of the same perturbation are allowed to go into different folds.
 
     """
     if desired_heldout_fraction is None:
         desired_heldout_fraction = 0.5
+    if data_split_seed is None:
+        data_split_seed = 0
     # For a deterministic result when downsampling an iterable, setting a seed alone is not enough.
     # Must also avoid the use of sets. 
     if type_of_split is None or type_of_split == "interventional":
         get_unique_keep_order = lambda x: list(dict.fromkeys(x))
         allowedRegulators = [p for p in allowedRegulators if p in adata.uns["perturbed_and_measured_genes"]]
-        testSetEligible   = [p for p in adata.obs["perturbation"] if p     in allowedRegulators]
-        testSetIneligible = [p for p in adata.obs["perturbation"] if p not in allowedRegulators]
+        testSetEligible   = [p for p in adata.obs["perturbation"] if     all(g in allowedRegulators for g in p.split(","))]
+        testSetIneligible = [p for p in adata.obs["perturbation"] if not all(g in allowedRegulators for g in p.split(","))]
         allowedRegulators = get_unique_keep_order(allowedRegulators)
         testSetEligible   = get_unique_keep_order(testSetEligible)
         testSetIneligible = get_unique_keep_order(testSetIneligible)
-        eligible_heldout_fraction = len(testSetEligible)/(0.0+len(allowedRegulators))
+        total_num_perts = len(testSetEligible) + len(testSetIneligible)
+        eligible_heldout_fraction = len(testSetEligible)/(0.0+total_num_perts)
         if eligible_heldout_fraction < desired_heldout_fraction:
             print("Not enough profiles for the desired_heldout_fraction. Will use all available.")
             testSetPerturbations = testSetEligible
@@ -442,8 +444,10 @@ def splitData(adata, allowedRegulators, desired_heldout_fraction, type_of_split)
             testSetPerturbations = testSetEligible
             trainingSetPerturbations = testSetIneligible
         else:
-            numExcessTestEligible = int(np.ceil((eligible_heldout_fraction - desired_heldout_fraction)*len(allowedRegulators)))
-            excessTestEligible = np.random.default_rng(seed=0).choice(
+            # Plenty of perts work for either.
+            # Put some back in trainset to get the right size, even though we could use them in test set.
+            numExcessTestEligible = int(np.ceil((eligible_heldout_fraction - desired_heldout_fraction)*total_num_perts))
+            excessTestEligible = np.random.default_rng(seed=data_split_seed).choice(
                 testSetEligible, 
                 numExcessTestEligible, 
                 replace = False)
