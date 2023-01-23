@@ -58,6 +58,7 @@ def validate_metadata(
         "regression_method": "RidgeCV",
         "time_strategy": "steady_state",
         "kwargs": None,
+        "data_split_seed": 0,
     }
     for k in defaults:
         if not k in metadata:
@@ -290,7 +291,7 @@ def splitDataWrapper(
     test_mode: bool = False, 
     desired_heldout_fraction: float = 0.5, 
     type_of_split: str = "interventional" ,
-    data_split_seed = 0,
+    data_split_seed = None,
 ):
     """Split the data into train and test.
 
@@ -299,6 +300,8 @@ def splitDataWrapper(
         networks (dict): dict containing LightNetworks. Used to restrict what is allowed in the test set.
         network_behavior (str): How to restrict what is allowed in the test set.
     """
+    if data_split_seed is None:
+        data_split_seed = 0
     if test_mode:
         perturbed_expression_data = evaluator.downsample(
             adata = perturbed_expression_data,
