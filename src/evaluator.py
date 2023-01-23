@@ -256,7 +256,6 @@ def evaluateOnePrediction(
         observed  = expression[         :,target].X.squeeze()
         predicted = predictedExpression[:,target].X.squeeze()
         metrics_per_target.loc[target,["mse"]] = np.linalg.norm(observed - predicted)**2
-    breakpoint()
     for pert in predictedExpression.obs.index:
         if do_careful_checks:
             assert all(

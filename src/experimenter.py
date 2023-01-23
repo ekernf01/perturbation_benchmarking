@@ -290,6 +290,7 @@ def splitDataWrapper(
     test_mode: bool = False, 
     desired_heldout_fraction: float = 0.5, 
     type_of_split: str = "interventional" ,
+    data_split_seed = 0,
 ):
     """Split the data into train and test.
 
@@ -317,5 +318,6 @@ def splitDataWrapper(
             allowedRegulators, 
             desired_heldout_fraction = desired_heldout_fraction,
             type_of_split            = type_of_split,
+            data_split_seed = data_split_seed,
         )
     return perturbed_expression_data_train, perturbed_expression_data_heldout

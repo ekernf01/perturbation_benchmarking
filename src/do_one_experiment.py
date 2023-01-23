@@ -49,7 +49,7 @@ print(args)
 # For interactive sessions
 if args.experiment_name is None:
     args = Namespace(**{
-        "experiment_name":'1.8.4_0',
+        "experiment_name":'test',
         "test_mode":True,
         "amount_to_do": "models",
         "save_trainset_predictions": True,
@@ -85,8 +85,10 @@ if args.amount_to_do in {"models", "missing_models"}:
             test_mode = args.test_mode,
             desired_heldout_fraction = experiments.loc[i, "desired_heldout_fraction"],  
             type_of_split            = experiments.loc[i, "type_of_split"],
+            data_split_seed          = experiments.loc[i, "data_split_seed"],
         )
         if (args.amount_to_do in {"models"}) or not os.path.isfile(h5ad):
+            print(i)
             try:
                 os.unlink(h5ad)
             except FileNotFoundError:
