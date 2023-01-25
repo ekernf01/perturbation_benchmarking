@@ -231,7 +231,7 @@ class GRN:
             self.network = load_networks.LightNetwork(df=pruned_network)
             print("Re-fitting")
             self.models = do_loop()                
-        elif pruning_strategy is None or pruning_strategy == "none":
+        elif pruning_strategy is None or np.isnan(pruning_strategy) or pruning_strategy == "none":
             print("Fitting")
             self.models = do_loop() 
         else:
@@ -239,7 +239,7 @@ class GRN:
     
     def simulate_data(
         self,
-        perturbations: pd.DataFrame,
+        perturbations,
         effects: str = "fitted_models",
         noise_sd = None,
         feature_extraction_method = "tf_rna",
@@ -248,7 +248,7 @@ class GRN:
         """Generate simulated expression data
 
         Args:
-            perturbations (pd.DataFrame): See GRN.predict()
+            perturbations (iterable): See GRN.predict()
             effects (str, optional): Either "fitted_models" (use effect sizes from an already-trained GRN) or
                 "uniform_on_provided_network" (use a provided network structure with small positive effects for all regulators).
             noise_sd (float, optional): Standard deviation of noise. Defaults to None: noise sd will be extracted from fitted models.
@@ -282,10 +282,10 @@ class GRN:
             raise ValueError("'effects' must be one of 'fitted_models' or 'uniform_on_provided_network'.")
         # Make it pass the usual validation checks, same as all our perturbation data
         adata.obs["perturbation_type"] = self.train.obs["perturbation_type"][0]
-        adata.obs["is_control"] = [np.isnan(p) for p in perturbations["expression_level_after_perturbation"]]
+        adata.obs["is_control"] = [np.isnan(p[1]) for p in perturbations]
         adata.obs["spearmanCorr"] = np.nan #could simulate actual replicates later if needed
-        adata.uns["perturbed_and_measured_genes"]     = [p for p in perturbations["perturbation"] if p in adata.var_names]
-        adata.uns["perturbed_but_not_measured_genes"] = [p for p in perturbations["perturbation"] if p not in adata.var_names]
+        adata.uns["perturbed_and_measured_genes"]     = [p[0] for p in perturbations if p[0] in adata.var_names]
+        adata.uns["perturbed_but_not_measured_genes"] = [p[0] for p in perturbations if p[0] not in adata.var_names]
         adata.raw = adata.copy()
         return adata
 
@@ -437,7 +437,7 @@ class GRN:
         elif method == "LassoCV":
             def FUN(X,y):
                 return sklearn.linear_model.LassoCV(
-                    fit_intercept=True, tol = 1e-2, selection="random", n_alphas = 10
+                    fit_intercept=True,
                 ).fit(X, y)
         elif method == "LassoLarsIC":
             def FUN(X,y):
@@ -482,8 +482,8 @@ class GRN:
 
     def predict(
         self,
-        perturbations: pd.DataFrame,
-        starting_state = None,
+        perturbations: list,
+        starting_states = None,
         aggregation: str = "before",
         do_parallel: bool = True,
         add_noise = False,
@@ -493,9 +493,12 @@ class GRN:
         """Predict expression after new perturbations.
 
         Args:
-            perturbations (pd.DataFrame): DataFrame with columns "perturbation" and "expression_level_after_perturbation".
-                Anything with expression np.nan will be treated as a control, no matter the name.
-            starting_state: Expression profile of starting state. Defaults to control mean in trainset.
+            perturbations (iterable of tuples): Iterable of tuples with gene and its expression after 
+                perturbation, e.g. {("POU5F1", 0.0), ("NANOG", 0.0), ("non_targeting", np.nan)}. Anything with
+                expression np.nan will be treated as a control, no matter the name.
+            starting_states: indices of observations in self.train to use as initial conditions. 
+                Defaults to self.train.obs["is_control"].
+                Must be boolean.
             aggregation: one of "before", "after", or "none". If there are multiple starting states
             do_parallel (bool): if True, use joblib parallelization. 
             add_noise (bool): if True, return simulated data Y + e instead of predictions Y 
@@ -503,11 +506,25 @@ class GRN:
             noise_sd (bool): sd of the variable e described above. Defaults to estimates from the fitted models.
             seed (int): RNG seed.
         """
-        if starting_state is None:
-            starting_state = self.train.obs["is_control"].copy().mean(axis=0, keepdims = True)
-        
+        if starting_states is None:
+            starting_states = self.train.obs["is_control"].copy()
+        assert all([type(b)==bool for b in starting_states]), "starting_states must be boolean."
+        # Handle aggregation of multiple controls
+        if aggregation == "before":
+            init_features = self.features[starting_states,:].mean(axis=0, keepdims = True)
+            n_starting_states = 1
+            first_entry = np.argmax(starting_states)
+            starting_states = [i==first_entry for i in range(len(starting_states))]
+        elif aggregation == "none":
+            init_features = self.features[starting_states,:]
+            n_starting_states = sum(starting_states)
+        elif aggregation == "after":
+            raise NotImplementedError("aggregation after simulation is not implemented yet, sorry.")
+        else:
+            raise ValueError("aggregation must be 'none', 'before', or 'after'.")
+
         # Set up containers for output & features
-        nrow = perturbations.shape[0]
+        nrow = len(perturbations)*n_starting_states
         features = np.zeros((nrow, len(self.tf_list)))
         columns_to_transfer = self.training_args["confounders"].copy()
         if self.training_args["cell_type_sharing_strategy"] != "identical":
@@ -526,17 +543,18 @@ class GRN:
             )
         )
         # implement perturbations
-        for i in perturbations.index:
+        for i in range(len(perturbations)):
+            idx     = [i*n_starting_states + s for s in range(n_starting_states)]
+            idx_str = [str(j) for j in idx]
             column = [tf == perturbations[i][0] for tf in self.tf_list]
             features[idx, :] = init_features
             # If it's nan, leave it unperturbed -- used for studying fitted values on controls. 
             if not np.isnan(perturbations[i][1]): 
                 features[idx, column] = perturbations[i][1]
-            predictions.obs.loc[i, "perturbation"]                        = perturbations[i][0]
-            predictions.obs.loc[i, "expression_level_after_perturbation"] = perturbations[i][1]
+            predictions.obs.loc[idx_str, "perturbation"]                        = perturbations[i][0]
+            predictions.obs.loc[idx_str, "expression_level_after_perturbation"] = perturbations[i][1]
             for col in columns_to_transfer:
-                STOPPED HERE ???
-                predictions.obs.loc[i, col] = self.train.obs.loc[starting_states, col].values
+                predictions.obs.loc[idx_str, col] = self.train.obs.loc[starting_states, col].values
 
         # Make predictions
         if self.training_args["method"].startswith("DCDFG"):
@@ -596,7 +614,8 @@ class GRN:
                 for i, pp in enumerate(perturbations):
                     if pp[0] in predictions.var_names:
                         predictions[i, pp[0]].X = pp[1]
-        # Add noise. This is useful for stochastic simulations. 
+            
+        # Add noise. This is useful for simulations. 
         if add_noise:
             np.random.seed(seed)
             for i in range(len(self.train.var_names)):
@@ -613,16 +632,6 @@ class GRN:
                     except AttributeError:
                         raise ValueError("Noise standard deviation could not be extracted from trained models. Please provide it when calling GRN.simulate().")
                 predictions.X[:,i] = predictions.X[:,i] + np.random.standard_normal(len(predictions.X[:,i]))*noise_sd
-
-        # Make sure predictions align with observed expression data, sample for sample, AFTER save + load
-        for pert in predictions.obs.index:
-            if not all(
-                        perturbations.loc[pert, :].fillna(0) == \
-                        predictions.obs.loc[pert, ["perturbation", "expression_level_after_perturbation"]].fillna(0) 
-                    ):
-                print(perturbations.head()[["perturbation", "expression_level_after_perturbation"]])
-                print(predictions.obs.head()[["perturbation", "expression_level_after_perturbation"]])
-                raise ValueError(f"Mismatched metadata contents after prediction. See printed output for details.")
 
         return predictions
 

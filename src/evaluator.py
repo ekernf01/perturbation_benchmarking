@@ -45,10 +45,10 @@ def makeMainPlots(
     vlnplot = {}
     for metric in metrics:
         group_mean_by = [factor_varied]
+        if color_by is not None:
+            evaluationPerPert[factor_varied] = [str(a) + str(b) for a,b in zip(evaluationPerPert[factor_varied], evaluationPerPert[color_by])]
         if facet_by is not None:
             group_mean_by.append(facet_by)
-        if color_by is not None:
-            group_mean_by.append(color_by)
         means = evaluationPerPert.groupby(group_mean_by, as_index=False)[[metric]].mean()
         vlnplot[metric] = alt.Chart(
                 data = evaluationPerPert, 
@@ -175,13 +175,13 @@ def evaluateCausalModel(
     for experiment in predictions.keys(): 
         evaluationPerPert[experiment], evaluationPerTarget[experiment] = \
             evaluateOnePrediction(
-                expression =            heldout[experiment][:, shared_var_names], 
-                predictedExpression=predictions[experiment][:, shared_var_names],   
-                baseline =             baseline[experiment][:, shared_var_names],     
-                doPlots=do_scatterplots, 
+                expression =            heldout[experiment][:, shared_var_names],
+                predictedExpression=predictions[experiment][:, shared_var_names],
+                baseline =             baseline[experiment][:, shared_var_names],
+                doPlots=do_scatterplots,
                 outputs = outputs,
                 experiment_name = experiment,
-                classifier=classifier
+                classifier=classifier,
             )
         evaluationPerPert[experiment]["index"]   = experiment
         evaluationPerTarget[experiment]["index"] = experiment
@@ -248,7 +248,10 @@ def evaluateOnePrediction(
         raise ValueError("expression and predictedExpression must have the same shape.")
     if not expression.X.shape[1] == baseline.X.shape[1]:
         raise ValueError("expression and baseline must have the same number of genes.")
-    predictedExpression.obs_names = expression.obs_names
+    if not all(np.sort(predictedExpression.obs_names) == np.sort(expression.obs_names)):
+        raise ValueError("expression and predictedExpression must have the same indices.")
+    # Make sure the order matches too
+    predictedExpression = predictedExpression[expression.obs_names, :]
     baseline = baseline.X.mean(axis=0).squeeze()
     metrics = pd.DataFrame(index = predictedExpression.obs.index, columns = ["spearman", "spearmanp", "cell_fate_correct", "mse"])
     metrics_per_target = pd.DataFrame(index = predictedExpression.var.index, columns = ["mse"])
@@ -258,10 +261,13 @@ def evaluateOnePrediction(
         metrics_per_target.loc[target,["mse"]] = np.linalg.norm(observed - predicted)**2
     for pert in predictedExpression.obs.index:
         if do_careful_checks:
-            assert all(
+            if not all(
                                  expression.obs.loc[pert, ["perturbation", "expression_level_after_perturbation"]].fillna(0) == \
                         predictedExpression.obs.loc[pert, ["perturbation", "expression_level_after_perturbation"]].fillna(0) 
-                    ), "Expression and predicted expression are different sizes."
+                    ):
+                print(expression.obs.head()[["perturbation", "expression_level_after_perturbation"]])
+                print(predictedExpression.obs.head()[["perturbation", "expression_level_after_perturbation"]])
+                raise ValueError(f"Expression and predicted expression are different sizes or are differently name in experiment {experiment_name}.")
         observed  = expression[         pert,:].X.squeeze()
         predicted = predictedExpression[pert,:].X.squeeze()
         def is_constant(x):
@@ -466,7 +472,12 @@ def splitData(adata, allowedRegulators, desired_heldout_fraction, type_of_split,
         print("Training set size:")
         print(len(trainingSetPerturbations))    
     elif type_of_split == "simple":
-        test_obs = np.random.choice(replace=False, a = adata.obs_names, size = round(adata.shape[0]*desired_heldout_fraction))
+        np.random.seed(data_split_seed)
+        test_obs = np.random.choice(
+            replace=False, 
+            a = adata.obs_names, 
+            size = round(adata.shape[0]*desired_heldout_fraction), 
+        )
         train_obs = [i for i in adata.obs_names if i not in test_obs]
         adata_train    = adata[train_obs,:]
         adata_heldout  = adata[test_obs,:]

@@ -5,6 +5,7 @@ import json
 import yaml
 import gc
 import pandas as pd
+import numpy as np
 import anndata
 from itertools import product
 # Deal with various file paths specific to this project
@@ -131,6 +132,8 @@ def lay_out_runs(
     del metadata["kwargs"]
     # See experimenter.get_networks() to see how the metadata.json evolves into this thing
     metadata["network_datasets"] = list(networks.keys())
+    # This is just too bulky to want in the csv
+    del metadata["readme"]
     # Code downstream (product) splits strings if you don't do this.
     for k in metadata.keys():
         if type(metadata[k]) != list:
@@ -258,6 +261,16 @@ def set_up_data_networks_conditions(metadata, test_mode, amount_to_do, outputs):
         networks=networks, 
         metadata=metadata,
     )
+    try:
+        old_experiments = pd.read_csv(os.path.join(outputs, "experiments.csv"), index_col=0)
+        experiments.to_csv(        os.path.join(outputs, "new_experiments.csv") )
+        experiments = pd.read_csv( os.path.join(outputs, "new_experiments.csv"), index_col=0 )
+        if not experiments.equals(old_experiments):
+            print(experiments)
+            print(old_experiments)
+            raise ValueError("Experiment layout has changed. Debug or delete previous experiments.csv. Saving new vs old for debugging.")
+    except FileNotFoundError:
+        pass
     experiments.to_csv( os.path.join(outputs, "experiments.csv") )
 
     # Simulate data if needed
@@ -302,6 +315,8 @@ def splitDataWrapper(
     """
     if data_split_seed is None:
         data_split_seed = 0
+    if desired_heldout_fraction is None or np.isnan(desired_heldout_fraction):
+        desired_heldout_fraction = 0.5
     if test_mode:
         perturbed_expression_data = evaluator.downsample(
             adata = perturbed_expression_data,

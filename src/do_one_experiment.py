@@ -1,4 +1,3 @@
-
 import os
 import numpy as np
 import matplotlib.colors as colors
@@ -49,7 +48,7 @@ print(args)
 # For interactive sessions
 if args.experiment_name is None:
     args = Namespace(**{
-        "experiment_name":'test',
+        "experiment_name":"test",
         "test_mode":True,
         "amount_to_do": "models",
         "save_trainset_predictions": True,
@@ -88,7 +87,6 @@ if args.amount_to_do in {"models", "missing_models"}:
             data_split_seed          = experiments.loc[i, "data_split_seed"],
         )
         if (args.amount_to_do in {"models"}) or not os.path.isfile(h5ad):
-            print(i)
             try:
                 os.unlink(h5ad)
             except FileNotFoundError:
@@ -108,22 +106,24 @@ if args.amount_to_do in {"models", "missing_models"}:
                     raise e
                 else:
                     print(f"Caught exception {repr(e)} on experiment {i}; skipping.")
+                    continue
 
-                continue
             if args.save_models:
                 print("Saving models...", flush = True)
-                predictions   = grn.save_models( models )
+                grn.save_models( models )
             print("Saving predictions...", flush = True)
             predictions   = grn.predict([
                 (r[1][0], r[1][1]) 
                 for r in perturbed_expression_data_heldout[i].obs[["perturbation", "expression_level_after_perturbation"]].iterrows()
-            ]) 
+            ])   
+            predictions.obs.index = perturbed_expression_data_heldout[i].obs.index.copy()
             predictions.write_h5ad( h5ad )
             if args.save_trainset_predictions:
                 fitted_values = grn.predict([
                     (r[1][0], r[1][1]) 
                     for r in perturbed_expression_data_train[i].obs[["perturbation", "expression_level_after_perturbation"]].iterrows()
                 ])
+                fitted_values.obs.index = perturbed_expression_data_train[i].obs.index.copy()
                 fitted_values.write_h5ad( h5ad_fitted )
             print("... done.", flush = True)
             del grn
@@ -131,11 +131,24 @@ if args.amount_to_do in {"models", "missing_models"}:
 if args.amount_to_do in {"models", "missing_models", "evaluations"}:
     print("Retrieving saved predictions", flush = True)
     experiments = pd.read_csv( os.path.join(outputs, "experiments.csv") )
-    predictions   = {i:sc.read_h5ad( os.path.join(outputs, "predictions",   str(i) + ".h5ad" ) ) for i in experiments.index}
+    predictions = {i:sc.read_h5ad( os.path.join(outputs, "predictions",   str(i) + ".h5ad" ) ) for i in experiments.index}
     try:
         fitted_values = {i:sc.read_h5ad( os.path.join(outputs, "fitted_values", str(i) + ".h5ad" ) ) for i in experiments.index}
     except FileNotFoundError:
         fitted_values = None
+    assert all(
+        [obs.shape[0] == pred.shape[0] 
+        for obs,pred in zip(predictions.values(), perturbed_expression_data_heldout.values())]
+    )
+    assert all(
+        [all(
+            np.sort(predictions[i].obs_names) == np.sort(perturbed_expression_data_heldout[i].obs_names)) 
+            for i in range(len(predictions.keys())
+        )]
+    )
+    np.sort(predictions[0].obs_names)
+    np.sort(perturbed_expression_data_heldout[0].obs_names)
+
     evaluationPerPert, evaluationPerTarget = evaluator.evaluateCausalModel(
         heldout = perturbed_expression_data_heldout,
         predictions = predictions,
