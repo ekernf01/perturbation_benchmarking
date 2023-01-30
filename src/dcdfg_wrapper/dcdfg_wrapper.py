@@ -233,14 +233,14 @@ class DCDFGWrapper:
                 control_expression = baseline_expression,
                 KO_gene_indices    = valid_loc,
                 KO_gene_values     = valid_val,
-                maxiter            = 100
+                maxiter            = 1
             )
             
             predicted_adata.X[cntrl_idx, :] = self.model.simulateKO(
                 control_expression = baseline_expression,
                 KO_gene_indices    = [[]] * cntrl_idx.shape[0],
                 KO_gene_values     = [[np.nan]] * cntrl_idx.shape[0],
-                maxiter            = 100,
+                maxiter            = 1,
                 is_control         = True
             )
             

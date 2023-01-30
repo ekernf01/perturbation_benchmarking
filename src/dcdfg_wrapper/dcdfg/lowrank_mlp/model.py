@@ -215,7 +215,7 @@ class MLPModuleGaussianModel(pl.LightningModule):
 
 
 
-    def simulateKO(self, control_expression: np.ndarray, KO_gene_indices: list, KO_gene_values: list, maxiter=100, maxiter_cyclic=1, is_control=False):
+    def simulateKO(self, control_expression: np.ndarray, KO_gene_indices: list, KO_gene_values: list, maxiter=1, maxiter_cyclic=1, is_control=False):
         """Simulate one or more perturbation experiment outcome(s) given a control expression,
         and given which gene(s) and corresponding perturbation value(s). 
         
