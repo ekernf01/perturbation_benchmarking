@@ -7,6 +7,7 @@ import gc
 import pandas as pd
 import numpy as np
 import anndata
+import scanpy as sc
 from itertools import product
 # Deal with various file paths specific to this project
 PROJECT_PATH = '/home/ekernf01/Desktop/jhu/research/projects/perturbation_prediction/cell_type_knowledge_transfer/'
@@ -60,6 +61,7 @@ def validate_metadata(
         "time_strategy": "steady_state",
         "kwargs": None,
         "data_split_seed": 0,
+        "num_genes": None
     }
     for k in defaults:
         if not k in metadata:
@@ -189,13 +191,12 @@ def do_one_run(
   return grn
 
 # TODO: move this to the network collection loader module?
-def get_subnets(netName:str, subnets:list, test_mode, target_genes = None, do_aggregate_subnets = False) -> dict:
+def get_subnets(netName:str, subnets:list, target_genes = None, do_aggregate_subnets = False) -> dict:
     """Get gene regulatory networks for an experiment.
 
     Args:
         netName (str): Name of network to pull from collection, or "dense" or e.g. "random0.123" for random with density 12.3%. 
         subnets (list, optional): List of cell type- or tissue-specific subnetworks to include. 
-        test_mode (bool, optional): Lighten the load during testing. Defaults to args.test_mode.
         do_aggregate_subnets (bool, optional): If True, return has just one network named netName. If False,
             then returned dict has many separate networks named like netName + " " + subnet_name.
 
@@ -235,7 +236,43 @@ def get_subnets(netName:str, subnets:list, test_mode, target_genes = None, do_ag
                     networks[new_key] = load_networks.LightNetwork(netName, [subnet_name])
     return networks
 
-def set_up_data_networks_conditions(metadata, test_mode, amount_to_do, outputs):
+def filter_genes(expression_quantified: anndata.AnnData, num_genes: int) -> anndata.AnnData:
+    """Filter a dataset, keeping only the top-ranked genes and the directly perturbed genes.
+    The top N and perturbed genes may intersect, resulting in less than num_genes returned.
+    For backwards compatibility with the DCD-FG benchmarks, we do not try to fix this.
+
+    Args:
+        expression_quantified (anndata.AnnData): _description_
+        num_genes: Usually number. Expected non-numeric values are "all" or None or np.NaN, and for all those inputs, we keep all genes.
+
+    Returns:
+        anndata.AnnData: Input data, but maybe with fewer genes. 
+    """
+    assert "highly_variable_rank" in set(expression_quantified.var.columns)
+    if num_genes is None or np.isnan(num_genes) or num_genes=="all":
+        return expression_quantified
+
+    # Perturbed genes
+    targeted_genes = np.where(np.array(
+        [1 if g in expression_quantified.uns["perturbed_and_measured_genes"] else 0
+        for g in expression_quantified.var_names]
+    ))[0]
+    n_targeted = len(targeted_genes)
+
+    # Top N minus # of perturbed genes
+    try:      
+        variable_genes = np.where(
+            expression_quantified.var["highly_variable_rank"] < num_genes - n_targeted
+        )[0]
+    except:
+        raise Exception("num_genes must act like a number w.r.t. < operator; received {num_genes}.")
+    
+    gene_indices = np.union1d(targeted_genes, variable_genes)
+    gene_set = expression_quantified.var.index.values[gene_indices]
+    return expression_quantified[:, gene_set].copy()
+
+
+def set_up_data_networks_conditions(metadata, amount_to_do, outputs):
     """Set up the expression data, networks, and a sample sheet for this experiment."""
     # Data, networks, experiment sheet in that order because reasons
     perturbed_expression_data = load_perturbations.load_perturbation(metadata["perturbation_dataset"])
@@ -253,10 +290,10 @@ def set_up_data_networks_conditions(metadata, test_mode, amount_to_do, outputs):
             netName, 
             subnets = metadata["network_datasets"][netName]["subnets"], 
             target_genes = perturbed_expression_data.var_names, 
-            test_mode = test_mode, 
             do_aggregate_subnets = metadata["network_datasets"][netName]["do_aggregate_subnets"]
         )
 
+    # Lay out each set of params 
     experiments = lay_out_runs(
         networks=networks, 
         metadata=metadata,
@@ -301,7 +338,6 @@ def splitDataWrapper(
     perturbed_expression_data,
     networks: dict, 
     network_behavior: str = "union", 
-    test_mode: bool = False, 
     desired_heldout_fraction: float = 0.5, 
     type_of_split: str = "interventional" ,
     data_split_seed = None,
@@ -309,7 +345,6 @@ def splitDataWrapper(
     """Split the data into train and test.
 
     Args:
-        test_mode (bool): If True, this will downsample the data to make the test run fast.
         networks (dict): dict containing LightNetworks. Used to restrict what is allowed in the test set.
         network_behavior (str): How to restrict what is allowed in the test set.
     """
@@ -317,17 +352,11 @@ def splitDataWrapper(
         data_split_seed = 0
     if desired_heldout_fraction is None or np.isnan(desired_heldout_fraction):
         desired_heldout_fraction = 0.5
-    if test_mode:
-        perturbed_expression_data = evaluator.downsample(
-            adata = perturbed_expression_data,
-            proportion = 0.2,
-            proportion_genes = 0.01,
-        )
     if network_behavior is None or network_behavior == "union":
+        allowedRegulators = perturbed_expression_data.var_names
         if any([k not in {"dense", "empty"} for k in networks.keys()]):
-            allowedRegulators = set.union(*[networks[key].get_all_regulators() for key in networks])
-        else:
-            allowedRegulators = perturbed_expression_data.var_names
+            network_regulators = set.union(*[networks[key].get_all_regulators() for key in networks])
+            allowedRegulators = allowedRegulators.intersection(network_regulators)
     else:
         raise ValueError(f"network_behavior currently only allows 'union'; got {network_behavior}")
     perturbed_expression_data_train, perturbed_expression_data_heldout = \

@@ -231,7 +231,7 @@ class GRN:
             self.network = load_networks.LightNetwork(df=pruned_network)
             print("Re-fitting")
             self.models = do_loop()                
-        elif pruning_strategy is None or np.isnan(pruning_strategy) or pruning_strategy == "none":
+        elif pruning_strategy is None or pruning_strategy == "none" or np.isnan(pruning_strategy):
             print("Fitting")
             self.models = do_loop() 
         else:

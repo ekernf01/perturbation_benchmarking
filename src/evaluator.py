@@ -25,7 +25,7 @@ def makeMainPlots(
     factor_varied:str, 
     facet_by: str = None, 
     color_by: str = None, 
-    metrics = ['spearman', 'mse']
+    metrics = ['spearman', 'mse', 'mae']
     ):
     """Redo the main plots summarizing an experiment.
     Args:
@@ -86,7 +86,7 @@ def makeMainPlots(
         vlnplot[metric].save(f'{outputs}/{metric}.html')
     return vlnplot
 
-def plotDispersionVersusMSE(evaluationPerTarget, train_data, save_path, factor_varied):
+def plotDispersionVersusMAE(evaluationPerTarget, train_data, save_path, factor_varied):
     evaluationPerTarget = pd.merge(
         train_data.var,
         evaluationPerTarget,
@@ -97,6 +97,8 @@ def plotDispersionVersusMSE(evaluationPerTarget, train_data, save_path, factor_v
         x=alt.X("dispersions_norm:Q", bin=True),
         y="count()",
         color='model_beats_mean_on_this_gene',
+    ).encode(
+        text='sum(count()):Q'
     ).facet(
         factor_varied, 
         columns = 4,
@@ -104,7 +106,7 @@ def plotDispersionVersusMSE(evaluationPerTarget, train_data, save_path, factor_v
         title='Dispersion versus modeling success'
     )
     alt.data_transformers.disable_max_rows()
-    chart.save(os.path.join(save_path, "DispersionVersusMSE.html"))
+    chart.save(os.path.join(save_path, "DispersionVersusMAE.html"))
     return evaluationPerTarget
 
 def plotOneTargetGene(gene, outputs, experiments, factor_varied, train_data, heldout_data, fitted_values, predictions):
@@ -191,20 +193,20 @@ def evaluateCausalModel(
     evaluationPerTarget = evaluationPerTarget.merge(experiments, how = "left", right_index = True, left_on = "index")
     evaluationPerPert   = pd.DataFrame(evaluationPerPert.to_dict())
     evaluationPerTarget = pd.DataFrame(evaluationPerTarget.to_dict())
-    # Add some info on each evaluation-per-target, such as the baseline MSE
+    # Add some info on each evaluation-per-target, such as the baseline MAE
     evaluationPerTarget["target"] = [i[1] for i in evaluationPerTarget.index]
     is_baseline = [f==default_level for f in evaluationPerTarget[factor_varied]]
-    evaluationPerTarget["mse_baseline"] = np.NaN
-    evaluationPerTarget.loc[is_baseline, "mse_baseline"] = evaluationPerTarget.loc[is_baseline, "mse"]
+    evaluationPerTarget["mae_baseline"] = np.NaN
+    evaluationPerTarget.loc[is_baseline, "mae_baseline"] = evaluationPerTarget.loc[is_baseline, "mae"]
     evaluationPerTarget = evaluationPerTarget.groupby("target").apply(
         lambda x:
             x.fillna(
-                x.loc[x[factor_varied] == default_level, "mse"].values[0]
+                x.loc[x[factor_varied] == default_level, "mae"].values[0]
             )
     )
-    evaluationPerTarget["mse_benefit"] = evaluationPerTarget["mse_baseline"] - evaluationPerTarget["mse"]
-    evaluationPerTarget = evaluationPerTarget.sort_values("mse_benefit", ascending=False)
-    evaluationPerTarget["model_beats_mean_on_this_gene"] = evaluationPerTarget["mse_benefit"]>0
+    evaluationPerTarget["mae_benefit"] = evaluationPerTarget["mae_baseline"] - evaluationPerTarget["mae"]
+    evaluationPerTarget = evaluationPerTarget.sort_values("mae_benefit", ascending=False)
+    evaluationPerTarget["model_beats_mean_on_this_gene"] = evaluationPerTarget["mae_benefit"]>0
     # Mark anything where predictions were unavailable
     noPredictionMade = evaluationPerPert.iloc[[x==0 for x in evaluationPerPert["spearman"]],:]['perturbation']
     noPredictionMade = set(noPredictionMade)
@@ -248,17 +250,15 @@ def evaluateOnePrediction(
         raise ValueError("expression and predictedExpression must have the same shape.")
     if not expression.X.shape[1] == baseline.X.shape[1]:
         raise ValueError("expression and baseline must have the same number of genes.")
-    if not all(np.sort(predictedExpression.obs_names) == np.sort(expression.obs_names)):
+    if not all(predictedExpression.obs_names == expression.obs_names):
         raise ValueError("expression and predictedExpression must have the same indices.")
-    # Make sure the order matches too
-    predictedExpression = predictedExpression[expression.obs_names, :]
     baseline = baseline.X.mean(axis=0).squeeze()
     metrics = pd.DataFrame(index = predictedExpression.obs.index, columns = ["spearman", "spearmanp", "cell_fate_correct", "mse"])
-    metrics_per_target = pd.DataFrame(index = predictedExpression.var.index, columns = ["mse"])
+    metrics_per_target = pd.DataFrame(index = predictedExpression.var.index, columns = ["mae"])
     for target in predictedExpression.var.index:
         observed  = expression[         :,target].X.squeeze()
         predicted = predictedExpression[:,target].X.squeeze()
-        metrics_per_target.loc[target,["mse"]] = np.linalg.norm(observed - predicted)**2
+        metrics_per_target.loc[target,["mae"]] = np.linalg.norm(observed - predicted)**2
     for pert in predictedExpression.obs.index:
         if do_careful_checks:
             if not all(
@@ -273,15 +273,16 @@ def evaluateOnePrediction(
         def is_constant(x):
             return np.std(x)<1e-12
         if type(predicted) is float and np.isnan(predicted) or is_constant(predicted - baseline) or is_constant(observed - baseline):
-            metrics.loc[pert,["spearman","spearmanp", "cell_fate_correct", "mse"]] = 0,1,np.nan,np.nan
+            metrics.loc[pert,["spearman","spearmanp", "cell_fate_correct", "mse", "mae"]] = 0,1,np.nan,np.nan,np.nan
         else:
-            metrics.loc[pert,["spearman","spearmanp"]] = spearmanr(observed - baseline, predicted - baseline)
+            metrics.loc[pert,["spearman","spearmanp"]] = [x for x in spearmanr(observed - baseline, predicted - baseline)]
             metrics.loc[pert,"mse"] = np.linalg.norm(observed - predicted)**2
+            metrics.loc[pert,"mae"] = np.abs(observed - predicted).mean()
             if classifier is not None:
                 class_observed  = classifier.predict(np.reshape(observed,  (1, -1)))[0]
                 class_predicted = classifier.predict(np.reshape(predicted, (1, -1)))[0]
                 metrics.loc[pert,"cell_fate_correct"] = 1.0*(class_observed==class_predicted)  
-
+    
     metrics["spearman"] = metrics["spearman"].astype(float)
     hardest = metrics["spearman"].idxmin()
     easiest = metrics["spearman"].idxmax()
@@ -407,7 +408,8 @@ def splitData(adata, allowedRegulators, desired_heldout_fraction, type_of_split,
     - Perturbed genes may not be measured. These perhaps should be excluded from test data because we can't
         reasonably separate their direct vs indirect effects.
 
-    If type_of_split=="simple", we make no provision for dealing with the above concerns.
+    If type_of_split=="simple", we make no provision for dealing with the above concerns. The only restriction is that
+    all controls go in the training set.
     If type_of_split=="interventional", the `allowedRegulators` arg can be specified in order to keep any user-specified
     problem cases out of the test data. No matter what, we still use those perturbed profiles as training data, hoping 
     they will provide useful info about attainable cell states and downstream causal effects. 
@@ -431,7 +433,7 @@ def splitData(adata, allowedRegulators, desired_heldout_fraction, type_of_split,
         data_split_seed = 0
     # For a deterministic result when downsampling an iterable, setting a seed alone is not enough.
     # Must also avoid the use of sets. 
-    if type_of_split is None or type_of_split == "interventional":
+    if type_of_split is None or np.isnan(type_of_split) or type_of_split == "interventional":
         get_unique_keep_order = lambda x: list(dict.fromkeys(x))
         allowedRegulators = [p for p in allowedRegulators if p in adata.uns["perturbed_and_measured_genes"]]
         testSetEligible   = [p for p in adata.obs["perturbation"] if     all(g in allowedRegulators for g in p.split(","))]
@@ -473,12 +475,15 @@ def splitData(adata, allowedRegulators, desired_heldout_fraction, type_of_split,
         print(len(trainingSetPerturbations))    
     elif type_of_split == "simple":
         np.random.seed(data_split_seed)
-        test_obs = np.random.choice(
+        train_obs = np.random.choice(
             replace=False, 
             a = adata.obs_names, 
-            size = round(adata.shape[0]*desired_heldout_fraction), 
+            size = round(adata.shape[0]*(1-desired_heldout_fraction)), 
         )
-        train_obs = [i for i in adata.obs_names if i not in test_obs]
+        for o in adata.obs_names:
+            if adata.obs.loc[o, "is_control"]:
+                train_obs = np.append(train_obs, o)
+        test_obs = [i for i in adata.obs_names if i not in train_obs]
         adata_train    = adata[train_obs,:]
         adata_heldout  = adata[test_obs,:]
         trainingSetPerturbations = set(  adata_train.obs["perturbation"].unique())

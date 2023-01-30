@@ -28,7 +28,6 @@ os.environ["PERTURBATION_PATH"]  = PROJECT_PATH + "perturbation_data/perturbatio
 # User input: name of experiment and whether to fully rerun or just remake plots. 
 parser = argparse.ArgumentParser("experimenter")
 parser.add_argument("--experiment_name", help="Unique id for the experiment.", type=str)
-parser.add_argument("--test_mode",       help="If true, use a small subset of the perturbation data.",     default = False, action = "store_true")
 parser.add_argument("--save_models",     help="If true, save model objects.", default = False, action = "store_true")
 parser.add_argument("--save_trainset_predictions", help="If true, make & save predictions of training data.", default = False, action = "store_true")
 parser.add_argument(
@@ -49,7 +48,6 @@ print(args)
 if args.experiment_name is None:
     args = Namespace(**{
         "experiment_name":"test",
-        "test_mode":True,
         "amount_to_do": "models",
         "save_trainset_predictions": True,
         "save_models": False,
@@ -64,29 +62,32 @@ metadata = experimenter.validate_metadata(experiment_name=args.experiment_name)
 print("Starting at " + str(datetime.datetime.now()), flush = True)
 perturbed_expression_data, networks, experiments = experimenter.set_up_data_networks_conditions(
     metadata,
-    test_mode = args.test_mode, 
     amount_to_do = args.amount_to_do, 
     outputs = outputs,
 )
 
 perturbed_expression_data_train = {}
 perturbed_expression_data_heldout = {}
-if args.amount_to_do in {"models", "missing_models"}:
+if args.amount_to_do in {"models", "missing_models", "evaluations"}:
     os.makedirs(os.path.join( outputs, "predictions"   ), exist_ok=True) 
     os.makedirs(os.path.join( outputs, "fitted_values" ), exist_ok=True) 
     for i in experiments.index:
         models      = os.path.join( outputs, "models",      str(i) )
         h5ad        = os.path.join( outputs, "predictions", str(i) + ".h5ad" )
         h5ad_fitted = os.path.join( outputs, "fitted_values", str(i) + ".h5ad" )
+
+        perturbed_expression_data = experimenter.filter_genes(perturbed_expression_data, num_genes = experiments.loc[i, "num_genes"])
         perturbed_expression_data_train[i], perturbed_expression_data_heldout[i] = experimenter.splitDataWrapper(
             perturbed_expression_data,
             networks = networks, 
-            test_mode = args.test_mode,
             desired_heldout_fraction = experiments.loc[i, "desired_heldout_fraction"],  
             type_of_split            = experiments.loc[i, "type_of_split"],
             data_split_seed          = experiments.loc[i, "data_split_seed"],
         )
-        if (args.amount_to_do in {"models"}) or not os.path.isfile(h5ad):
+        if \
+            (args.amount_to_do in {"models"}) or \
+            (args.amount_to_do in {"missing_models"} and not os.path.isfile(h5ad)):
+            
             try:
                 os.unlink(h5ad)
             except FileNotFoundError:
@@ -102,11 +103,8 @@ if args.amount_to_do in {"models", "missing_models"}:
                     metadata = metadata,
                 )
             except Exception as e:
-                if args.test_mode: 
-                    raise e
-                else:
-                    print(f"Caught exception {repr(e)} on experiment {i}; skipping.")
-                    continue
+                print(f"Caught exception {repr(e)} on experiment {i}; skipping.")
+                continue
 
             if args.save_models:
                 print("Saving models...", flush = True)
@@ -195,7 +193,7 @@ if args.amount_to_do in {"plots", "models", "missing_models", "evaluations"}:
     print("Retrieving saved evaluations", flush = True)
     evaluationPerPert   = pd.read_parquet(os.path.join(outputs, "evaluationPerPert.parquet"))
     evaluationPerTarget = pd.read_parquet(os.path.join(outputs, "evaluationPerTarget.parquet"))
-    evaluationPerTarget = evaluator.plotDispersionVersusMSE(
+    evaluationPerTarget = evaluator.plotDispersionVersusMAE(
         evaluationPerTarget, 
         perturbed_expression_data_train[0], 
         save_path = outputs,
@@ -204,9 +202,9 @@ if args.amount_to_do in {"plots", "models", "missing_models", "evaluations"}:
     if fitted_values is not None:
         for type in ["best", "worst", "random"]:
             if type=="best":
-                genes = evaluationPerTarget.nlargest(100, "mse_benefit")["target"]
+                genes = evaluationPerTarget.nlargest(100, "mae_benefit")["target"]
             elif type=="worst":
-                genes = evaluationPerTarget.nsmallest(100, "mse_benefit")["target"]
+                genes = evaluationPerTarget.nsmallest(100, "mae_benefit")["target"]
             else:
                 genes = np.random.choice(size=10, a=evaluationPerTarget["target"].unique())
             for gene in genes:
