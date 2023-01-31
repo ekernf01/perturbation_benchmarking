@@ -2,9 +2,13 @@
 
 This repo contains (the beginnings of) tools for benchmarking various strategies for predicting in detail the outcome of perturbation experiments. For more context, see the [project summary](https://docs.google.com/document/d/1vvZi5c0nU3VTvKiWpEka8AtDORxJ3Ymv0ZzoFQwoDoI/edit).
 
-### Environment
+### Installation
 
-The project is so far written in Python with the main dependencies being Scanpy, DuckDB, PyTorch, and the usuals (joblib, numpy, pandas, AnnData, ...). Dependencies are managed by Conda (environment is called `cell_type_grn_transfer`). All development is currently done on Ubuntu 20.04, and currently, nothing is containerized. See `environment` for more details.
+The project is written in Python with the main dependencies being gseapy, DCD-FG, scanpy + AnnData, DuckDB, PyTorch, and the usuals (joblib, numpy, pandas, scipy, etc). The environment can be reproduced via the command below. This requires a linux64 system (we use Ubuntu 20.04 or other Debian linux). 
+
+`conda create --name ggrn --file spec_file.txt`
+
+N.B. `conda create` does not reproduce enviroments with pip-installed packages. We avoid using any pip-installed packages; future development should do the same or revise plans for dependency management.
 
 ### Getting started
 
