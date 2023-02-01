@@ -4,7 +4,6 @@ import sys
 import numpy as np
 import pandas as pd
 import scanpy as sc
-import celloracle as co
 import shutil
 
 # Deal with various modules specific to this project
@@ -23,7 +22,7 @@ importlib.reload(load_perturbations)
 os.environ["GRN_PATH"]           = PROJECT_PATH + "network_collection/networks"
 os.environ["PERTURBATION_PATH"]  = PROJECT_PATH + "perturbation_data/perturbations"
 test_expression = sc.read_h5ad(os.environ["PERTURBATION_PATH"] + "/software_test/" + "test.h5ad")
-test_network = co.data.load_human_promoter_base_GRN()
+test_network = pd.DataFrame({"peak": np.nan, "gene": ["AATF", "ALX3", "MYOD1"], "AATF": [1.0,0,1], "ALX3": [1.0,1, 0], "MYOD1": [0.0,0,1]})
 test_perturbations = pd.DataFrame(
                     [
                         ("AATF", 0.0), # no connections
@@ -44,7 +43,7 @@ class TestNetworkHandling(unittest.TestCase):
             )
         )
         X = evaluator.makeNetworkDense(
-            evaluator.makeRandomNetwork(density=1,  TFs=["AATF", "ALX3", "MYOD1"])
+            evaluator.makeRandomNetwork(density=1,  TFs=["AATF", "ALX3", "MYOD1"], targetGenes = ["AATF", "ALX3", "MYOD1"])
         )
     
     def test_pivotNetworkWideToLong(self):
@@ -72,10 +71,12 @@ class TestEvaluation(unittest.TestCase):
     def test_evaluateOnePrediction(self):
         self.assertIsNotNone(
             evaluator.evaluateOnePrediction(
-                expression = test_expression,
+                expression =  test_expression,
                 predictedExpression = test_expression, 
                 baseline = test_expression["Control",:], 
-                doPlots=False
+                doPlots=False, 
+                outputs="demo",
+                experiment_name="test",    
             )
         )
     
@@ -83,9 +84,9 @@ class TestEvaluation(unittest.TestCase):
         os.makedirs("temp", exist_ok=True)
         self.assertIsNotNone(
             evaluator.evaluateCausalModel(
-                heldout = test_expression, 
+                heldout     = {"demo": test_expression}, 
                 predictions = {"demo": test_expression}, 
-                baseline = test_expression["Control",:], 
+                baseline    = {"demo": test_expression["Control",:]}, 
                 experiments = pd.DataFrame(["demo"], ["demo"], ["demo"]),
                 outputs = "temp", 
                 factor_varied = "demo",

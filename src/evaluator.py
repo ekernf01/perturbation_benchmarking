@@ -87,29 +87,28 @@ def makeMainPlots(
         vlnplot[metric].save(f'{outputs}/{metric}.html')
     return vlnplot
 
-def studyPredictableGenes(evaluationPerTarget, train_data, save_path, factor_varied):
-    os.makedirs(os.path.join(save_path, "target_genes_best_worst", "MAE_determinants"), exist_ok=True)
-    # Plot various factors against our per-gene measure of predictability (gather up data here, plots below)
-    
+def addGeneMetadata(df, adata):
+
     # Measures derived from the expression data, e.g. overdispersion
     expression_characteristics = [
         'highly_variable', 'highly_variable_rank', 'means',
         'variances', 'variances_norm'
     ]
-    if any(not x in evaluationPerTarget.columns for x in expression_characteristics):
-        evaluationPerTarget = pd.merge(
-            train_data.var,
-            evaluationPerTarget.copy(),
+    if any(not x in df.columns for x in expression_characteristics):
+        df = pd.merge(
+            adata.var,
+            df.copy(),
             left_index=True, 
             right_on="target")
+
     # measures of evolutionary constraint 
     evolutionary_characteristics = ["pLI"]
     evolutionary_constraint = pd.read_csv("../accessory_data/forweb_cleaned_exac_r03_march16_z_data_pLI_CNV-final.txt.gz", sep = "\t")
     evolutionary_constraint = evolutionary_constraint.groupby("gene").agg(func = max)
-    if any(not x in evaluationPerTarget.columns for x in evolutionary_characteristics):
-        evaluationPerTarget = pd.merge(
+    if any(not x in df.columns for x in evolutionary_characteristics):
+        df = pd.merge(
             evolutionary_constraint,
-            evaluationPerTarget.copy(),
+            df.copy(),
             left_on="gene", 
             right_on="target")
     
@@ -124,19 +123,24 @@ def studyPredictableGenes(evaluationPerTarget, train_data, save_path, factor_var
     degree.fillna(0)
     degree.columns = ['_'.join(col) for col in degree.columns.values]
     degree_characteristics = list(degree.columns)
-    if any(not x in evaluationPerTarget.columns for x in degree_characteristics):
-        evaluationPerTarget = pd.merge(
+    if any(not x in df.columns for x in degree_characteristics):
+        df = pd.merge(
             degree,
-            evaluationPerTarget.copy(),
+            df.copy(),
             left_on="gene", 
             right_on="target")
     try:
-        evaluationPerTarget.reset_index(inplace=True)
+        df.reset_index(inplace=True)
     except:
         pass
+    types_of_gene_data = evolutionary_characteristics + expression_characteristics + degree_characteristics
+    return df, types_of_gene_data
 
-    # Plot various factors against our per-gene measure of predictability (actual plots)
-    for x in evolutionary_characteristics + expression_characteristics + degree_characteristics:
+def studyPredictableGenes(evaluationPerTarget, train_data, save_path, factor_varied):
+    os.makedirs(os.path.join(save_path, "target_genes_best_worst", "MAE_determinants"), exist_ok=True)
+    # Plot various factors against our per-gene measure of predictability 
+    evaluationPerTarget, types_of_gene_data = addGeneMetadata(evaluationPerTarget, train_data)
+    for x in types_of_gene_data:
         chart = alt.Chart(evaluationPerTarget).mark_bar().encode(
             x=alt.X(f"{x}:Q", bin=True),
             y=alt.Y('count()', stack='normalize'),
@@ -230,8 +234,7 @@ def plotOneTargetGene(gene, outputs, experiments, factor_varied, train_data, hel
         facet = factor_varied, 
         columns=3,
     ).save(os.path.join(outputs, gene + ".html"))
-    return 
-    
+    return   
 
 def evaluateCausalModel(
     heldout:dict, 
@@ -321,6 +324,7 @@ def evaluateOnePrediction(
                         and "expression_level_after_perturbation" (e.g. 0 for knockouts). 
                     baseline (AnnData): 
                         control expression level (log-scale)
+                    outputs (str): Folder to save output in
                     classifier (sklearn logistic regression classifier): 
                         optional machine learning classifier to assign cell fate. 
                         Must have a predict() method capable of taking a value from expression or predictedExpression and returning a single class label. 
@@ -426,11 +430,6 @@ def networkEdgesToMatrix(networkEdges, regulatorColumn=0, targetColumn=1):
     X = makeNetworkSparse(X, 0.0)
     gc.collect()
     return X
-
-
-def countMatrixEdges(network):
-    """Count the number of connections in a network that is formatted how CO expects it to be formatted."""
-    return 1.0*network.iloc[:,2:].sum().sum()
 
 humanTFs = pd.read_csv("../accessory_data/humanTFs.csv")
 
