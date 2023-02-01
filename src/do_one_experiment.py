@@ -72,10 +72,9 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
     os.makedirs(os.path.join( outputs, "predictions"   ), exist_ok=True) 
     os.makedirs(os.path.join( outputs, "fitted_values" ), exist_ok=True) 
     for i in experiments.index:
-        models      = os.path.join( outputs, "models",      str(i) )
-        h5ad        = os.path.join( outputs, "predictions", str(i) + ".h5ad" )
+        models      = os.path.join( outputs, "models",        str(i) )
+        h5ad        = os.path.join( outputs, "predictions",   str(i) + ".h5ad" )
         h5ad_fitted = os.path.join( outputs, "fitted_values", str(i) + ".h5ad" )
-
         perturbed_expression_data = experimenter.filter_genes(perturbed_expression_data, num_genes = experiments.loc[i, "num_genes"])
         perturbed_expression_data_train[i], perturbed_expression_data_heldout[i] = experimenter.splitDataWrapper(
             perturbed_expression_data,
@@ -202,7 +201,7 @@ if args.amount_to_do in {"plots", "models", "missing_models", "evaluations"}:
     if fitted_values is not None:
         for type in ["best", "worst", "random"]:
             if type=="best":
-                genes = evaluationPerTarget.nlargest(100, "mae_benefit")["target"]
+                genes = evaluationPerTarget.nlargest( 100, "mae_benefit")["target"]
             elif type=="worst":
                 genes = evaluationPerTarget.nsmallest(100, "mae_benefit")["target"]
             else:
@@ -234,7 +233,7 @@ if args.amount_to_do in {"plots", "models", "missing_models", "evaluations"}:
             outputs = os.path.join(outputs, "trainset_performance"), 
             factor_varied = metadata["factor_varied"],
             color_by = metadata["color_by"],
-            facet_by=metadata["facet_by"],
+            facet_by = metadata["facet_by"],
         )
     except FileNotFoundError:
         pass

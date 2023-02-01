@@ -112,13 +112,31 @@ def studyPredictableGenes(evaluationPerTarget, train_data, save_path, factor_var
             evaluationPerTarget.copy(),
             left_on="gene", 
             right_on="target")
+    
+    # measures of connectedness
+    degree = pd.read_csv("../accessory_data/degree_info.csv.gz")
+    degree = degree.rename({"Unnamed: 0":"gene"}, axis = 1)
+    degree = degree.pivot_table(
+        index=['gene'], 
+        values=['in-degree', 'out-degree'], 
+        columns=['network']
+    )
+    degree.fillna(0)
+    degree.columns = ['_'.join(col) for col in degree.columns.values]
+    degree_characteristics = list(degree.columns)
+    if any(not x in evaluationPerTarget.columns for x in degree_characteristics):
+        evaluationPerTarget = pd.merge(
+            degree,
+            evaluationPerTarget.copy(),
+            left_on="gene", 
+            right_on="target")
     try:
         evaluationPerTarget.reset_index(inplace=True)
     except:
         pass
-    
+
     # Plot various factors against our per-gene measure of predictability (actual plots)
-    for x in evolutionary_characteristics + expression_characteristics:
+    for x in evolutionary_characteristics + expression_characteristics + degree_characteristics:
         chart = alt.Chart(evaluationPerTarget).mark_bar().encode(
             x=alt.X(f"{x}:Q", bin=True),
             y=alt.Y('count()', stack='normalize'),
@@ -158,7 +176,7 @@ def studyPredictableGenes(evaluationPerTarget, train_data, save_path, factor_var
             )
         _ = alt.data_transformers.disable_max_rows()
         os.makedirs(os.path.join(save_path, "target_genes_best_worst", "variety_in_predictions"), exist_ok=True)
-        chart.save(os.path.join(save_path, "target_genes_best_worst", "variety_in_predictions", f"{condition}.html"))
+        chart.save( os.path.join(save_path, "target_genes_best_worst", "variety_in_predictions", f"{condition}.html"))
 
     for condition in evaluationPerTarget[factor_varied].unique():
         os.makedirs(os.path.join(save_path, "target_genes_best_worst", "enrichr_on_best", condition), exist_ok=True)
