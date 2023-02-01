@@ -15,6 +15,7 @@ import os
 import shutil
 import sys
 import importlib
+import gseapy
 sys.path.append("src")
 import altair as alt
 
@@ -86,27 +87,94 @@ def makeMainPlots(
         vlnplot[metric].save(f'{outputs}/{metric}.html')
     return vlnplot
 
-def plotDispersionVersusMAE(evaluationPerTarget, train_data, save_path, factor_varied):
-    evaluationPerTarget = pd.merge(
-        train_data.var,
-        evaluationPerTarget,
-        left_index=True, 
-        right_on="target")
-    evaluationPerTarget.reset_index(inplace=True)
-    chart = alt.Chart(evaluationPerTarget).mark_bar().encode(
-        x=alt.X("dispersions_norm:Q", bin=True),
-        y="count()",
-        color='model_beats_mean_on_this_gene',
-    ).encode(
-        text='sum(count()):Q'
-    ).facet(
-        factor_varied, 
-        columns = 4,
-    ).properties(
-        title='Dispersion versus modeling success'
-    )
-    alt.data_transformers.disable_max_rows()
-    chart.save(os.path.join(save_path, "DispersionVersusMAE.html"))
+def studyPredictableGenes(evaluationPerTarget, train_data, save_path, factor_varied):
+    os.makedirs(os.path.join(save_path, "target_genes_best_worst", "MAE_determinants"), exist_ok=True)
+    # Plot various factors against our per-gene measure of predictability (gather up data here, plots below)
+    
+    # Measures derived from the expression data, e.g. overdispersion
+    expression_characteristics = [
+        'highly_variable', 'highly_variable_rank', 'means',
+        'variances', 'variances_norm'
+    ]
+    if any(not x in evaluationPerTarget.columns for x in expression_characteristics):
+        evaluationPerTarget = pd.merge(
+            train_data.var,
+            evaluationPerTarget.copy(),
+            left_index=True, 
+            right_on="target")
+    # measures of evolutionary constraint 
+    evolutionary_characteristics = ["pLI"]
+    evolutionary_constraint = pd.read_csv("../accessory_data/forweb_cleaned_exac_r03_march16_z_data_pLI_CNV-final.txt.gz", sep = "\t")
+    evolutionary_constraint = evolutionary_constraint.groupby("gene").agg(func = max)
+    if any(not x in evaluationPerTarget.columns for x in evolutionary_characteristics):
+        evaluationPerTarget = pd.merge(
+            evolutionary_constraint,
+            evaluationPerTarget.copy(),
+            left_on="gene", 
+            right_on="target")
+    try:
+        evaluationPerTarget.reset_index(inplace=True)
+    except:
+        pass
+    
+    # Plot various factors against our per-gene measure of predictability (actual plots)
+    for x in evolutionary_characteristics + expression_characteristics:
+        chart = alt.Chart(evaluationPerTarget).mark_bar().encode(
+            x=alt.X(f"{x}:Q", bin=True),
+            y=alt.Y('count()', stack='normalize'),
+            color='model_beats_mean_on_this_gene',
+        ).facet(
+            factor_varied, 
+            columns = 4,
+        ).properties(
+            title=f'{x} versus modeling success'
+        )
+        _ = alt.data_transformers.disable_max_rows()
+        chart.save(os.path.join(save_path, "target_genes_best_worst", f"MAE_determinants/{x}_.html"))
+        chart = alt.Chart(evaluationPerTarget).mark_bar().encode(
+            x=alt.X(f"{x}:Q", bin=True),
+            y=alt.Y('count()'),
+            color='model_beats_mean_on_this_gene',
+        ).facet(
+            factor_varied, 
+            columns = 4,
+        ).properties(
+            title=f'{x} versus modeling success'
+        )
+        _ = alt.data_transformers.disable_max_rows()
+        chart.save(os.path.join(save_path, "target_genes_best_worst", f"MAE_determinants/{x}.html"))
+    
+    # Gene set enrichments on best-predicted targets
+    cutoff = 0.01
+    for condition in evaluationPerTarget[factor_varied].unique():
+        subset = evaluationPerTarget.loc[evaluationPerTarget[factor_varied]==condition]
+        n_constant = (subset["standard_deviation"] < cutoff).sum()
+        n_total = subset.shape[0]  
+        chart = alt.Chart(subset).mark_bar().encode(
+                x=alt.X("standard_deviation:Q", bin=alt.BinParams(maxbins=30), scale=alt.Scale(type="sqrt")),
+                y=alt.Y('count()'),
+            ).properties(
+                title=f'Standard deviation of predictions ({n_constant}/{n_total} are within {cutoff} of 0)'
+            )
+        _ = alt.data_transformers.disable_max_rows()
+        os.makedirs(os.path.join(save_path, "target_genes_best_worst", "variety_in_predictions"), exist_ok=True)
+        chart.save(os.path.join(save_path, "target_genes_best_worst", "variety_in_predictions", f"{condition}.html"))
+
+    for condition in evaluationPerTarget[factor_varied].unique():
+        os.makedirs(os.path.join(save_path, "target_genes_best_worst", "enrichr_on_best", condition), exist_ok=True)
+        gl = evaluationPerTarget.loc[evaluationPerTarget[factor_varied]==condition]
+        gl = list(gl.sort_values("mae_benefit", ascending=False).head(50)["Symbol"].unique())
+        pd.DataFrame(gl).to_csv(os.path.join(save_path, "target_genes_best_worst", "enrichr_on_best", condition, "input_genes.txt"), index = False,  header=False)
+        for gene_sets in ['GO Molecular Function 2021', 'GO Biological Process 2021', 'Jensen TISSUES', 'ARCHS4 Tissues', 'Chromosome Location hg19']:
+            try:
+                _ = gseapy.enrichr(
+                    gene_list=gl,
+                    gene_sets=gene_sets.replace(" ", "_"), 
+                    outdir=os.path.join(save_path, "target_genes_best_worst", "enrichr_on_best", condition, f"{gene_sets}"), 
+                    format='png',
+                )
+            except ValueError:
+                pass
     return evaluationPerTarget
 
 def plotOneTargetGene(gene, outputs, experiments, factor_varied, train_data, heldout_data, fitted_values, predictions):
@@ -198,7 +266,7 @@ def evaluateCausalModel(
     is_baseline = [f==default_level for f in evaluationPerTarget[factor_varied]]
     evaluationPerTarget["mae_baseline"] = np.NaN
     evaluationPerTarget.loc[is_baseline, "mae_baseline"] = evaluationPerTarget.loc[is_baseline, "mae"]
-    evaluationPerTarget = evaluationPerTarget.groupby("target").apply(
+    evaluationPerTarget = evaluationPerTarget.groupby("target", group_keys=False).apply(
         lambda x:
             x.fillna(
                 x.loc[x[factor_varied] == default_level, "mae"].values[0]
@@ -254,11 +322,13 @@ def evaluateOnePrediction(
         raise ValueError("expression and predictedExpression must have the same indices.")
     baseline = baseline.X.mean(axis=0).squeeze()
     metrics = pd.DataFrame(index = predictedExpression.obs.index, columns = ["spearman", "spearmanp", "cell_fate_correct", "mse"])
-    metrics_per_target = pd.DataFrame(index = predictedExpression.var.index, columns = ["mae"])
+    metrics_per_target = pd.DataFrame(index = predictedExpression.var.index, columns = ["mae", "mse", "standard_deviation"])
     for target in predictedExpression.var.index:
         observed  = expression[         :,target].X.squeeze()
         predicted = predictedExpression[:,target].X.squeeze()
-        metrics_per_target.loc[target,["mae"]] = np.linalg.norm(observed - predicted)**2
+        metrics_per_target.loc[target,["standard_deviation"]] = np.std(predicted)
+        metrics_per_target.loc[target,["mae"]] = np.abs(observed - predicted).sum()
+        metrics_per_target.loc[target,["mse"]] = np.linalg.norm(observed - predicted)**2
     for pert in predictedExpression.obs.index:
         if do_careful_checks:
             if not all(
@@ -273,11 +343,12 @@ def evaluateOnePrediction(
         def is_constant(x):
             return np.std(x)<1e-12
         if type(predicted) is float and np.isnan(predicted) or is_constant(predicted - baseline) or is_constant(observed - baseline):
-            metrics.loc[pert,["spearman","spearmanp", "cell_fate_correct", "mse", "mae"]] = 0,1,np.nan,np.nan,np.nan
+            metrics.loc[pert,["spearman","spearmanp", "cell_fate_correct", "mse", "mae", "proportion_correct_direction"]] = 0,1,np.nan,np.nan,np.nan,np.nan
         else:
             metrics.loc[pert,["spearman","spearmanp"]] = [x for x in spearmanr(observed - baseline, predicted - baseline)]
             metrics.loc[pert,"mse"] = np.linalg.norm(observed - predicted)**2
             metrics.loc[pert,"mae"] = np.abs(observed - predicted).mean()
+            metrics.loc[pert,"proportion_correct_direction"] = np.mean((observed>=0) == (predicted >= 0))
             if classifier is not None:
                 class_observed  = classifier.predict(np.reshape(observed,  (1, -1)))[0]
                 class_predicted = classifier.predict(np.reshape(predicted, (1, -1)))[0]

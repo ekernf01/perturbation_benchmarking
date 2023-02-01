@@ -47,8 +47,8 @@ print(args)
 # For interactive sessions
 if args.experiment_name is None:
     args = Namespace(**{
-        "experiment_name":"test",
-        "amount_to_do": "models",
+        "experiment_name":"1.0_0",
+        "amount_to_do": "missing_models",
         "save_trainset_predictions": True,
         "save_models": False,
     })
@@ -193,7 +193,7 @@ if args.amount_to_do in {"plots", "models", "missing_models", "evaluations"}:
     print("Retrieving saved evaluations", flush = True)
     evaluationPerPert   = pd.read_parquet(os.path.join(outputs, "evaluationPerPert.parquet"))
     evaluationPerTarget = pd.read_parquet(os.path.join(outputs, "evaluationPerTarget.parquet"))
-    evaluationPerTarget = evaluator.plotDispersionVersusMAE(
+    evaluationPerTarget = evaluator.studyPredictableGenes(
         evaluationPerTarget, 
         perturbed_expression_data_train[0], 
         save_path = outputs,

@@ -34,7 +34,7 @@ def validate_metadata(
 ):
     with open(os.path.join("experiments", experiment_name, "metadata.json")) as f:
         metadata = json.load(f)
-    if not permissive and not metadata["is_active"]:
+    if (not permissive) and ("is_active" in metadata.keys()) and (not metadata["is_active"]):
         raise ValueError("This experiment is marked as inactive. If you really want to run it, edit its metadata.json.")
     print("\n\nRaw metadata for experiment " + experiment_name + ":\n")
     print(yaml.dump(metadata))
@@ -43,7 +43,10 @@ def validate_metadata(
     if "refers_to" in metadata.keys():
         with open(os.path.join("experiments", metadata["refers_to"], "metadata.json")) as f:
             other_metadata = json.load(f)
-            assert other_metadata["is_active"], "Referring to an inactive experiment is not allowed."
+            try:
+                assert other_metadata["is_active"], "Referring to an inactive experiment is not allowed."
+            except KeyError:
+                pass
         for key in other_metadata.keys():
             if key not in metadata.keys():
                 metadata[key] = other_metadata[key]
@@ -249,7 +252,7 @@ def filter_genes(expression_quantified: anndata.AnnData, num_genes: int) -> annd
         anndata.AnnData: Input data, but maybe with fewer genes. 
     """
     assert "highly_variable_rank" in set(expression_quantified.var.columns)
-    if num_genes is None or np.isnan(num_genes) or num_genes=="all":
+    if num_genes is None or num_genes=="all" or np.isnan(num_genes):
         return expression_quantified
 
     # Perturbed genes
