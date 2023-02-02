@@ -1,20 +1,13 @@
 """evaluator.py is a collection of functions for making and testing predictions about expression fold change after genetic perturbations.
 It dedicates particular attention to interfacing with CellOracle, a thought-provoking and flexible perturbation prediction method.
 """
-from ast import If
-from multiprocessing.sharedctypes import Value
-import scanpy as sc
+from joblib import Parallel, delayed, cpu_count
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-import gc
 import anndata
 from scipy.stats import spearmanr as spearmanr
 import os 
-import shutil
 import sys
-import importlib
 import gseapy
 sys.path.append("src")
 import altair as alt
@@ -112,7 +105,7 @@ def addGeneMetadata(df, adata):
         },
         index = proteoform_diversity.index,
     )
-    proteoform_diversity_characteristics = proteoform_diversity_summary.columns()
+    proteoform_diversity_characteristics = proteoform_diversity_summary.columns.copy()
 
     # measures of evolutionary constraint 
     evolutionary_characteristics = ["pLI"]
@@ -312,20 +305,26 @@ def evaluateCausalModel(
         default_level = experiments.loc[0,factor_varied]
     evaluationPerPert = {}
     evaluationPerTarget = {}
-    shared_var_names = list(set.intersection(*[set(predictions[experiment].var_names) for experiment in predictions.keys()]))
-    for experiment in predictions.keys(): 
-        evaluationPerPert[experiment], evaluationPerTarget[experiment] = \
-            evaluateOnePrediction(
-                expression =            heldout[experiment][:, shared_var_names],
-                predictedExpression=predictions[experiment][:, shared_var_names],
-                baseline =             baseline[experiment][:, shared_var_names],
-                doPlots=do_scatterplots,
-                outputs = outputs,
-                experiment_name = experiment,
-                classifier=classifier,
-            )
+    shared_var_names = list(set.intersection(*[set(predictions[experiment].var_names) for experiment in predictions.keys()]))    
+    evaluations = Parallel(n_jobs=cpu_count()-1, verbose = 1, backend="loky")(
+        delayed(evaluateOnePrediction)(
+            expression =            heldout[experiment][:, shared_var_names],
+            predictedExpression=predictions[experiment][:, shared_var_names],
+            baseline =             baseline[experiment][:, shared_var_names],
+            doPlots=do_scatterplots,
+            outputs = outputs,
+            experiment_name = experiment,
+            classifier=classifier,        
+        )
+        for experiment in predictions.keys()
+    )
+    # That parallel code returns a list of tuples. I want a pair of dicts instead. 
+    for i,experiment in enumerate(predictions.keys()):
+        evaluationPerPert[experiment], evaluationPerTarget[experiment] = evaluations[i]
         evaluationPerPert[experiment]["index"]   = experiment
         evaluationPerTarget[experiment]["index"] = experiment
+    del evaluations
+    # Concatenate and add some extra info
     evaluationPerPert = postprocessEvaluations(evaluationPerPert, experiments, factor_varied, default_level)
     evaluationPerTarget = postprocessEvaluations(evaluationPerTarget, experiments, factor_varied, default_level)
     return evaluationPerPert, evaluationPerTarget

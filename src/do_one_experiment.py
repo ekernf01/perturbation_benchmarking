@@ -47,8 +47,8 @@ print(args)
 # For interactive sessions
 if args.experiment_name is None:
     args = Namespace(**{
-        "experiment_name":"test",
-        "amount_to_do": "models",
+        "experiment_name":"1.6.1_1",
+        "amount_to_do": "missing_models",
         "save_trainset_predictions": True,
         "save_models": False,
     })
@@ -75,7 +75,7 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
         models      = os.path.join( outputs, "models",        str(i) )
         h5ad        = os.path.join( outputs, "predictions",   str(i) + ".h5ad" )
         h5ad_fitted = os.path.join( outputs, "fitted_values", str(i) + ".h5ad" )
-        perturbed_expression_data = experimenter.filter_genes(perturbed_expression_data, num_genes = experiments.loc[i, "num_genes"])
+        perturbed_expression_data = experimenter.filter_genes(perturbed_expression_data, num_genes = experiments.loc[i, "num_genes"], outputs = outputs)
         perturbed_expression_data_train[i], perturbed_expression_data_heldout[i] = experimenter.splitDataWrapper(
             perturbed_expression_data,
             networks = networks, 

@@ -240,7 +240,7 @@ def get_subnets(netName:str, subnets:list, target_genes = None, do_aggregate_sub
                     networks[new_key] = load_networks.LightNetwork(netName, [subnet_name])
     return networks
 
-def filter_genes(expression_quantified: anndata.AnnData, num_genes: int) -> anndata.AnnData:
+def filter_genes(expression_quantified: anndata.AnnData, num_genes: int, outputs: str) -> anndata.AnnData:
     """Filter a dataset, keeping only the top-ranked genes and the directly perturbed genes.
     The top N and perturbed genes may intersect, resulting in less than num_genes returned.
     For backwards compatibility with the DCD-FG benchmarks, we do not try to fix this.
@@ -273,6 +273,7 @@ def filter_genes(expression_quantified: anndata.AnnData, num_genes: int) -> annd
     
     gene_indices = np.union1d(targeted_genes, variable_genes)
     gene_set = expression_quantified.var.index.values[gene_indices]
+    pd.DataFrame({"genes_modeled": gene_set}).to_csv(os.path.join(outputs, "genes_modeled.csv"))
     return expression_quantified[:, gene_set].copy()
 
 
@@ -373,6 +374,11 @@ def splitDataWrapper(
         )
     return perturbed_expression_data_train, perturbed_expression_data_heldout
 
+def isnan_safe(x):
+    try:
+        return np.isnan(x)
+    except:
+        return False
 
 def splitData(adata, allowedRegulators, desired_heldout_fraction, type_of_split, data_split_seed):
     """Determine a train-test split satisfying constraints imposed by base networks and available data.
@@ -409,7 +415,7 @@ def splitData(adata, allowedRegulators, desired_heldout_fraction, type_of_split,
         data_split_seed = 0
     # For a deterministic result when downsampling an iterable, setting a seed alone is not enough.
     # Must also avoid the use of sets. 
-    if type_of_split is None or np.isnan(type_of_split) or type_of_split == "interventional":
+    if type_of_split is None or type_of_split == "interventional" or isnan_safe(type_of_split):
         get_unique_keep_order = lambda x: list(dict.fromkeys(x))
         allowedRegulators = [p for p in allowedRegulators if p in adata.uns["perturbed_and_measured_genes"]]
         testSetEligible   = [p for p in adata.obs["perturbation"] if     all(g in allowedRegulators for g in p.split(","))]
