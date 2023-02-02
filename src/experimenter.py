@@ -62,6 +62,7 @@ def validate_metadata(
         "type_of_split": None,
         "regression_method": "RidgeCV",
         "time_strategy": "steady_state",
+        "default_level": None,
         "kwargs": None,
         "data_split_seed": 0,
         "num_genes": None
@@ -212,7 +213,7 @@ def get_subnets(netName:str, subnets:list, target_genes = None, do_aggregate_sub
         networks = { 
             netName: load_networks.LightNetwork(
                 df = evaluator.pivotNetworkWideToLong( 
-                    evaluator.makeRandomNetwork( target_genes = target_genes, density = float( netName[6:] ) ) 
+                    load_networks.makeRandomNetwork( target_genes = target_genes, density = float( netName[6:] ) ) 
                 ) 
             )
         }
@@ -284,7 +285,7 @@ def set_up_data_networks_conditions(metadata, amount_to_do, outputs):
     except ValueError: #Object is already in memory.
         pass
     if metadata["merge_replicates"]:
-        perturbed_expression_data = evaluator.averageWithinPerturbation(ad=perturbed_expression_data)
+        perturbed_expression_data = averageWithinPerturbation(ad=perturbed_expression_data)
 
     # Get networks
     networks = {}
@@ -363,7 +364,7 @@ def splitDataWrapper(
     else:
         raise ValueError(f"network_behavior currently only allows 'union'; got {network_behavior}")
     perturbed_expression_data_train, perturbed_expression_data_heldout = \
-        evaluator.splitData(
+        splitData(
             perturbed_expression_data, 
             allowedRegulators, 
             desired_heldout_fraction = desired_heldout_fraction,
@@ -371,3 +372,158 @@ def splitDataWrapper(
             data_split_seed = data_split_seed,
         )
     return perturbed_expression_data_train, perturbed_expression_data_heldout
+
+
+def splitData(adata, allowedRegulators, desired_heldout_fraction, type_of_split, data_split_seed):
+    """Determine a train-test split satisfying constraints imposed by base networks and available data.
+    
+    A few factors complicate the training-test split. 
+
+    - Perturbed genes may be absent from most base GRN's due to lack of motif information or ChIP data. 
+        These perhaps should be excluded from the test data to avoid obvious failure cases.
+    - Perturbed genes may not be measured. These perhaps should be excluded from test data because we can't
+        reasonably separate their direct vs indirect effects.
+
+    If type_of_split=="simple", we make no provision for dealing with the above concerns. The only restriction is that
+    all controls go in the training set.
+    If type_of_split=="interventional", the `allowedRegulators` arg can be specified in order to keep any user-specified
+    problem cases out of the test data. No matter what, we still use those perturbed profiles as training data, hoping 
+    they will provide useful info about attainable cell states and downstream causal effects. 
+
+    For some collections of base networks, there are many factors ineligible for use as test data -- so many that 
+    we use all the eligible ones for test and the only ineligible ones for training. 
+    For other cases, such as dense base networks, we have more flexibility, so we send some perturbations to the 
+    training set at random even if we would be able to use them in the test set.
+
+    parameters:
+
+    - adata (anndata.AnnData): Object satisfying the expectations outlined in the accompanying collection of perturbation data.
+    - allowedRegulators (list or set): interventions allowed to be in the test set. 
+    - type_of_split (str): if "interventional" (default), then any perturbation is placed in either the training or the test set, but not both. 
+        If "simple", then we use a simple random split, and replicates of the same perturbation are allowed to go into different folds.
+
+    """
+    if desired_heldout_fraction is None:
+        desired_heldout_fraction = 0.5
+    if data_split_seed is None:
+        data_split_seed = 0
+    # For a deterministic result when downsampling an iterable, setting a seed alone is not enough.
+    # Must also avoid the use of sets. 
+    if type_of_split is None or np.isnan(type_of_split) or type_of_split == "interventional":
+        get_unique_keep_order = lambda x: list(dict.fromkeys(x))
+        allowedRegulators = [p for p in allowedRegulators if p in adata.uns["perturbed_and_measured_genes"]]
+        testSetEligible   = [p for p in adata.obs["perturbation"] if     all(g in allowedRegulators for g in p.split(","))]
+        testSetIneligible = [p for p in adata.obs["perturbation"] if not all(g in allowedRegulators for g in p.split(","))]
+        allowedRegulators = get_unique_keep_order(allowedRegulators)
+        testSetEligible   = get_unique_keep_order(testSetEligible)
+        testSetIneligible = get_unique_keep_order(testSetIneligible)
+        total_num_perts = len(testSetEligible) + len(testSetIneligible)
+        eligible_heldout_fraction = len(testSetEligible)/(0.0+total_num_perts)
+        if eligible_heldout_fraction < desired_heldout_fraction:
+            print("Not enough profiles for the desired_heldout_fraction. Will use all available.")
+            testSetPerturbations = testSetEligible
+            trainingSetPerturbations = testSetIneligible
+        elif eligible_heldout_fraction == desired_heldout_fraction: #nailed it
+            testSetPerturbations = testSetEligible
+            trainingSetPerturbations = testSetIneligible
+        else:
+            # Plenty of perts work for either.
+            # Put some back in trainset to get the right size, even though we could use them in test set.
+            numExcessTestEligible = int(np.ceil((eligible_heldout_fraction - desired_heldout_fraction)*total_num_perts))
+            excessTestEligible = np.random.default_rng(seed=data_split_seed).choice(
+                testSetEligible, 
+                numExcessTestEligible, 
+                replace = False)
+            testSetPerturbations = [p for p in testSetEligible if p not in excessTestEligible]                      
+            trainingSetPerturbations = list(testSetIneligible) + list(excessTestEligible) 
+        # Now that the random part is done, we can start using sets. Order may change but content won't. 
+        testSetPerturbations     = set(testSetPerturbations)
+        trainingSetPerturbations = set(trainingSetPerturbations)
+        adata_train    = adata[adata.obs["perturbation"].isin(trainingSetPerturbations),:]
+        adata_heldout  = adata[adata.obs["perturbation"].isin(testSetPerturbations),    :]
+        adata_train.uns[  "perturbed_and_measured_genes"]     = set(adata_train.uns[  "perturbed_and_measured_genes"]).intersection(trainingSetPerturbations)
+        adata_heldout.uns["perturbed_and_measured_genes"]     = set(adata_heldout.uns["perturbed_and_measured_genes"]).intersection(testSetPerturbations)
+        adata_train.uns[  "perturbed_but_not_measured_genes"] = set(adata_train.uns[  "perturbed_but_not_measured_genes"]).intersection(trainingSetPerturbations)
+        adata_heldout.uns["perturbed_but_not_measured_genes"] = set(adata_heldout.uns["perturbed_but_not_measured_genes"]).intersection(testSetPerturbations)
+        print("Test set size:")
+        print(len(testSetPerturbations))
+        print("Training set size:")
+        print(len(trainingSetPerturbations))    
+    elif type_of_split == "simple":
+        np.random.seed(data_split_seed)
+        train_obs = np.random.choice(
+            replace=False, 
+            a = adata.obs_names, 
+            size = round(adata.shape[0]*(1-desired_heldout_fraction)), 
+        )
+        for o in adata.obs_names:
+            if adata.obs.loc[o, "is_control"]:
+                train_obs = np.append(train_obs, o)
+        test_obs = [i for i in adata.obs_names if i not in train_obs]
+        adata_train    = adata[train_obs,:]
+        adata_heldout  = adata[test_obs,:]
+        trainingSetPerturbations = set(  adata_train.obs["perturbation"].unique())
+        testSetPerturbations     = set(adata_heldout.obs["perturbation"].unique())
+        adata_train.uns[  "perturbed_and_measured_genes"]     = set(adata_train.uns[  "perturbed_and_measured_genes"]).intersection(trainingSetPerturbations)
+        adata_heldout.uns["perturbed_and_measured_genes"]     = set(adata_heldout.uns["perturbed_and_measured_genes"]).intersection(testSetPerturbations)
+        adata_train.uns[  "perturbed_but_not_measured_genes"] = set(adata_train.uns[  "perturbed_but_not_measured_genes"]).intersection(trainingSetPerturbations)
+        adata_heldout.uns["perturbed_but_not_measured_genes"] = set(adata_heldout.uns["perturbed_but_not_measured_genes"]).intersection(testSetPerturbations)
+    else:
+        raise ValueError(f"`type_of_split` must be 'simple' or 'interventional'; got {type_of_split}.")
+    return adata_train, adata_heldout
+
+
+def averageWithinPerturbation(ad: anndata.AnnData, confounders = []):
+    """Average the expression levels within each level of ad.obs["perturbation"].
+
+    Args:
+        ad (anndata.AnnData): Object conforming to the validity checks in the load_perturbations module.
+    """
+    if len(confounders) != 0:
+        raise NotImplementedError("Haven't yet decided how to handle confounders when merging replicates.")
+
+    perts = ad.obs["perturbation"].unique()
+    new_ad = anndata.AnnData(
+        X = np.zeros((len(perts), len(ad.var_names))),
+        obs = pd.DataFrame(
+            {"perturbation":perts}, 
+            index = perts, 
+            columns=ad.obs.columns.copy(),
+        ),
+        var = ad.var,
+        dtype = np.float32
+    )
+    for p in perts:
+        p_idx = ad.obs["perturbation"]==p
+        new_ad[p,].X = ad[p_idx,:].X.mean(0)
+        new_ad.obs.loc[p,:] = ad[p_idx,:].obs.iloc[0,:]
+        new_ad.obs.loc[p,"expression_level_after_perturbation"] = ad.obs.loc[p_idx, "expression_level_after_perturbation"].mean()
+    new_ad.obs = new_ad.obs.astype(dtype = {c:ad.obs.dtypes[c] for c in new_ad.obs.columns}, copy = True)
+    new_ad.raw = ad.copy()
+    new_ad.uns = ad.uns.copy()
+    return new_ad
+
+
+def downsample(adata: anndata.AnnData, proportion: float, seed = None, proportion_genes = 1):
+    """Downsample training data to a given fraction, always keeping controls. 
+    Args:
+        adata (anndata.AnnData): _description_
+        proportion (float): fraction of observations to keep. You may end up with a little extra because all controls are kept.
+        proportion_genes (float): fraction of cells to keep. You may end up with a little extra because all perturbed genes are kept.
+        seed (_type_, optional): RNG seed. Seed defaults to proportion so if you ask for 80% of cells, you get the same 80% every time.
+
+    Returns:
+        anndata.AnnData: Subsampled data.
+    """
+    if seed is None:
+        seed = proportion
+    np.random.seed(int(np.round(seed)))
+    mask       = np.random.choice(a=[True, False], size=adata.obs.shape[0], p=[proportion,       1-proportion], replace = True)
+    mask_genes = np.random.choice(a=[True, False], size=adata.var.shape[0], p=[proportion_genes, 1-proportion_genes], replace = True)
+    adata = adata[adata.obs["is_control"] | mask, :].copy()
+    perturbed_genes_remaining = set(adata.obs["perturbation"])
+    adata = adata[:, [adata.var.index.isin(perturbed_genes_remaining)] | mask_genes].copy()
+    print(adata.obs.shape)
+    adata.uns["perturbed_but_not_measured_genes"] = set(adata.obs["perturbation"]).difference(  set(adata.var_names))
+    adata.uns["perturbed_and_measured_genes"]     = set(adata.obs["perturbation"]).intersection(set(adata.var_names))
+    return adata

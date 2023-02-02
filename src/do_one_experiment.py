@@ -143,9 +143,7 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
             for i in range(len(predictions.keys())
         )]
     )
-    np.sort(predictions[0].obs_names)
-    np.sort(perturbed_expression_data_heldout[0].obs_names)
-
+    print("(Re)doing evaluations")
     evaluationPerPert, evaluationPerTarget = evaluator.evaluateCausalModel(
         heldout = perturbed_expression_data_heldout,
         predictions = predictions,
@@ -163,6 +161,7 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
     evaluationPerPert.to_parquet(   os.path.join(outputs, "evaluationPerPert.parquet"))
     evaluationPerTarget.to_parquet( os.path.join(outputs, "evaluationPerTarget.parquet"))
     if fitted_values is not None:
+        print("(Re)doing evaluations on (training set predictions)")
         evaluationPerPertTrainset, evaluationPerTargetTrainset = evaluator.evaluateCausalModel(
             heldout = perturbed_expression_data_train,
             predictions = fitted_values,
@@ -192,30 +191,44 @@ if args.amount_to_do in {"plots", "models", "missing_models", "evaluations"}:
     print("Retrieving saved evaluations", flush = True)
     evaluationPerPert   = pd.read_parquet(os.path.join(outputs, "evaluationPerPert.parquet"))
     evaluationPerTarget = pd.read_parquet(os.path.join(outputs, "evaluationPerTarget.parquet"))
+    print("Studying predictability for each target gene.")
     evaluationPerTarget = evaluator.studyPredictableGenes(
         evaluationPerTarget, 
         perturbed_expression_data_train[0], 
         save_path = outputs,
         factor_varied = metadata["factor_varied"],
+        default_level = metadata["default_level"],
+        genes_considered_as = "targets"
     )
+    print("Studying predictability for each perturbation.")
+    evaluationPerTarget = evaluator.studyPredictableGenes(
+        evaluationPerPert, 
+        perturbed_expression_data_train[0], 
+        save_path = outputs,
+        factor_varied = metadata["factor_varied"],        
+        default_level = metadata["default_level"],
+        genes_considered_as = "perturbations"
+    )
+    print("Plotting all data and predictions for some example target genes.")
     if fitted_values is not None:
         for type in ["best", "worst", "random"]:
             if type=="best":
-                genes = evaluationPerTarget.nlargest( 100, "mae_benefit")["target"]
+                genes = evaluationPerTarget.nlargest( 5, "mae_benefit")["target"]
             elif type=="worst":
-                genes = evaluationPerTarget.nsmallest(100, "mae_benefit")["target"]
+                genes = evaluationPerTarget.nsmallest(5, "mae_benefit")["target"]
             else:
-                genes = np.random.choice(size=10, a=evaluationPerTarget["target"].unique())
+                genes = np.random.choice(size=5, a=evaluationPerTarget["target"].unique())
             for gene in genes:
                 evaluator.plotOneTargetGene(
                     gene=gene, 
-                    outputs=os.path.join(outputs,"target_genes_best_worst", type), 
+                    outputs=os.path.join(outputs,"targets", type), 
                     experiments=experiments,
                     factor_varied=metadata["factor_varied"],
                     train_data=perturbed_expression_data_train, 
                     heldout_data=perturbed_expression_data_heldout, 
                     fitted_values=fitted_values, 
                     predictions=predictions)
+    print("Plotting main summaries of results.")
     evaluator.makeMainPlots(
         evaluationPerPert, 
         evaluationPerTarget, 
