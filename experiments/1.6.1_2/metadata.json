@@ -1,10 +1,10 @@
 {
     "unique_id": "1.6.1_2",
     "nickname": "dcdfg",
-    "readme": "Like experiment 1.6.1_1, but uses control condition in place of ifng.",
+    "readme": "Like experiment 1.6.1_1, but uses data preprocessed differently.",
     "refers_to": "1.6.1_1",
     "is_active": true,
-    "perturbation_dataset": "frangieh_Control", 
+    "perturbation_dataset": "frangieh_IFNγ_v2", 
     "network_datasets": {
         "dense":{}
     }

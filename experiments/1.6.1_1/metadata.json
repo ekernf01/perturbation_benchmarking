@@ -20,7 +20,8 @@
     },
     "default_level": null,
     "merge_replicates": true,
-    "perturbation_dataset": "frangieh_IFNγ",
+    "perturbation_dataset": "frangieh_IFNγ_v1",
+    "num_genes": 1000,
     "network_datasets": {
         "dense":{}
     }
