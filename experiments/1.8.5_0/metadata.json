@@ -1,0 +1,20 @@
+{
+    "unique_id": "1.8.5_0",
+    "nickname": "data split",
+    "readme": "This is intended to test how different data splits affect apparent performance.",
+    "question": "1.8.5",
+    "is_active": true,
+    "facet_by": "data_split_seed",
+    "color_by": "desired_heldout_fraction",
+    "factor_varied": "regression_method",
+    "regression_method": ["mean", "RidgeCV"],
+    "data_split_seed": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+    "desired_heldout_fraction": [0.1,0.2,0.5],
+    "merge_replicates": false,
+    "num_genes": 10000,
+    "default_level": "mean",
+    "perturbation_dataset": "nakatake",
+    "network_datasets": {
+        "dense":{}
+    }
+}

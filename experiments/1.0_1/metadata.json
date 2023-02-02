@@ -16,7 +16,7 @@
         "OrthogonalMatchingPursuitCV",
         "BayesianRidge"
     ],
-    "num_genes": "all",
+    "num_genes": 10000,
     "is_active": true,
     "facet_by": null,
     "color_by": null,
