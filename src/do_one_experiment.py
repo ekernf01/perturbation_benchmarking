@@ -47,8 +47,8 @@ print(args)
 # For interactive sessions
 if args.experiment_name is None:
     args = Namespace(**{
-        "experiment_name":"1.6.1_1",
-        "amount_to_do": "missing_models",
+        "experiment_name":"test",
+        "amount_to_do": "models",
         "save_trainset_predictions": True,
         "save_models": False,
     })
@@ -109,17 +109,33 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
                 print("Saving models...", flush = True)
                 grn.save_models( models )
             print("Saving predictions...", flush = True)
-            predictions   = grn.predict([
-                (r[1][0], r[1][1]) 
-                for r in perturbed_expression_data_heldout[i].obs[["perturbation", "expression_level_after_perturbation"]].iterrows()
-            ])   
+            
+            if experiments[i, "starting_expression"] is None or \
+                    experimenter.isnan_safe(experiments[i, "starting_expression"]) or \
+                    experiments[i, "starting_expression"] == "control":
+                starting_expression = None
+            elif experiments[i, "starting_expression"] == "heldout":
+                starting_expression = perturbed_expression_data_heldout.copy()
+            else:
+                raise ValueError(f"Unexpected value of 'starting_expression' in metadata: { experiments[i, 'starting_expression'] }")
+
+            predictions   = grn.predict(
+                [
+                    (r[1][0], r[1][1]) 
+                    for r in perturbed_expression_data_heldout[i].obs[["perturbation", "expression_level_after_perturbation"]].iterrows()
+                ], 
+                starting_expression = starting_expression
+            )   
             predictions.obs.index = perturbed_expression_data_heldout[i].obs.index.copy()
             predictions.write_h5ad( h5ad )
             if args.save_trainset_predictions:
-                fitted_values = grn.predict([
-                    (r[1][0], r[1][1]) 
-                    for r in perturbed_expression_data_train[i].obs[["perturbation", "expression_level_after_perturbation"]].iterrows()
-                ])
+                fitted_values = grn.predict(
+                    [
+                        (r[1][0], r[1][1]) 
+                        for r in perturbed_expression_data_train[i].obs[["perturbation", "expression_level_after_perturbation"]].iterrows()
+                    ], 
+                    starting_expression = starting_expression
+                )
                 fitted_values.obs.index = perturbed_expression_data_train[i].obs.index.copy()
                 fitted_values.write_h5ad( h5ad_fitted )
             print("... done.", flush = True)

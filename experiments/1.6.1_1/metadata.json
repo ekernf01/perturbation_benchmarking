@@ -13,15 +13,17 @@
         "mean", 
         "median"
     ],
+    "default_level": "mean",
     "kwargs": { 
         "num_train_epochs": 20000, 
         "num_fine_epochs" : 10000,
-        "train_batch_size": 64
+        "train_batch_size": 64,
+        "verbose": false
     },
-    "default_level": null,
     "merge_replicates": true,
     "perturbation_dataset": "frangieh_IFNγ_v1",
     "num_genes": 1000,
+    "starting_expression": "heldout",
     "network_datasets": {
         "dense":{}
     }

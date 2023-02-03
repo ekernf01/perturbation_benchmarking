@@ -44,6 +44,7 @@ class DCDFGWrapper:
         model_type: str = "linearlr",    
         do_use_polynomials: bool = False,
         logfile: str = "logs",
+        verbose: bool = False,
         num_gpus = 1 if torch.cuda.is_available() else 0,
     ):
         train_dataset = PerturbSeqDataset(adata)
@@ -100,7 +101,7 @@ class DCDFGWrapper:
             monitor="Val/aug_lagrangian",
             min_delta=1e-4,
             patience=5,
-            verbose=True,
+            verbose=verbose,
             mode="min",
         )
         trainer = pl.Trainer(
@@ -137,7 +138,7 @@ class DCDFGWrapper:
         )
 
         early_stop_2_callback = EarlyStopping(
-            monitor="Val/nll", min_delta=1e-6, patience=5, verbose=True, mode="min"
+            monitor="Val/nll", min_delta=1e-6, patience=5, verbose=verbose, mode="min"
         )
         trainer_fine = pl.Trainer(
             gpus=num_gpus,
@@ -191,11 +192,23 @@ class DCDFGWrapper:
         
         return self
 
-    def predict(self, perturbations, baseline_expression = None):
+    def predict(self, perturbations: list, baseline_expression = None):
+        """Predict expression after perturbation.
+
+        Args:
+            perturbations (list): list of tuples with perturbed gene and its expression level, e.g. [('NANOG', 0), ('POU5F1', 0)]
+            baseline_expression (numpy array, optional): starting expression profile, n_perts by n_features. Defaults to None.
+
+        Returns:
+            anndata.AnnData: predicted expression
+        """
         if baseline_expression is None:
-            baseline_expression = self.train_dataset.dataset.adata.X[
+            baseline_expression = np.zeros((len(perturbations), self.train_dataset.dataset.adata.n_vars))
+            baseline_expression_one = self.train_dataset.dataset.adata.X[
                 self.train_dataset.dataset.adata.obs["is_control"],:
             ].mean(axis=0)
+            for i in range(baseline_expression.shape[0]):
+                baseline_expression[i,:] = baseline_expression_one.copy()
         genes = self.train_dataset.dataset.adata.var_names
         predicted_adata = anndata.AnnData(
             X = np.zeros((len(perturbations), len(genes))),
@@ -224,20 +237,18 @@ class DCDFGWrapper:
         
         for idx in cntrl_idx:
             if not np.isnan(target_val[idx]):
-                print(f"Warning: Post-perturbation expression is not NaN. But because the perturbed gene {perturbations[0][idx]} cannot be located, the profile is treated as a control sample lacking perturbation.")
-                            
-        # print(valid_idx, cntrl_idx)
-        
+                print(f"Warning: Post-perturbation expression is not NaN. But because the perturbed gene {perturbations[idx][0]} cannot be located, the profile is treated as a control sample lacking perturbation.")
+                                    
         with torch.no_grad():
             predicted_adata.X[valid_idx, :] = self.model.simulateKO(
-                control_expression = baseline_expression,
+                control_expression = baseline_expression[valid_idx, :],
                 KO_gene_indices    = valid_loc,
                 KO_gene_values     = valid_val,
                 maxiter            = 1
             )
             
             predicted_adata.X[cntrl_idx, :] = self.model.simulateKO(
-                control_expression = baseline_expression,
+                control_expression = baseline_expression[valid_idx, :],
                 KO_gene_indices    = [[]] * cntrl_idx.shape[0],
                 KO_gene_values     = [[np.nan]] * cntrl_idx.shape[0],
                 maxiter            = 1,

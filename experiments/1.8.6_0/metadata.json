@@ -1,0 +1,21 @@
+{
+    "unique_id": "1.8.6_0",
+    "nickname": "blatantly cheating",
+    "readme": "Any autoregressive-like model needs a starting point to make predictions. Normally, one might use the control expression. Certain benchmarks, such as DCD-FG figure 5, instead feed in the heldout-data and allow each gene to be predicted as a function of heldout expression of other genes. This is necessary to e.g. compute the DCD-FG likelihood. How much difference does this make?",
+    "question": "1.8.6",
+    "is_active": true,
+    "facet_by": null,
+    "color_by": "regression_method",
+    "factor_varied": "starting_expression",
+    "regression_method": ["mean", "RidgeCV"],
+    "starting_expression": ["control", "heldout"],
+    "data_split_seed": [0],
+    "desired_heldout_fraction": [0.5],
+    "merge_replicates": false,
+    "num_genes": 10000,
+    "default_level": "mean",
+    "perturbation_dataset": "nakatake",
+    "network_datasets": {
+        "dense":{}
+    }
+}

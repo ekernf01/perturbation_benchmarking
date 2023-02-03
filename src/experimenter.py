@@ -62,6 +62,7 @@ def validate_metadata(
         "type_of_split": None,
         "regression_method": "RidgeCV",
         "time_strategy": "steady_state",
+        "starting_expression": None,
         "default_level": None,
         "kwargs": None,
         "data_split_seed": 0,

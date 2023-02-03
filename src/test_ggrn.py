@@ -1,4 +1,4 @@
-PROJECT_PATH = '/home/gary/cahan_rotation/'
+PROJECT_PATH = '/home/ekernf01/Desktop/jhu/research/projects/perturbation_prediction/cell_type_knowledge_transfer/'
 import os
 import shutil
 import unittest

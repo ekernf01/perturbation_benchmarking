@@ -112,30 +112,7 @@ class GRN:
             No return value. Instead, this modifies self.models.
         """
         if self.training_args["time_strategy"] == "two_step":
-            # Set intermediate expression equal to:
-            # - perturbed (for all TFs)
-            # - control (for non-TFs)
-            intermediate_expression = self.train.X.copy()
-            for i,g in enumerate(self.tf_list):
-                baseline_expression = self.train[self.train.obs["is_control"],g].X.mean()
-                intermediate_expression[:, i] = baseline_expression
-            # Set baseline TF activity equal to:
-            # - perturbed sample (for just the perturbed TF)
-            # - control sample (otherwise)
-            baseline_features  = self.features[self.train.obs["is_control"],:].mean(axis=0), 
-            baseline_features  = np.repeat(baseline_features, self.train.X.shape[0], axis=0)
-            for i,idx in enumerate(self.train.obs.index):
-                perturbed_gene = self.train.obs.loc[idx, "perturbation"] 
-                if perturbed_gene in self.train.uns["perturbed_and_measured_genes"] and perturbed_gene in self.tf_list:
-                    perturbed_gene_index = [g==perturbed_gene for g in self.tf_list]
-                    baseline_features[i, perturbed_gene_index] = self.features[i, perturbed_gene_index]
-            # Augment data: 
-            # - Baseline TF activity predicts intermediate expression 
-            # - Perturbed TF activity predicts final expression
-            # - Each sample repped twice so metadata also 2x samples
-            features_augmented = np.concatenate([baseline_features, self.features])
-            target_augmented   = np.concatenate([intermediate_expression,  self.train.X])            
-            obs_augmented      = pd.concat([self.train.obs,self.train.obs])
+            raise ValueError("The two_step strategy has been discontinued.")
         elif self.training_args["time_strategy"] == "steady_state":
             features_augmented = self.features
             target_augmented   = self.train.X
@@ -344,9 +321,9 @@ class GRN:
             projection (str, optional): Not implemented yet.
             predict_self (bool, optional): Should e.g. POU5F1 activity be used to predict POU5F1 expression? Defaults to False.
             time_strategy (str): 'steady_state' predicts each a gene from sample i using TF activity features derived
-                from sample i. 'two_step' trains a model to gradually transform control samples into perturbed samples by
+                from sample i. 'two_step' is no longer available, but it would train a model to gradually transform control samples into perturbed samples by
                 first perturbing the targeted gene, then propagating the perturbation to other TFs, then propagating throughout the genome. 
-                Under development circa 2022-Dec-01; see Eric's slides for a cleaner explanation.
+                
             kwargs: Passed to DCDFG. See help(dcdfg_wrapper.DCDFGWrapper.train). 
         """
         # Save some training args to later ensure prediction is consistent with training.
@@ -503,14 +480,8 @@ class GRN:
             noise_sd (bool): sd of the variable e described above. Defaults to estimates from the fitted models.
             seed (int): RNG seed.
         """
-        if starting_expression is None:
-            starting_states = self.train.obs["is_control"].copy()
-            starting_features   = self.features[starting_states,:].mean(axis=0, keepdims = True)
-
-
-        # Set up containers for output & features
+        # Set up containers for expression + metadata 
         nrow = len(perturbations)
-        features = np.zeros((nrow, len(self.tf_list)))
         columns_to_transfer = self.training_args["confounders"].copy()
         if self.training_args["cell_type_sharing_strategy"] != "identical":
             columns_to_transfer.append(self.training_args["cell_type_labels"])
@@ -527,10 +498,29 @@ class GRN:
                 columns = ["perturbation", "expression_level_after_perturbation"] + columns_to_transfer,
             )
         )
-        # implement perturbations
+
+        # Set up starting expression
+        if starting_expression is not None:
+            assert starting_expression.obs.shape[0] == len(perturbations), "Starting expression must be None or an AnnData with one obs per perturbation."
+            assert all(c in set(starting_expression.obs.columns) for c in columns_to_transfer), f"starting_expression must be accompanied by these metadata fields: \n{'  '.join(columns_to_transfer)}"
+            predictions.obs = starting_expression.obs.copy()
+            starting_features = self.extract_tf_activity(train = starting_expression)
+        else:
+            # Determine contents of one observation
+            all_controls = np.where(self.train.obs["is_control"])[0]
+            features_mean_across_all_controls = self.features[all_controls,:].mean(axis=0, keepdims = True)
+            starting_metadata = self.train.obs.iloc[[all_controls[0]], :].copy()
+            # Now fill up all observations
+            starting_features = np.zeros((nrow, len(self.tf_list)))
+            for i in range(len(perturbations)):
+                idx_str = str(i)
+                starting_features[i, :] = features_mean_across_all_controls.copy()
+                for col in columns_to_transfer:
+                    predictions.obs.loc[idx_str, col] = starting_metadata.loc[0, col].values
+
+        # implement perturbations, including altering metadata and features but not yet expression
         for i in range(len(perturbations)):
             idx_str = str(i)
-            features[i, :] = starting_features
             # Expected input: comma-separated strings like ("C6orf226,TIMM50,NANOG", "0,0,0") 
             pert_genes = perturbations[i][0].split(",")
             pert_exprs = [float(f) for f in str(perturbations[i][1]).split(",")]
@@ -539,24 +529,20 @@ class GRN:
                 # If it's nan, leave it unperturbed -- used for studying fitted values on controls. 
                 if not np.isnan(pert_exprs[pert_idx]):
                     column = [tf == pert_genes[pert_idx] for tf in self.tf_list]
-                    features[i, column] = pert_exprs[pert_idx]
+                    starting_features[i, column] = pert_exprs[pert_idx]
             predictions.obs.loc[idx_str, "perturbation"]                        = perturbations[i][0]
             predictions.obs.loc[idx_str, "expression_level_after_perturbation"] = perturbations[i][1]
-            # Later on, we can make matched_control_idx more flexible, e.g. to control for covariates.
-            matched_control_idx = np.where(self.train.obs["is_control"])[0]
-            for col in columns_to_transfer:
-                predictions.obs.loc[idx_str, col] = self.train.obs.loc[matched_control_idx, col].values
 
-        # Make predictions
+        # Now predict the expression
         if self.training_args["method"].startswith("DCDFG"):
-            predictions = self.models.predict(perturbations)     
+            predictions = self.models.predict(perturbations, baseline_expression = starting_expression)     
         else:
             if self.training_args["cell_type_sharing_strategy"] == "distinct":
                 cell_type_labels = predictions.obs[self.training_args["cell_type_labels"]]
             else:
                 cell_type_labels = None
             if do_parallel:
-                def do_loop(network = self.network, features=features):
+                def do_loop(network = self.network, features=starting_features):
                     return Parallel(n_jobs=cpu_count()-1, verbose = 1, backend="loky")(
                         delayed(predict_one_gene)(
                             target = self.train.var_names[i],
@@ -570,7 +556,7 @@ class GRN:
                         for i in range(len(self.train.var_names))
                     )
             else:
-                def do_loop(network = self.network, features=features):
+                def do_loop(network = self.network, features=starting_features):
                     return [
                         predict_one_gene(
                             target = self.train.var_names[i],
@@ -592,19 +578,7 @@ class GRN:
                     predictions[i, pp[0]].X = pp[1]
             # Do one more time-step
             if self.training_args["time_strategy"] == "two_step":
-                y = do_loop(
-                    features = self.extract_tf_activity(
-                        train = predictions, 
-                        in_place = False,
-                        method = "tf_rna",
-                    )
-                )
-                for i in range(len(self.train.var_names)):
-                    predictions.X[:,i] = y[i]
-                # Set perturbed genes equal to user-specified expression, not whatever the endogenous level is predicted to be
-                for i, pp in enumerate(perturbations):
-                    if pp[0] in predictions.var_names:
-                        predictions[i, pp[0]].X = pp[1]
+                raise ValueError("time_strategy='two_step' has been discontinued.")
             
         # Add noise. This is useful for simulations. 
         if add_noise:
