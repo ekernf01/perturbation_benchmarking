@@ -483,8 +483,7 @@ class GRN:
     def predict(
         self,
         perturbations: list,
-        starting_states = None,
-        aggregation: str = "before",
+        starting_expression: anndata.AnnData = None,
         do_parallel: bool = True,
         add_noise = False,
         noise_sd = None,
@@ -496,35 +495,21 @@ class GRN:
             perturbations (iterable of tuples): Iterable of tuples with gene and its expression after 
                 perturbation, e.g. {("POU5F1", 0.0), ("NANOG", 0.0), ("non_targeting", np.nan)}. Anything with
                 expression np.nan will be treated as a control, no matter the name.
-            starting_states: indices of observations in self.train to use as initial conditions. 
-                Defaults to self.train.obs["is_control"].
-                Must be boolean.
-            aggregation: one of "before", "after", or "none". If there are multiple starting states
+            held_out_data (anndata.AnnData): Initial conditions in the same shape as the output predictions. If 
+                None, this will be set to the mean of the training data control expression values.
             do_parallel (bool): if True, use joblib parallelization. 
             add_noise (bool): if True, return simulated data Y + e instead of predictions Y 
                 where e is IID Gaussian with variance equal to the estimated residual variance.
             noise_sd (bool): sd of the variable e described above. Defaults to estimates from the fitted models.
             seed (int): RNG seed.
         """
-        if starting_states is None:
+        if starting_expression is None:
             starting_states = self.train.obs["is_control"].copy()
-        assert all([type(b)==bool for b in starting_states]), "starting_states must be boolean."
-        # Handle aggregation of multiple controls
-        if aggregation == "before":
-            init_features = self.features[starting_states,:].mean(axis=0, keepdims = True)
-            n_starting_states = 1
-            first_entry = np.argmax(starting_states)
-            starting_states = [i==first_entry for i in range(len(starting_states))]
-        elif aggregation == "none":
-            init_features = self.features[starting_states,:]
-            n_starting_states = sum(starting_states)
-        elif aggregation == "after":
-            raise NotImplementedError("aggregation after simulation is not implemented yet, sorry.")
-        else:
-            raise ValueError("aggregation must be 'none', 'before', or 'after'.")
+            starting_features   = self.features[starting_states,:].mean(axis=0, keepdims = True)
+
 
         # Set up containers for output & features
-        nrow = len(perturbations)*n_starting_states
+        nrow = len(perturbations)
         features = np.zeros((nrow, len(self.tf_list)))
         columns_to_transfer = self.training_args["confounders"].copy()
         if self.training_args["cell_type_sharing_strategy"] != "identical":
@@ -544,17 +529,23 @@ class GRN:
         )
         # implement perturbations
         for i in range(len(perturbations)):
-            idx     = [i*n_starting_states + s for s in range(n_starting_states)]
-            idx_str = [str(j) for j in idx]
-            column = [tf == perturbations[i][0] for tf in self.tf_list]
-            features[idx, :] = init_features
-            # If it's nan, leave it unperturbed -- used for studying fitted values on controls. 
-            if not np.isnan(perturbations[i][1]): 
-                features[idx, column] = perturbations[i][1]
+            idx_str = str(i)
+            features[i, :] = starting_features
+            # Expected input: comma-separated strings like ("C6orf226,TIMM50,NANOG", "0,0,0") 
+            pert_genes = perturbations[i][0].split(",")
+            pert_exprs = [float(f) for f in str(perturbations[i][1]).split(",")]
+            assert len(pert_genes) == len(pert_exprs), f"Malformed perturbation in sample {i}: {perturbations[i][0]}, {perturbations[i][1]}"
+            for pert_idx in range(len(pert_genes)):
+                # If it's nan, leave it unperturbed -- used for studying fitted values on controls. 
+                if not np.isnan(pert_exprs[pert_idx]):
+                    column = [tf == pert_genes[pert_idx] for tf in self.tf_list]
+                    features[i, column] = pert_exprs[pert_idx]
             predictions.obs.loc[idx_str, "perturbation"]                        = perturbations[i][0]
             predictions.obs.loc[idx_str, "expression_level_after_perturbation"] = perturbations[i][1]
+            # Later on, we can make matched_control_idx more flexible, e.g. to control for covariates.
+            matched_control_idx = np.where(self.train.obs["is_control"])[0]
             for col in columns_to_transfer:
-                predictions.obs.loc[idx_str, col] = self.train.obs.loc[starting_states, col].values
+                predictions.obs.loc[idx_str, col] = self.train.obs.loc[matched_control_idx, col].values
 
         # Make predictions
         if self.training_args["method"].startswith("DCDFG"):
