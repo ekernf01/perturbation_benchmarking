@@ -77,7 +77,7 @@ def makeMainPlots(
                 facet_by + ':N',
                 columns=int(np.ceil(np.sqrt(len(evaluationPerPert[facet_by].unique())))), 
             )
-        vlnplot[metric].save(f'{outputs}/{metric}.html')
+        vlnplot[metric].save(f'{outputs}/{metric}.svg', method = "selenium")
     return vlnplot
 
 def addGeneMetadata(df, adata):
@@ -177,7 +177,7 @@ def studyPredictableGenes(evaluationPerTarget, train_data, save_path, factor_var
                 y='independent'
             )
         _ = alt.data_transformers.disable_max_rows()
-        chart.save(os.path.join(save_path, genes_considered_as, f"predictability_vs_{t}.html"))
+        chart.save(os.path.join(save_path, genes_considered_as, f"predictability_vs_{t}.svg"), method = "selenium")
 
     # How many genes are we just predicting a constant for?
     if genes_considered_as == "targets":
@@ -194,13 +194,13 @@ def studyPredictableGenes(evaluationPerTarget, train_data, save_path, factor_var
                 )
             _ = alt.data_transformers.disable_max_rows()
             os.makedirs(os.path.join(save_path, genes_considered_as, "variety_in_predictions"), exist_ok=True)
-            chart.save( os.path.join(save_path, genes_considered_as, "variety_in_predictions", f"{condition}.html"))
+            chart.save( os.path.join(save_path, genes_considered_as, "variety_in_predictions", f"{condition}.svg"), method = "selenium")
 
     # Gene set enrichments on best-predicted genes
     for condition in evaluationPerTarget[factor_varied].unique():
         os.makedirs(os.path.join(save_path, genes_considered_as, "enrichr_on_best", condition), exist_ok=True)
         gl = evaluationPerTarget.loc[evaluationPerTarget[factor_varied]==condition]
-        gl = list(gl.sort_values("mae_benefit", ascending=False).head(50)["Symbol"].unique())
+        gl = list(gl.sort_values("mae_benefit", ascending=False).head(50)["gene"].unique())
         pd.DataFrame(gl).to_csv(os.path.join(save_path, genes_considered_as, "enrichr_on_best", condition, "input_genes.txt"), index = False,  header=False)
         for gene_sets in ['GO Molecular Function 2021', 'GO Biological Process 2021', 'Jensen TISSUES', 'ARCHS4 Tissues', 'Chromosome Location hg19']:
             try:
@@ -208,7 +208,7 @@ def studyPredictableGenes(evaluationPerTarget, train_data, save_path, factor_var
                     gene_list=gl,
                     gene_sets=gene_sets.replace(" ", "_"), 
                     outdir=os.path.join(save_path, genes_considered_as, "enrichr_on_best", condition, f"{gene_sets}"), 
-                    format='png',
+                    format='svg',
                 )
             except ValueError:
                 pass
@@ -248,7 +248,7 @@ def plotOneTargetGene(gene, outputs, experiments, factor_varied, train_data, hel
     ).facet(
         facet = factor_varied, 
         columns=3,
-    ).save(os.path.join(outputs, gene + ".html"))
+    ).save(os.path.join(outputs, gene + ".svg"), method = "selenium")
     return   
 
 def postprocessEvaluations(evaluations, experiments, factor_varied, default_level):
@@ -437,11 +437,11 @@ def evaluateOnePrediction(
             ) + diagonal
             alt.data_transformers.disable_max_rows()
             pd.DataFrame().to_csv(os.path.join(perturbation_plot_path, f"{pert}.txt"))
-            scatterplot.save(os.path.join(perturbation_plot_path, f"{pert}.html"))
+            scatterplot.save(os.path.join(perturbation_plot_path, f"{pert}.svg"), method = "selenium")
             if is_easiest:
-                scatterplot.save(os.path.join(perturbation_plot_path, f"_easiest({pert}).html"))
+                scatterplot.save(os.path.join(perturbation_plot_path, f"_easiest({pert}).svg"), method = "selenium")
             if is_hardest:
-                scatterplot.save(os.path.join(perturbation_plot_path, f"_hardest({pert}).html"))
+                scatterplot.save(os.path.join(perturbation_plot_path, f"_hardest({pert}).svg"), method = "selenium")
     metrics["perturbation"] = metrics.index
     return metrics, metrics_per_target
     
