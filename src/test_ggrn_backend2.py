@@ -1,4 +1,4 @@
-PROJECT_PATH = '/home/gary/cahan_rotation/'
+PROJECT_PATH = '/home/ekernf01/Desktop/jhu/research/projects/perturbation_prediction/cell_type_knowledge_transfer/'
 import os
 import shutil
 import unittest
@@ -38,6 +38,7 @@ def forward(x, n):
     x = np.matmul(x, adjMat * weight) + n
     return np.squeeze(np.asarray(x))
 
+# Unlike the prediction methods we added to DCD-FG, this one iterates all the way to steady state. 
 def simulateKO(control_expression: np.ndarray, 
                noise: np.ndarray, 
                KO_gene_idx: int=0, 
@@ -97,8 +98,8 @@ adata = anndata.AnnData(X=cntrl,
 adata.obs["perturbation"] = (["Gene0"] * (numInst//fold) + 
                              ["Gene1"] * (numInst//fold) + 
                              ["Gene2"] * (numInst//fold) + 
-                             ["Gene3"] * (numInst//fold) +
-                             ["Gene4"] * (numInst//fold) +
+                             ["Control,Gene3"] * (numInst//fold) +
+                             ["Gene4,Control"] * (numInst//fold) +
                              ["Control"])
 adata.obs["is_control"]   = adata.obs["perturbation"] == "Control"
 adata.obs["is_control_int"]   = [1 if i else 0 for i in adata.obs["is_control"]]
@@ -110,11 +111,6 @@ adata.obs["logFC"] = -999
 adata.obs["spearmanCorr"] = -999
 
 adata.raw = adata
-
-adata.obs["fake_cluster"] = "all_one_cluster"
-adata.obs.fake_cluster = adata.obs.fake_cluster.astype("category")
-adata.uns["fake_cluster_colors"] = ['#1f77b4']
-
 adata.X = adata.raw.X.copy()
 
 perturbed_and_measured_genes = adata.var.index
@@ -125,7 +121,7 @@ print(perturbed_but_not_measured_genes)
 adata.uns["perturbed_and_measured_genes"] = list(set(adata[~adata.obs.is_control].obs.perturbation))
 adata.uns["perturbed_but_not_measured_genes"] = list(perturbed_but_not_measured_genes)
 
-adata = ingestion.describe_perturbation_effect(adata, "knockdown")
+adata = ingestion.describe_perturbation_effect(adata, "knockdown", multiple_genes_hit = True)
 
 adata.uns["weight"] = weight.numpy()
 adata.uns["weight_mask"] = adjMat.numpy()
@@ -150,7 +146,8 @@ class TestDCDFG(unittest.TestCase):
                 "num_train_epochs": 20, 
                 "num_fine_epochs": 10,
                 "num_gpus": 1 if torch.cuda.is_available() else 0,
-                "train_batch_size": 64
+                "train_batch_size": 64,
+                "verbose": False,
                 }
         )
         
@@ -165,7 +162,8 @@ class TestDCDFG(unittest.TestCase):
                 "num_train_epochs": 20, 
                 "num_fine_epochs": 10,
                 "num_gpus": 1 if torch.cuda.is_available() else 0,
-                "train_batch_size": 64
+                "train_batch_size": 64,
+                "verbose": False,
                 }
         )
         
@@ -180,7 +178,8 @@ class TestDCDFG(unittest.TestCase):
                 "num_train_epochs": 20, 
                 "num_fine_epochs": 10,
                 "num_gpus": 1 if torch.cuda.is_available() else 0,
-                "train_batch_size": 64
+                "train_batch_size": 64,
+                "verbose": False,
                 }
         )  
         
@@ -196,6 +195,7 @@ class TestDCDFG(unittest.TestCase):
                 "num_fine_epochs": 10,
                 "num_gpus": 1 if torch.cuda.is_available() else 0,
                 "train_batch_size": 64,
+                "verbose": False,
                 "num_modules": 4,
                 }
         )    
@@ -213,6 +213,7 @@ class TestDCDFG(unittest.TestCase):
                 "num_fine_epochs": 100,
                 "num_gpus": [1] if torch.cuda.is_available() else 0,
                 "train_batch_size": 64,
+                "verbose": False,
                 "regularization_parameter": 0.1,
                 }
         )
@@ -232,9 +233,12 @@ class TestDCDFG(unittest.TestCase):
         np.testing.assert_almost_equal(bias, biasAnswer, decimal=2)
     
         control = test_data.X[-1,:]
-        koAnswer2 = grn.models.model.simulateKO(control.copy(), 
-                                                [0, 1, 2, 3, 4], 
-                                                [0.0, 0.0, 0.0, 0.0, 0.0])
+        koAnswer2 = grn.models.simulateKO(
+            control_expression = control.copy(), 
+            ko_gene_indices = [0, 1, 2, 3, 4], 
+            KO_gene_values = [0.0, 0.0, 0.0, 0.0, 0.0]
+        )
+
         print(koAnswer2)
         
 if __name__ == '__main__':
