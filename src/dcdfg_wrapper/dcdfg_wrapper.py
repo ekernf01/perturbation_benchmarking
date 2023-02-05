@@ -197,11 +197,16 @@ class DCDFGWrapper:
 
         Args:
             perturbations (list): list of tuples with perturbed gene and its expression level, e.g. [('NANOG', 0), ('POU5F1', 0)]
+                These may also be comma-separated multi-gene lists: [('NANOG,SOX2', '0,0')]. 
+                Anything with an unrecognized gene name or a NaN expression or both is treated like a control, e.g. [('Control', 0), ('NANOG', np.NaN)]
             baseline_expression (numpy array, optional): starting expression profile, n_perts by n_features. Defaults to None.
 
         Returns:
             anndata.AnnData: predicted expression
         """
+        genes = self.train_dataset.dataset.adata.var_names
+
+        # Check or make baseline expression
         if baseline_expression is None:
             baseline_expression = np.zeros((len(perturbations), self.train_dataset.dataset.adata.n_vars))
             baseline_expression_one = self.train_dataset.dataset.adata.X[
@@ -209,7 +214,10 @@ class DCDFGWrapper:
             ].mean(axis=0)
             for i in range(baseline_expression.shape[0]):
                 baseline_expression[i,:] = baseline_expression_one.copy()
-        genes = self.train_dataset.dataset.adata.var_names
+        else:
+            assert baseline_expression.shape[0] == len(perturbations), f"baseline_expression must have {len(perturbations)} obs; got {baseline_expression.shape[0]}."
+            assert baseline_expression.shape[1] == len(genes), f"baseline_expression must have {len(genes)} obs; got {baseline_expression.shape[1]}."
+        # Make container for predictions
         predicted_adata = anndata.AnnData(
             X = np.zeros((len(perturbations), len(genes))),
             var = self.train_dataset.dataset.adata.var.copy(),
@@ -222,38 +230,37 @@ class DCDFGWrapper:
             ),
             dtype = np.float64
         )
+
+        # Parse and simulate perturbations
         def convert_gene_symbol_to_index(gene):
             return [i for i,g in enumerate(genes) if g==gene]
         
-        target_loc = [convert_gene_symbol_to_index(pp[0]) for pp in perturbations]
-        target_val = [pp[1] for pp in perturbations]
-        
-        valid_tuple= [(idx, loc, val) for idx, (loc,val) in enumerate(zip(target_loc, target_val)) if loc]
-        valid_idx  = np.array([i[0] for i in valid_tuple], dtype=int)
-        valid_loc  = np.array([i[1] for i in valid_tuple], dtype=int)
-        valid_val  = np.array([i[2] for i in valid_tuple], dtype=np.float64)
-        
-        cntrl_idx = np.array([idx for idx, loc in enumerate(target_loc) if not loc], dtype=int)
-        
-        for idx in cntrl_idx:
-            if not np.isnan(target_val[idx]):
-                print(f"Warning: Post-perturbation expression is not NaN. But because the perturbed gene {perturbations[idx][0]} cannot be located, the profile is treated as a control sample lacking perturbation.")
-                                    
-        with torch.no_grad():
-            predicted_adata.X[valid_idx, :] = self.model.simulateKO(
-                control_expression = baseline_expression[valid_idx, :],
-                KO_gene_indices    = valid_loc,
-                KO_gene_values     = valid_val,
-                maxiter            = 1
-            )
+        for i in range(len(perturbations)):
+            # Comma-separated lists allow multi-gene perts
+            pert_genes = perturbations[i][0].split(",")
+            target_val = [float(f) for f in str(perturbations[i][1]).split(",")]
+            assert len(pert_genes) == len(target_val), f"Malformed perturbation in sample {i}: {perturbations[i][0]}, {perturbations[i][1]}"
+            # Ignore anything with unknown expression or gene 
+            not_nan = [i for i, x in enumerate(target_val) if not np.isnan(x)]
+            pert_genes = pert_genes[not_nan]
+            target_val = target_val[not_nan]
+            genes_recognized = []
+            for i, g in enumerate(pert_genes):
+                if g in genes:
+                    genes_recognized.append(i)
+                else:
+                    print(f"Warning: Post-perturbation expression is not NaN. But because the perturbed gene {g} cannot be located, the profile is treated as a control sample lacking perturbation.")
+            pert_genes = pert_genes[genes_recognized]
+            target_val = target_val[genes_recognized]
             
-            predicted_adata.X[cntrl_idx, :] = self.model.simulateKO(
-                control_expression = baseline_expression[valid_idx, :],
-                KO_gene_indices    = [[]] * cntrl_idx.shape[0],
-                KO_gene_values     = [[np.nan]] * cntrl_idx.shape[0],
-                maxiter            = 1,
-                is_control         = True
-            )
-            
+            target_loc = [convert_gene_symbol_to_index(g) for g in pert_genes]
+            with torch.no_grad():
+                predicted_adata.X[i, :] = self.model.simulateKO(
+                    control_expression = baseline_expression[i, :],
+                    KO_gene_indices    = np.array(target_loc, dtype=int),
+                    KO_gene_values     = np.array(target_val, dtype=np.float64),
+                    maxiter            = 1,
+                    is_control         = len(target_loc)>0,
+                )
         
         return predicted_adata

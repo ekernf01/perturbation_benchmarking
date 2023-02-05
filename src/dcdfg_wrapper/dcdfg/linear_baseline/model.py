@@ -225,7 +225,7 @@ class LinearGaussianModel(pl.LightningModule):
             print(f"Warning: graph is not acyclic. Predictions may diverge (give NaN's). Setting maxiter to {maxiter_cyclic}.")
             maxiter = maxiter_cyclic
         if len(control_expression.shape) > 1:
-            raise ValueError("simulateKOBatched only accepts 1d input for control expression.")
+            raise ValueError("simulateKO only accepts 1d input for control expression.")
                     
         num_perturbation = len(KO_gene_indices)
         KO_gene_values   = torch.from_numpy(np.array(KO_gene_values))
