@@ -47,8 +47,8 @@ print(args)
 # For interactive sessions
 if args.experiment_name is None:
     args = Namespace(**{
-        "experiment_name":"test",
-        "amount_to_do": "models",
+        "experiment_name":"1.8.6_0",
+        "amount_to_do": "missing_models",
         "save_trainset_predictions": True,
         "save_models": False,
     })
@@ -83,10 +83,10 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
             type_of_split            = experiments.loc[i, "type_of_split"],
             data_split_seed          = experiments.loc[i, "data_split_seed"],
         )
+        # Fit models!!
         if \
             (args.amount_to_do in {"models"}) or \
             (args.amount_to_do in {"missing_models"} and not os.path.isfile(h5ad)):
-            
             try:
                 os.unlink(h5ad)
             except FileNotFoundError:
@@ -108,17 +108,15 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
             if args.save_models:
                 print("Saving models...", flush = True)
                 grn.save_models( models )
-            print("Saving predictions...", flush = True)
             
-            if experiments[i, "starting_expression"] is None or \
-                    experimenter.isnan_safe(experiments[i, "starting_expression"]) or \
-                    experiments[i, "starting_expression"] == "control":
+            # Make predictions on test and (maybe) train set
+            print("Generating predictions...", flush = True)
+            if experiments.loc[i, "starting_expression"] == "control":
                 starting_expression = None
-            elif experiments[i, "starting_expression"] == "heldout":
-                starting_expression = perturbed_expression_data_heldout.copy()
+            elif experiments.loc[i, "starting_expression"] == "heldout":
+                starting_expression = perturbed_expression_data_heldout[i].copy()
             else:
-                raise ValueError(f"Unexpected value of 'starting_expression' in metadata: { experiments[i, 'starting_expression'] }")
-
+                raise ValueError(f"Unexpected value of 'starting_expression' in metadata: { experiments.loc[i, 'starting_expression'] }")
             predictions   = grn.predict(
                 [
                     (r[1][0], r[1][1]) 
