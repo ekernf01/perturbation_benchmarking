@@ -177,7 +177,10 @@ def studyPredictableGenes(evaluationPerTarget, train_data, save_path, factor_var
                 y='independent'
             )
         _ = alt.data_transformers.disable_max_rows()
-        chart.save(os.path.join(save_path, genes_considered_as, f"predictability_vs_{t}.svg"), method = "selenium")
+        try:
+            chart.save(os.path.join(save_path, genes_considered_as, f"predictability_vs_{t}.svg"), method = "selenium")
+        except:
+            print(f"Exception when saving predictability versus {t}: repr(e). Is the chart empty?")
 
     # How many genes are we just predicting a constant for?
     if genes_considered_as == "targets":
@@ -194,7 +197,11 @@ def studyPredictableGenes(evaluationPerTarget, train_data, save_path, factor_var
                 )
             _ = alt.data_transformers.disable_max_rows()
             os.makedirs(os.path.join(save_path, genes_considered_as, "variety_in_predictions"), exist_ok=True)
-            chart.save( os.path.join(save_path, genes_considered_as, "variety_in_predictions", f"{condition}.svg"), method = "selenium")
+            try:
+                chart.save( os.path.join(save_path, genes_considered_as, "variety_in_predictions", f"{condition}.svg"), method = "selenium")
+            except Exception as e:
+                print(f"Saving svg failed with error {repr(e)}. Trying html, which may produce BIG-ASS files.")
+                chart.save( os.path.join(save_path, genes_considered_as, "variety_in_predictions", f"{condition}.html"))
 
     # Gene set enrichments on best-predicted genes
     for condition in evaluationPerTarget[factor_varied].unique():
