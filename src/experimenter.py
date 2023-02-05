@@ -56,17 +56,18 @@ def validate_metadata(
     # Set defaults (None often defers to downstream code)
     defaults = {
         "pruning_parameter": None, 
-        "pruning_strategy": None,
-        "network_prior": None,
-        "desired_heldout_fraction": None,
-        "type_of_split": None,
+        "pruning_strategy": "none",
+        "network_prior": "ignore",
+        "desired_heldout_fraction": 0.5,
+        "type_of_split": "interventional",
         "regression_method": "RidgeCV",
         "time_strategy": "steady_state",
-        "starting_expression": None,
+        "starting_expression": "control",
         "default_level": None,
         "kwargs": None,
         "data_split_seed": 0,
-        "num_genes": None
+        "num_genes": 10000,
+        "only_tfs_are_regulators": False,
     }
     for k in defaults:
         if not k in metadata:
@@ -137,7 +138,7 @@ def lay_out_runs(
     metadata = metadata.copy() # We're gonna mangle it. :)
     # This will fuck up the cartesian product below.
     del metadata["kwargs"]
-    # See experimenter.get_networks() to see how the metadata.json evolves into this thing
+    # See experimenter.get_networks() to see how the metadata.json turns into this
     metadata["network_datasets"] = list(networks.keys())
     # This is just too bulky to want in the csv
     del metadata["readme"]
@@ -177,23 +178,24 @@ def do_one_run(
   Returns:
       anndata.AnnData: Predicted expression
   """
-  grn = ggrn.GRN(
-    train=train_data, 
-    network=networks[experiments.loc[i,'network_datasets']]
-  )
-  grn.extract_tf_activity(method = "tf_rna")
-  grn.fit(
-      method                               = experiments.loc[i,"regression_method"], 
-      cell_type_labels                     = None,
-      cell_type_sharing_strategy           = "identical",
-      network_prior                        = experiments.loc[i,"network_prior"],
-      pruning_strategy                     = experiments.loc[i,"pruning_strategy"],
-      pruning_parameter                    = experiments.loc[i,"pruning_parameter"],
-      projection                           = "none",  
-      time_strategy                        = experiments.loc[i,"time_strategy"],
-      kwargs                               = metadata["kwargs"],
-  )
-  return grn
+    grn = ggrn.GRN(
+        train=train_data, 
+        network=networks[experiments.loc[i,'network_datasets']],
+        only_tfs_are_regulators = only_tfs_are_regulators,
+    )
+    grn.extract_tf_activity(method = "tf_rna")
+    grn.fit(
+        method                               = experiments.loc[i,"regression_method"], 
+        cell_type_labels                     = None,
+        cell_type_sharing_strategy           = "identical",
+        network_prior                        = experiments.loc[i,"network_prior"],
+        pruning_strategy                     = experiments.loc[i,"pruning_strategy"],
+        pruning_parameter                    = experiments.loc[i,"pruning_parameter"],
+        projection                           = "none",  
+        time_strategy                        = experiments.loc[i,"time_strategy"],
+        kwargs                               = metadata["kwargs"],
+    )
+    return grn
 
 # TODO: move this to the network collection loader module?
 def get_subnets(netName:str, subnets:list, target_genes = None, do_aggregate_subnets = False) -> dict:
@@ -344,7 +346,7 @@ def splitDataWrapper(
     perturbed_expression_data,
     networks: dict, 
     network_behavior: str = "union", 
-    desired_heldout_fraction: float = 0.5, 
+    desired_heldout_fraction, 
     type_of_split: str = "interventional" ,
     data_split_seed = None,
 ):
@@ -356,8 +358,6 @@ def splitDataWrapper(
     """
     if data_split_seed is None:
         data_split_seed = 0
-    if desired_heldout_fraction is None or np.isnan(desired_heldout_fraction):
-        desired_heldout_fraction = 0.5
     if network_behavior is None or network_behavior == "union":
         allowedRegulators = perturbed_expression_data.var_names
         if any([k not in {"dense", "empty"} for k in networks.keys()]):
@@ -374,12 +374,6 @@ def splitDataWrapper(
             data_split_seed = data_split_seed,
         )
     return perturbed_expression_data_train, perturbed_expression_data_heldout
-
-def isnan_safe(x):
-    try:
-        return np.isnan(x)
-    except:
-        return False
 
 def splitData(adata, allowedRegulators, desired_heldout_fraction, type_of_split, data_split_seed):
     """Determine a train-test split satisfying constraints imposed by base networks and available data.
@@ -410,13 +404,11 @@ def splitData(adata, allowedRegulators, desired_heldout_fraction, type_of_split,
         If "simple", then we use a simple random split, and replicates of the same perturbation are allowed to go into different folds.
 
     """
-    if desired_heldout_fraction is None:
-        desired_heldout_fraction = 0.5
     if data_split_seed is None:
         data_split_seed = 0
     # For a deterministic result when downsampling an iterable, setting a seed alone is not enough.
     # Must also avoid the use of sets. 
-    if type_of_split is None or type_of_split == "interventional" or isnan_safe(type_of_split):
+    if type_of_split == "interventional":
         get_unique_keep_order = lambda x: list(dict.fromkeys(x))
         allowedRegulators = [p for p in allowedRegulators if p in adata.uns["perturbed_and_measured_genes"]]
         testSetEligible   = [p for p in adata.obs["perturbation"] if     all(g in allowedRegulators for g in p.split(","))]
