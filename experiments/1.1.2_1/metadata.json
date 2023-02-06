@@ -1,0 +1,20 @@
+{
+    "unique_id": "1.1_2_1",
+    "nickname": "pruning_nakatake",
+    "readme": "This experiment compares models that use all genes as predictors versus models that only allow TF's to regulator other genes.",
+    "question": "1.1_2",
+    "is_active": true,
+    "factor_varied": "pruning_parameter",
+    "network_prior": "ignore",
+    "only_tfs_are_regulators":[true, false],
+    "data_split_seed": [0,1,2],
+    "facet_by": null,
+    "color_by": null,
+    "default_level": null,
+    "merge_replicates": true,
+    "perturbation_dataset": "nakatake",
+    "network_datasets": {
+        "dense":{}
+    }
+}
+

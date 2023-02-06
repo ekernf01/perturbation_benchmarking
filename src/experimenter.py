@@ -1,4 +1,3 @@
-
 import os
 import gc
 import json
@@ -68,6 +67,8 @@ def validate_metadata(
         "data_split_seed": 0,
         "num_genes": 10000,
         "only_tfs_are_regulators": False,
+        "merge_replicates": False,
+        "network_datasets":{"dense":{}},
     }
     for k in defaults:
         if not k in metadata:
@@ -160,28 +161,28 @@ def lay_out_runs(
     return experiments
   
 def do_one_run(
-  experiments: pd.DataFrame, 
-  i: int, 
-  train_data: anndata.AnnData, 
-  test_data: anndata.AnnData, 
-  networks: dict, 
-  outputs: str,
-  metadata: dict, 
-  ) -> anndata.AnnData:
-  """Do one run (fit a GRN model and make predictions) as part of this experiment.
+    experiments: pd.DataFrame, 
+    i: int, 
+    train_data: anndata.AnnData, 
+    test_data: anndata.AnnData, 
+    networks: dict, 
+    outputs: str,
+    metadata: dict, 
+    ) -> anndata.AnnData:
+    """Do one run (fit a GRN model and make predictions) as part of this experiment.
 
-  Args:
-      experiments (pd.DataFrame): Output of lay_out_runs
-      i (int): A value from the experiments.index
-      Other args: see help(lay_out_runs)
+    Args:
+        experiments (pd.DataFrame): Output of lay_out_runs
+        i (int): A value from the experiments.index
+        Other args: see help(lay_out_runs)
 
-  Returns:
-      anndata.AnnData: Predicted expression
-  """
+    Returns:
+        anndata.AnnData: Predicted expression
+    """
     grn = ggrn.GRN(
         train=train_data, 
-        network=networks[experiments.loc[i,'network_datasets']],
-        only_tfs_are_regulators = only_tfs_are_regulators,
+        network                 = networks[experiments.loc[i,'network_datasets']],
+        only_tfs_are_regulators = experiments.loc[i,'only_tfs_are_regulators'],
     )
     grn.extract_tf_activity(method = "tf_rna")
     grn.fit(
@@ -344,9 +345,9 @@ def set_up_data_networks_conditions(metadata, amount_to_do, outputs):
 
 def splitDataWrapper(
     perturbed_expression_data,
+    desired_heldout_fraction, 
     networks: dict, 
     network_behavior: str = "union", 
-    desired_heldout_fraction, 
     type_of_split: str = "interventional" ,
     data_split_seed = None,
 ):
