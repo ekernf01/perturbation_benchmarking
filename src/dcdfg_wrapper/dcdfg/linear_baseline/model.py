@@ -202,7 +202,7 @@ class LinearGaussianModel(pl.LightningModule):
 
 
 
-    def simulateKO(self, control_expression: np.ndarray, KO_gene_indices: list, KO_gene_values: list, maxiter=1, maxiter_cyclic=1, is_control=False):
+    def simulateKO(self, control_expression: np.ndarray, KO_gene_indices: list, KO_gene_values: list, maxiter=1, maxiter_cyclic=1):
         """Simulate one or more perturbation experiment outcome(s) given a control expression,
         and given which gene(s) and corresponding perturbation value(s). 
         
@@ -211,12 +211,11 @@ class LinearGaussianModel(pl.LightningModule):
                 The input numpy array must be 1 dimensional. 
             KO_gene_indices    (list[int])    : A list of indices indicating where the perturbed genes 
                 are located in the control expression array. The length of this list should be the same 
-                as "KO_gene_values".
+                as "KO_gene_values". All of these genes are perturbed simultaneously in one predicted expression profile.
             KO_gene_values     (list[double]) : A list of simulated expression values for the perturbed 
                 genes. The length of this list should be the same as "KO_gene_indices".
             maxiter            (int)          : The maximum number of iterations to propagate.
             maxiter_cyclic     (int)          : The maximum number of iterations to propagate when the graph is cyclic.
-            is_control         (bool)         : If this option evaluates to true, perturbation gets suppressed. 
 
           Returns:
               np.ndarray: The predicted expression profiles after perturbing the genes at specified values.
@@ -227,20 +226,14 @@ class LinearGaussianModel(pl.LightningModule):
         if len(control_expression.shape) > 1:
             raise ValueError("simulateKO only accepts 1d input for control expression.")
                     
-        num_perturbation = len(KO_gene_indices)
         KO_gene_values   = torch.from_numpy(np.array(KO_gene_values))
         KO_gene_indices  = np.array(KO_gene_indices)
         with torch.no_grad():
             x = torch.from_numpy(control_expression.copy())
-            x = x.unsqueeze(0).repeat(num_perturbation, 1)
             x = x.double()
-            for i in range(maxiter):
-                if not is_control:
-                    x[range(num_perturbation), KO_gene_indices] = KO_gene_values
+            for _ in range(maxiter):
+                x[KO_gene_indices] = KO_gene_values
                 x = self.module.forward(x)
-            if not is_control:
-                x[range(num_perturbation), KO_gene_indices] = KO_gene_values
-        return x.detach().numpy()
-            
+            x[KO_gene_indices] = KO_gene_values
 
-            
+        return x.detach().numpy()

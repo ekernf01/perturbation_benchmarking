@@ -136,7 +136,7 @@ class TestDCDFG(unittest.TestCase):
     os.environ["WANDB_SILENT"] = "true"
 
     def test_NOTEARS_run(self):
-        grn = ggrn.GRN(train=test_data, tf_list=test_data.var_names, validate_immediately=False)
+        grn = ggrn.GRN(train=test_data, eligible_regulators=test_data.var_names, validate_immediately=False)
         grn.extract_tf_activity(method = "tf_rna")
         grn.fit(
             method = "DCDFG-exp-linear-False",
@@ -152,7 +152,7 @@ class TestDCDFG(unittest.TestCase):
         )
         
     def test_NOTEARSLR_run(self):
-        grn = ggrn.GRN(train=test_data, tf_list=test_data.var_names, validate_immediately=False)
+        grn = ggrn.GRN(train=test_data, eligible_regulators=test_data.var_names, validate_immediately=False)
         grn.extract_tf_activity(method = "tf_rna")
         grn.fit(
             method = "DCDFG-spectral_radius-linearlr-False",
@@ -168,7 +168,7 @@ class TestDCDFG(unittest.TestCase):
         )
         
     def test_NOBEARS_run(self):
-        grn = ggrn.GRN(train=test_data, tf_list=test_data.var_names, validate_immediately=False)
+        grn = ggrn.GRN(train=test_data, eligible_regulators=test_data.var_names, validate_immediately=False)
         grn.extract_tf_activity(method = "tf_rna")
         grn.fit(
             method = "DCDFG-exp-linear-True",
@@ -184,7 +184,7 @@ class TestDCDFG(unittest.TestCase):
         )  
         
     def test_DCDFG_run(self):
-        grn = ggrn.GRN(train=test_data, tf_list=test_data.var_names, validate_immediately=False)
+        grn = ggrn.GRN(train=test_data, eligible_regulators=test_data.var_names, validate_immediately=False)
         grn.extract_tf_activity(method = "tf_rna")
         grn.fit(
             method = "DCDFG-spectral_radius-mlplr-False",
@@ -200,8 +200,25 @@ class TestDCDFG(unittest.TestCase):
                 }
         )    
     
+    def test_ErrorIfPerturbationsAreMismatched(self):
+        grn = ggrn.GRN(train=test_data, eligible_regulators=test_data.var_names, validate_immediately=False)
+        self.assertRaises(
+            AssertionError,
+            grn.predict, 
+            starting_expression = anndata.AnnData(
+                    X=np.zeros((5,5)),
+                    var = pd.DataFrame(index=[f'Gene{i}' for i in range(5)]),
+                    obs = pd.DataFrame({
+                        "perturbation":[f'Gene{i}' for i in range(5)], 
+                        "expression_level_after_perturbation": [0.0, 1000.0, 0.0, 0.0, 0.0],
+                    }), 
+                ),
+            perturbations = [(f'Gene{i}',1000) for i in range(5)]
+        )
+
+
     def test_NOTEARS_run_and_predict(self):
-        grn = ggrn.GRN(train=test_data, tf_list=test_data.var_names, validate_immediately=False)
+        grn = ggrn.GRN(train=test_data, eligible_regulators=test_data.var_names, validate_immediately=False)
         grn.extract_tf_activity(method = "tf_rna")
         grn.fit(
             method = "DCDFG-exp-linear-False",
@@ -233,13 +250,28 @@ class TestDCDFG(unittest.TestCase):
         np.testing.assert_almost_equal(bias, biasAnswer, decimal=2)
     
         control = test_data.X[-1,:]
-        koAnswer2 = grn.models.simulateKO(
-            control_expression = control.copy(), 
-            ko_gene_indices = [0, 1, 2, 3, 4], 
-            KO_gene_values = [0.0, 0.0, 0.0, 0.0, 0.0]
+
+        koAnswer2 = grn.predict(
+            starting_expression = anndata.AnnData(
+                X=np.tile(control.copy(), (7,1)), 
+                var = pd.DataFrame(index=[f'Gene{i}' for i in range(5)]),
+            ),
+            perturbations = [(f'Gene{i}',1000) for i in range(5)] + [("control", 0)] + [("Gene0", np.nan)]
+        )
+        np.testing.assert_almost_equal(
+            koAnswer2.X / np.array([
+                [1000, 1000, 5, 5, 5],
+                [5, 1000, 1000, 5, 5],
+                [5, 5, 1000, 1000, 5],
+                [5, 5, 5, 1000, 1000],
+                [5, 5, 5,    5, 1000],
+                [5, 5, 5,    5,    5],
+                [5, 5, 5,    5,    5],
+            ]),
+            np.ones((7,5)),
+            decimal=2
         )
 
-        print(koAnswer2)
-        
+
 if __name__ == '__main__':
     unittest.main()

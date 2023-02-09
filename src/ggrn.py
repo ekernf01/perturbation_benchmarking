@@ -215,7 +215,7 @@ class GRN:
             pruned_network = pd.concat(chunks)
             pruned_network = pruned_network.query("regulator != 'NO_REGULATORS'")
             pruned_network.loc[:, "abs_weight"] = np.abs(pruned_network["weight"])
-            pruned_network = pruned_network.nlargest(pruning_parameter, "abs_weight")
+            pruned_network = pruned_network.nlargest(int(pruning_parameter), "abs_weight")
             del pruned_network["abs_weight"]
             print("Re-fitting with just features that survived pruning")
             self.network = load_networks.LightNetwork(df=pruned_network)
@@ -488,14 +488,16 @@ class GRN:
             perturbations (iterable of tuples): Iterable of tuples with gene and its expression after 
                 perturbation, e.g. {("POU5F1", 0.0), ("NANOG", 0.0), ("non_targeting", np.nan)}. Anything with
                 expression np.nan will be treated as a control, no matter the name.
-            held_out_data (anndata.AnnData): Initial conditions in the same shape as the output predictions. If 
-                None, this will be set to the mean of the training data control expression values.
+            starting_expression (anndata.AnnData): Initial conditions in the same shape as the output predictions. If 
+                None, starting state will be set to the mean of the training data control expression values.
             do_parallel (bool): if True, use joblib parallelization. 
             add_noise (bool): if True, return simulated data Y + e instead of predictions Y 
                 where e is IID Gaussian with variance equal to the estimated residual variance.
             noise_sd (bool): sd of the variable e described above. Defaults to estimates from the fitted models.
             seed (int): RNG seed.
         """
+        assert all(type(p[0])==str for p in perturbations), "Perturbations must be like [('NANOG', 1.56), ('OCT4', 1.82)]"
+        
         # Set up containers for expression + metadata 
         nrow = len(perturbations)
         columns_to_transfer = self.training_args["confounders"].copy()
@@ -516,25 +518,46 @@ class GRN:
         )
 
         # Set up starting expression
-        if starting_expression is not None:
-            assert type(starting_expression) == anndata.AnnData, f"starting_expression must be anndata; got {type(starting_expression)}"
-            assert starting_expression.obs.shape[0] == len(perturbations), "Starting expression must be None or an AnnData with one obs per perturbation."
-            assert all(c in set(starting_expression.obs.columns) for c in columns_to_transfer), f"starting_expression must be accompanied by these metadata fields: \n{'  '.join(columns_to_transfer)}"
-            starting_expression.obs.index = [str(x) for x in range(len(starting_expression.obs.index))]
-            predictions.obs = starting_expression.obs.copy()
-            starting_features = self.extract_tf_activity(train = starting_expression, in_place=False).copy()
-        else:
-            # Determine contents of one observation
+        if starting_expression is None:
+            # Determine contents of one observation (expr and metadata)
             all_controls = np.where(self.train.obs["is_control"])[0]
             features_mean_across_all_controls = self.features[all_controls,:].mean(axis=0, keepdims = True)
             starting_metadata = self.train.obs.iloc[[all_controls[0]], :].copy()
-            # Now fill up all observations
+            # Now fill up all observations the same way
             starting_features = np.zeros((nrow, len(self.eligible_regulators)))
             for i in range(len(perturbations)):
                 idx_str = str(i)
                 starting_features[i, :] = features_mean_across_all_controls.copy()
                 for col in columns_to_transfer:
                     predictions.obs.loc[idx_str, col] = starting_metadata.loc[0, col].values
+        else:
+            # Check input: correct type, shape, metadata contents
+            assert type(starting_expression) == anndata.AnnData, f"starting_expression must be anndata; got {type(starting_expression)}"
+            assert starting_expression.obs.shape[0] == len(perturbations), "Starting expression must be None or an AnnData with one obs per perturbation."
+            assert all(c in set(starting_expression.obs.columns) for c in columns_to_transfer), f"starting_expression must be accompanied by these metadata fields: \n{'  '.join(columns_to_transfer)}"
+            if "perturbation" in set(starting_expression.obs.columns):
+                np.testing.assert_equal(
+                    np.array(starting_expression.obs["perturbation"]),
+                    np.array([p[0] for p in perturbations]), 
+                    err_msg="metadata in baseline expression do not match provided perturbations."
+                )
+            else:
+                starting_expression.obs["perturbation"] = "NA"
+            if "expression_level_after_perturbation" in set(starting_expression.obs.columns):
+                np.testing.assert_equal(
+                    np.array(starting_expression.obs["expression_level_after_perturbation"]),
+                    np.array([p[1] for p in perturbations]), 
+                    err_msg="metadata in baseline expression do not match provided perturbations."
+                )
+            else:
+                starting_expression.obs["expression_level_after_perturbation"] = -999
+            # Extract features for prediction & add meta to predictions container
+            starting_expression.obs.index = [str(x) for x in range(len(starting_expression.obs.index))]
+            predictions.obs = starting_expression.obs.copy()
+            starting_features = self.extract_tf_activity(train = starting_expression, in_place=False).copy()
+
+        # At this point, the starting features are ready, and the predictions object has some of the right metadata,
+        # but it doesn't have either the right perturbations in the metadata, or the right expression predictions. 
 
         # implement perturbations, including altering metadata and features but not yet expression
         predictions.obs["perturbation"] = predictions.obs["perturbation"].to_string()
