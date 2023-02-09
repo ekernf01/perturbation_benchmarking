@@ -192,7 +192,7 @@ class DCDFGWrapper:
         
         return self
 
-    def predict(self, perturbations: list, baseline_expression = None):
+    def predict(self, perturbations: list, baseline_expression: np.ndarray = None):
         """Predict expression after perturbation.
 
         Args:
@@ -215,6 +215,7 @@ class DCDFGWrapper:
             for i in range(baseline_expression.shape[0]):
                 baseline_expression[i,:] = baseline_expression_one.copy()
         else:
+            assert type(baseline_expression) in {np.ndarray, np.matrix}, f"baseline_expression must be a numpy array; got type {type(baseline_expression)}"
             assert baseline_expression.shape[0] == len(perturbations), f"baseline_expression must have {len(perturbations)} obs; got {baseline_expression.shape[0]}."
             assert baseline_expression.shape[1] == len(genes), f"baseline_expression must have {len(genes)} obs; got {baseline_expression.shape[1]}."
             
@@ -257,7 +258,7 @@ class DCDFGWrapper:
             target_loc = [convert_gene_symbol_to_index(g) for g in pert_genes]
             with torch.no_grad():
                 predicted_adata.X[obs_i, :]  = self.model.simulateKO(
-                    control_expression = baseline_expression[obs_i, :].X.squeeze(),
+                    control_expression = baseline_expression[obs_i, :].squeeze(),
                     KO_gene_indices    = np.array(target_loc, dtype=int),
                     KO_gene_values     = np.array(target_val, dtype=np.float64),
                     maxiter            = 1,

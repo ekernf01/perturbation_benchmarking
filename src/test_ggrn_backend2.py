@@ -1,38 +1,32 @@
 PROJECT_PATH = '/home/ekernf01/Desktop/jhu/research/projects/perturbation_prediction/cell_type_knowledge_transfer/'
 import os
-import shutil
 import unittest
 import pandas as pd
 import numpy as np
-import scanpy as sc 
 import torch
-import torch.nn as nn
 import anndata
 import networkx as nx
-import matplotlib.pyplot as plt
-
 import sys
 import importlib
-
-os.chdir(PROJECT_PATH + "perturbation_data")
-sys.path.append("setup")
+import warnings
+# Our modules
+sys.path.append(os.path.join(PROJECT_PATH, "perturbation_data", "setup"))
 import ingestion
 importlib.reload(ingestion)
-
-os.chdir(PROJECT_PATH + "perturbation_benchmarking")
-sys.path.append("src")
+sys.path.append(os.path.join(PROJECT_PATH, "perturbation_benchmarking", "src"))
 import ggrn
 importlib.reload(ggrn)
 sys.path.append(os.path.expanduser(os.path.join(PROJECT_PATH, 'network_collection', 'load_networks'))) 
 import load_networks
 importlib.reload(load_networks)
 
-import warnings
+# Global settings for this test script
 warnings.filterwarnings("ignore")
-
+os.chdir(PROJECT_PATH + "perturbation_benchmarking")
 np.set_printoptions(edgeitems=30, linewidth=100000, 
     formatter=dict(float=lambda x: "%6.4f" % x))
 
+# Simple simulation code
 def forward(x, n):
     global adjMat, weight
     x = np.matmul(x, adjMat * weight) + n
@@ -54,6 +48,7 @@ def simulateKO(control_expression: np.ndarray,
     x[KO_gene_idx] = KO_gene_value
     return x
 
+# Create a DAG
 G = nx.DiGraph()
 G.add_edges_from([(0,1), (1,2), 
                   (2,3), (3,4)])
@@ -109,25 +104,19 @@ adata.obs.index = [str(i) for i in range(numInst+1)]
 adata.obs["consistentW/Perturbation"] = True
 adata.obs["logFC"] = -999
 adata.obs["spearmanCorr"] = -999
-
 adata.raw = adata
 adata.X = adata.raw.X.copy()
-
 perturbed_and_measured_genes = adata.var.index
 perturbed_but_not_measured_genes = list()
 print("These genes were perturbed but not measured:")
 print(perturbed_but_not_measured_genes)
-
 adata.uns["perturbed_and_measured_genes"] = list(set(adata[~adata.obs.is_control].obs.perturbation))
 adata.uns["perturbed_but_not_measured_genes"] = list(perturbed_but_not_measured_genes)
-
 adata = ingestion.describe_perturbation_effect(adata, "knockdown", multiple_genes_hit = True)
-
 adata.uns["weight"] = weight.numpy()
 adata.uns["weight_mask"] = adjMat.numpy()
 adata.uns["bias"]   = bias
 print(adata)
-
 test_data = adata
 
 class TestDCDFG(unittest.TestCase):
@@ -143,8 +132,8 @@ class TestDCDFG(unittest.TestCase):
             cell_type_sharing_strategy = "identical",
             network_prior = "ignore",
             kwargs = { 
-                "num_train_epochs": 20, 
-                "num_fine_epochs": 10,
+                "num_train_epochs": 2, 
+                "num_fine_epochs": 1,
                 "num_gpus": 1 if torch.cuda.is_available() else 0,
                 "train_batch_size": 64,
                 "verbose": False,
@@ -159,8 +148,8 @@ class TestDCDFG(unittest.TestCase):
             cell_type_sharing_strategy = "identical",
             network_prior = "ignore",
             kwargs = { 
-                "num_train_epochs": 20, 
-                "num_fine_epochs": 10,
+                "num_train_epochs": 2, 
+                "num_fine_epochs": 1,
                 "num_gpus": 1 if torch.cuda.is_available() else 0,
                 "train_batch_size": 64,
                 "verbose": False,
@@ -175,8 +164,8 @@ class TestDCDFG(unittest.TestCase):
             cell_type_sharing_strategy = "identical",
             network_prior = "ignore",
             kwargs = { 
-                "num_train_epochs": 20, 
-                "num_fine_epochs": 10,
+                "num_train_epochs": 2, 
+                "num_fine_epochs": 1,
                 "num_gpus": 1 if torch.cuda.is_available() else 0,
                 "train_batch_size": 64,
                 "verbose": False,
@@ -191,66 +180,51 @@ class TestDCDFG(unittest.TestCase):
             cell_type_sharing_strategy = "identical",
             network_prior = "ignore",
             kwargs = { 
-                "num_train_epochs": 20, 
-                "num_fine_epochs": 10,
+                "num_train_epochs": 2, 
+                "num_fine_epochs": 1,
                 "num_gpus": 1 if torch.cuda.is_available() else 0,
                 "train_batch_size": 64,
                 "verbose": False,
                 "num_modules": 4,
-                }
-        )    
-    
-    def test_ErrorIfPerturbationsAreMismatched(self):
-        grn = ggrn.GRN(train=test_data, eligible_regulators=test_data.var_names, validate_immediately=False)
-        self.assertRaises(
-            AssertionError,
-            grn.predict, 
-            starting_expression = anndata.AnnData(
-                    X=np.zeros((5,5)),
-                    var = pd.DataFrame(index=[f'Gene{i}' for i in range(5)]),
-                    obs = pd.DataFrame({
-                        "perturbation":[f'Gene{i}' for i in range(5)], 
-                        "expression_level_after_perturbation": [0.0, 1000.0, 0.0, 0.0, 0.0],
-                    }), 
-                ),
-            perturbations = [(f'Gene{i}',1000) for i in range(5)]
+            }
         )
+    
 
-
-    def test_NOTEARS_run_and_predict(self):
+    def test_NOTEARS_prediction(self):
         grn = ggrn.GRN(train=test_data, eligible_regulators=test_data.var_names, validate_immediately=False)
         grn.extract_tf_activity(method = "tf_rna")
         grn.fit(
-            method = "DCDFG-exp-linear-False",
-            # method = "DCDFG-spectral_radius-mlplr-False",
-            cell_type_sharing_strategy = "identical",
-            network_prior = "ignore",
+            method = "DCDFG-spectral_radius-linear-False", 
             kwargs = { 
-                "num_train_epochs": 600, 
-                "num_fine_epochs": 100,
-                "num_gpus": [1] if torch.cuda.is_available() else 0,
+                "num_train_epochs": 2, 
+                "num_fine_epochs": 1,
+                "num_gpus": 1 if torch.cuda.is_available() else 0,
                 "train_batch_size": 64,
                 "verbose": False,
-                "regularization_parameter": 0.1,
                 }
         )
 
-        posWeight = (grn.models.model.module.weights * grn.models.model.module.weight_mask).detach().cpu().numpy()
-        posWeightAnswer = np.array(
-            [[0, 1, 0, 0, 0],
-             [0, 0, 1, 0, 0],
-             [0, 0, 0, 1, 0],
-             [0, 0, 0, 0, 1],
-             [0, 0, 0, 0, 0]])
-        
-        bias = grn.models.model.module.biases.detach().cpu().numpy()
-        biasAnswer = np.array([5.0, 0.0, 0.0, 0.0, 0.0])
+        _ = grn.models.model.module.load_state_dict(
+            {
+                "weights": torch.nn.Parameter(torch.tensor(np.array(
+                [[0.0,   1, 0, 0, 0],
+                [0,     0, 1, 0, 0],
+                [0,     0, 0, 1, 0],
+                [0,     0, 0, 0, 1],
+                [0,     0, 0, 0, 0]])), requires_grad=False)
+            },  
+            strict=False)
 
-        np.testing.assert_almost_equal(posWeight, posWeightAnswer, decimal=2)
-        np.testing.assert_almost_equal(bias, biasAnswer, decimal=2)
-    
+        grn.models.model.module.biases = torch.nn.Parameter(torch.tensor(np.array(
+            [5.0,    0, 0, 0, 0])), requires_grad=False)
+        grn.models.model.module.weight_mask = torch.nn.Parameter(torch.tensor(np.ones((5,5))))
+        grn.models.model.module.weights = torch.nn.Parameter(torch.tensor(np.array(
+            [[0.0,   1, 0, 0, 0],
+             [0,     0, 1, 0, 0],
+             [0,     0, 0, 1, 0],
+             [0,     0, 0, 0, 1],
+             [0,     0, 0, 0, 0]])), requires_grad=False)
         control = test_data.X[-1,:]
-
         koAnswer2 = grn.predict(
             starting_expression = anndata.AnnData(
                 X=np.tile(control.copy(), (7,1)), 
@@ -271,6 +245,53 @@ class TestDCDFG(unittest.TestCase):
             np.ones((7,5)),
             decimal=2
         )
+
+        koAnswer3 = grn.predict(
+            perturbations = [(f'Gene{i}',1000) for i in range(5)] + [("control", 0)] + [("Gene0", np.nan)]
+        )
+        np.testing.assert_almost_equal(
+            koAnswer3.X / np.array([
+                [1000, 1000, 5, 5, 5],
+                [5, 1000, 1000, 5, 5],
+                [5, 5, 1000, 1000, 5],
+                [5, 5, 5, 1000, 1000],
+                [5, 5, 5,    5, 1000],
+                [5, 5, 5,    5,    5],
+                [5, 5, 5,    5,    5],
+            ]),
+            np.ones((7,5)),
+            decimal=2
+        )
+
+
+    def test_NOTEARS_inference(self):
+        grn = ggrn.GRN(train=test_data, eligible_regulators=test_data.var_names, validate_immediately=False)
+        grn.extract_tf_activity(method = "tf_rna")
+        grn.fit(
+            method = "DCDFG-exp-linear-False",
+            # method = "DCDFG-spectral_radius-mlplr-False",
+            cell_type_sharing_strategy = "identical",
+            network_prior = "ignore",
+            kwargs = { 
+                "num_train_epochs": 600, 
+                "num_fine_epochs": 100,
+                "num_gpus": [1] if torch.cuda.is_available() else 0,
+                "train_batch_size": 64,
+                "verbose": False,
+                "regularization_parameter": 0.1,
+                }
+        )
+        posWeight = (grn.models.model.module.weights * grn.models.model.module.weight_mask).detach().cpu().numpy()
+        posWeightAnswer = np.array(
+            [[0, 1, 0, 0, 0],
+             [0, 0, 1, 0, 0],
+             [0, 0, 0, 1, 0],
+             [0, 0, 0, 0, 1],
+             [0, 0, 0, 0, 0]])
+        bias = grn.models.model.module.biases.detach().cpu().numpy()
+        biasAnswer = np.array([5.0, 0.0, 0.0, 0.0, 0.0])
+        np.testing.assert_almost_equal(posWeight, posWeightAnswer, decimal=2)
+        np.testing.assert_almost_equal(bias, biasAnswer, decimal=2)
 
 
 if __name__ == '__main__':

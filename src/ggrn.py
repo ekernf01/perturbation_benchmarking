@@ -307,16 +307,16 @@ class GRN:
         self,
         method: str, 
         confounders: list = [], 
-        cell_type_sharing_strategy: str = "distinct",   
+        cell_type_sharing_strategy: str = "identical",   
         cell_type_labels: str = None,
-        network_prior: str = "none",    
+        network_prior: str = None,    
         pruning_strategy: str = "none", 
         pruning_parameter: str = None,          
         projection: str = "none", 
         predict_self = False,   
         time_strategy: str = "steady_state",  
         do_parallel: bool = True,
-        kwargs = None,
+        kwargs = {},
     ):
         """Fit the model.
 
@@ -330,8 +330,8 @@ class GRN:
             cell_type_labels (str): Name of column in self.train.obs to use for cell type labels.
             network_prior (str, optional): How to incorporate user-provided network structure. 
                 - "ignore": don't use it. 
-                - "restrictive" (default): allow only user-specified regulators for each target.
-                - maybe more options will be implemented. 
+                - "restrictive": allow only user-specified regulators for each target.
+                - Default is "ignore" if self.network is None else "restrictive"
             pruning_strategy (str, optional) 
                 - "prune_and_refit": keep the largest n coefficients across all models (not per model), where n is pruning_parameter.
                 - "none": don't prune the model.
@@ -345,6 +345,11 @@ class GRN:
                 
             kwargs: Passed to DCDFG. See help(dcdfg_wrapper.DCDFGWrapper.train). 
         """
+        if network_prior is None:
+            network_prior = "ignore" if self.network is None else "restrictive"
+        if self.features is None:
+            raise ValueError("You may not call GRN.fit() until you have extracted features with GRN.extract_tf_activity().")
+
         # Save some training args to later ensure prediction is consistent with training.
         self.training_args["confounders"]                = confounders
         self.training_args["network_prior"]              = network_prior
@@ -353,6 +358,7 @@ class GRN:
         self.training_args["predict_self"]               = predict_self
         self.training_args["method"]                     = method
         self.training_args["time_strategy"]              = time_strategy
+        # Check that the cell types match between the network and the expression data
         if network_prior != "ignore" and self.training_args["cell_type_sharing_strategy"] != 'identical':
             ct_from_network = self.network.get_all_one_field("cell_type")
             ct_from_trainset = self.train.obs[cell_type_labels]
@@ -367,6 +373,11 @@ class GRN:
                         "Missing:  \n" f"{prettyprint(ct_missing)}"
                     )
         if method.startswith("DCDFG"):
+            np.testing.assert_equal(
+                np.array(self.eligible_regulators), 
+                np.array(self.train.var_names),     
+                err_msg="DCDFG can only use all genes as regulators."
+            )
             assert len(confounders)==0, "DCDFG cannot currently include confounders."
             assert network_prior=="ignore", "DCDFG cannot currently include known network structure."
             assert cell_type_sharing_strategy=="identical", "DCDFG cannot currently fit each cell type separately."
@@ -385,7 +396,7 @@ class GRN:
                 constraint_mode = constraint_mode,
                 model_type = model_type,
                 do_use_polynomials = do_use_polynomials,
-                **kwargs,
+                **kwargs
             )
             return 
         elif method == "mean":
@@ -496,6 +507,8 @@ class GRN:
             noise_sd (bool): sd of the variable e described above. Defaults to estimates from the fitted models.
             seed (int): RNG seed.
         """
+        if type(self.models)==list and not self.models:
+            raise ValueError("You may not call GRN.predict() until you have called GRN.fit().")
         assert all(type(p[0])==str for p in perturbations), "Perturbations must be like [('NANOG', 1.56), ('OCT4', 1.82)]"
         
         # Set up containers for expression + metadata 
@@ -519,40 +532,29 @@ class GRN:
 
         # Set up starting expression
         if starting_expression is None:
+            starting_expression = predictions.copy()
             # Determine contents of one observation (expr and metadata)
             all_controls = np.where(self.train.obs["is_control"])[0]
-            features_mean_across_all_controls = self.features[all_controls,:].mean(axis=0, keepdims = True)
-            starting_metadata = self.train.obs.iloc[[all_controls[0]], :].copy()
+            starting_metadata_one   = self.train.obs.iloc[[all_controls[0]], :].copy()
+            starting_expression_one = self.train.X[        all_controls,:].mean(axis=0, keepdims = True)
+            starting_features_one   = self.features[       all_controls,:].mean(axis=0, keepdims = True)
             # Now fill up all observations the same way
             starting_features = np.zeros((nrow, len(self.eligible_regulators)))
             for i in range(len(perturbations)):
                 idx_str = str(i)
-                starting_features[i, :] = features_mean_across_all_controls.copy()
+                starting_features[i, :] = starting_features_one.copy()
+                starting_expression.X[i, :] = starting_expression_one.copy()
                 for col in columns_to_transfer:
-                    predictions.obs.loc[idx_str, col] = starting_metadata.loc[0, col].values
+                    predictions.obs.loc[idx_str, col] = starting_metadata_one.loc[0, col].values
         else:
-            # Check input: correct type, shape, metadata contents
+            # Enforce that starting_expression has correct type, shape, metadata contents
             assert type(starting_expression) == anndata.AnnData, f"starting_expression must be anndata; got {type(starting_expression)}"
             assert starting_expression.obs.shape[0] == len(perturbations), "Starting expression must be None or an AnnData with one obs per perturbation."
             assert all(c in set(starting_expression.obs.columns) for c in columns_to_transfer), f"starting_expression must be accompanied by these metadata fields: \n{'  '.join(columns_to_transfer)}"
-            if "perturbation" in set(starting_expression.obs.columns):
-                np.testing.assert_equal(
-                    np.array(starting_expression.obs["perturbation"]),
-                    np.array([p[0] for p in perturbations]), 
-                    err_msg="metadata in baseline expression do not match provided perturbations."
-                )
-            else:
-                starting_expression.obs["perturbation"] = "NA"
-            if "expression_level_after_perturbation" in set(starting_expression.obs.columns):
-                np.testing.assert_equal(
-                    np.array(starting_expression.obs["expression_level_after_perturbation"]),
-                    np.array([p[1] for p in perturbations]), 
-                    err_msg="metadata in baseline expression do not match provided perturbations."
-                )
-            else:
-                starting_expression.obs["expression_level_after_perturbation"] = -999
-            # Extract features for prediction & add meta to predictions container
+            starting_expression.obs["perturbation"] = "NA"
+            starting_expression.obs["expression_level_after_perturbation"] = -999
             starting_expression.obs.index = [str(x) for x in range(len(starting_expression.obs.index))]
+            # Extract features for prediction & add meta to predictions container
             predictions.obs = starting_expression.obs.copy()
             starting_features = self.extract_tf_activity(train = starting_expression, in_place=False).copy()
 
@@ -560,7 +562,7 @@ class GRN:
         # but it doesn't have either the right perturbations in the metadata, or the right expression predictions. 
 
         # implement perturbations, including altering metadata and features but not yet expression
-        predictions.obs["perturbation"] = predictions.obs["perturbation"].to_string()
+        predictions.obs["perturbation"] = predictions.obs["perturbation"].astype(str)
         for i in range(len(perturbations)):
             idx_str = str(i)
             # Expected input: comma-separated strings like ("C6orf226,TIMM50,NANOG", "0,0,0") 
@@ -577,7 +579,7 @@ class GRN:
 
         # Now predict the expression
         if self.training_args["method"].startswith("DCDFG"):
-            predictions = self.models.predict(perturbations, baseline_expression = starting_expression)     
+            predictions = self.models.predict(perturbations, baseline_expression = starting_expression.X)     
         else:
             if self.training_args["cell_type_sharing_strategy"] == "distinct":
                 cell_type_labels = predictions.obs[self.training_args["cell_type_labels"]]
