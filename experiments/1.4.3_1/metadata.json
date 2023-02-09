@@ -10,6 +10,7 @@
     "merge_replicates": false,
     "regression_method": "RidgeCV",
     "perturbation_dataset": "nakatake",
+    "only_tfs_are_regulators": true,
     "num_genes": 10000,
     "network_datasets": {
         "celloracle_human":      { "do_aggregate_subnets": true },

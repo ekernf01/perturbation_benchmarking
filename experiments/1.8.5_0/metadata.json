@@ -12,6 +12,7 @@
     "desired_heldout_fraction": [0.1,0.2,0.5],
     "merge_replicates": false,
     "num_genes": 10000,
+    "only_tfs_are_regulators": true,
     "default_level": "mean",
     "perturbation_dataset": "nakatake",
     "network_datasets": {

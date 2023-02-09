@@ -9,11 +9,9 @@
     "factor_varied": "starting_expression",
     "regression_method": ["mean", "RidgeCV"],
     "starting_expression": ["control", "heldout"],
-    "data_split_seed": [0],
-    "desired_heldout_fraction": [0.5],
     "merge_replicates": false,
     "num_genes": 10000,
-    "default_level": "mean",
+    "only_tfs_are_regulators": true,
     "perturbation_dataset": "nakatake",
     "network_datasets": {
         "dense":{}

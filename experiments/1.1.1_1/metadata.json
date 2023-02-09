@@ -5,13 +5,14 @@
     "question": "1.1.1",
     "is_active": true,
     "factor_varied": "pruning_parameter",
-    "pruning_parameter": [0, 2E1, 2E2, 2E3, 2E4, 2E5, 2E6, 2E7, 2E8],
+    "pruning_parameter": [0, 2E1, 2E2, 2E3, 2E4, 2E5, 2E6],
     "pruning_strategy": "prune_and_refit", 
     "network_prior": "ignore",
     "facet_by": null,
     "color_by": null,
     "default_level": null,
     "perturbation_dataset": "nakatake",
+    "only_tfs_are_regulators": true,
     "network_datasets": {
         "dense":{}
     }
