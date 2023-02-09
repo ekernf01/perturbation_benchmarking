@@ -62,13 +62,14 @@ def validate_metadata(
         "regression_method": "RidgeCV",
         "time_strategy": "steady_state",
         "starting_expression": "control",
-        "default_level": None,
         "kwargs": None,
         "data_split_seed": 0,
+        "baseline_condition": 0,
         "num_genes": 10000,
         "only_tfs_are_regulators": False,
         "merge_replicates": False,
         "network_datasets":{"dense":{}},
+        "skip_bad_runs": True,
     }
     for k in defaults:
         if not k in metadata:
@@ -82,7 +83,7 @@ def validate_metadata(
             metadata["network_datasets"][netName]["do_aggregate_subnets"] = False
     
     # Check all keys
-    missing = [k for k in (
+    desired_keys = (
         # Experiment info
         "unique_id",
         "nickname",
@@ -104,7 +105,8 @@ def validate_metadata(
         "network_prior",
         "regression_method",
         "time_strategy",
-    ) if k not in metadata.keys()]
+    )
+    missing = [k for k in desired_keys if k not in metadata.keys()]
     assert len(missing)==0, f"Metadata is missing some required keys: {' '.join(missing)}"
     
     # Check a few of the values
@@ -143,7 +145,15 @@ def lay_out_runs(
     metadata["network_datasets"] = list(networks.keys())
     # This is just too bulky to want in the csv
     del metadata["readme"]
-    # Code downstream (product) splits strings if you don't do this.
+    # This can't just be cartesian-producted like everything else. We'll add it back after the product.
+    baseline_condition = metadata["baseline_condition"]
+    try:
+        baseline_condition = baseline_condition.copy()
+    except AttributeError:
+        pass
+    del metadata["baseline_condition"]
+
+    # product splits strings if you don't wrap each in a list.
     for k in metadata.keys():
         if type(metadata[k]) != list:
             metadata[k] = [metadata[k]]
@@ -158,6 +168,8 @@ def lay_out_runs(
         experiments.loc[i, "network_prior"] = \
         "ignore" if experiments.loc[i, "network_datasets"] == "dense" else experiments.loc[i, "network_prior"]
 
+    experiments.index.name = "condition"
+    experiments["baseline_condition"] = baseline_condition
     return experiments
   
 def do_one_run(
@@ -497,7 +509,12 @@ def averageWithinPerturbation(ad: anndata.AnnData, confounders = []):
         p_idx = ad.obs["perturbation"]==p
         new_ad[p,].X = ad[p_idx,:].X.mean(0)
         new_ad.obs.loc[p,:] = ad[p_idx,:].obs.iloc[0,:]
-        new_ad.obs.loc[p,"expression_level_after_perturbation"] = ad.obs.loc[p_idx, "expression_level_after_perturbation"].mean()
+        try:
+            new_ad.obs.loc[p,"expression_level_after_perturbation"] = ad.obs.loc[p_idx, "expression_level_after_perturbation"].mean()
+        except:
+            # If it's a multi-gene perturbation in the format "0,0,0", don't bother averaging
+            # Hope to fix this eventually to average within each coord. 
+            new_ad.obs.loc[p,"expression_level_after_perturbation"] = ad.obs.loc[p_idx, "expression_level_after_perturbation"][0]
     new_ad.obs = new_ad.obs.astype(dtype = {c:ad.obs.dtypes[c] for c in new_ad.obs.columns}, copy = True)
     new_ad.raw = ad.copy()
     new_ad.uns = ad.uns.copy()

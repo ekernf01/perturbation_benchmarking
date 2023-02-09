@@ -28,7 +28,6 @@ def makeMainPlots(
         factor_varied (str): Plots are automatically colored based on this column of "evaluationPerPert". 
         facet_by (str): Plots are automatically stratified based on this column of "evaluationPerPert". 
         outputs (str): folder to save plots in
-        default_level: a value found in evaluationPerPert.loc[:,factor_varied] to compare all others against. This will be used to remove the variation from gene to gene. 
         metrics: How to measure performance. 
     """
     # Sometimes the index is too complex for Altair to handle correctly (tuples)
@@ -37,12 +36,12 @@ def makeMainPlots(
     except IndexError:
         pass
     vlnplot = {}
+    group_mean_by = [factor_varied]
+    if color_by is not None:
+        evaluationPerPert[factor_varied] = [str(a) + str(b) for a,b in zip(evaluationPerPert[factor_varied], evaluationPerPert[color_by])]
+    if facet_by is not None:
+        group_mean_by.append(facet_by)
     for metric in metrics:
-        group_mean_by = [factor_varied]
-        if color_by is not None:
-            evaluationPerPert[factor_varied] = [str(a) + str(b) for a,b in zip(evaluationPerPert[factor_varied], evaluationPerPert[color_by])]
-        if facet_by is not None:
-            group_mean_by.append(facet_by)
         means = evaluationPerPert.groupby(group_mean_by, as_index=False)[[metric]].mean()
         vlnplot[metric] = alt.Chart(
                 data = evaluationPerPert, 
@@ -146,12 +145,11 @@ def addGeneMetadata(df, adata):
         "degree_characteristics": degree_characteristics,
         }
 
-def studyPredictableGenes(evaluationPerTarget, train_data, save_path, factor_varied, default_level, genes_considered_as):
-    os.makedirs(os.path.join(save_path, genes_considered_as, "MAE_determinants"), exist_ok=True)
+def studyPredictableGenes(evaluationPerTarget, train_data, save_path, factor_varied, genes_considered_as):
     # Plot various factors against our per-gene measure of predictability 
     evaluationPerTarget, types_of_gene_data = addGeneMetadata(evaluationPerTarget, train_data)
     types_of_gene_data["out-degree"] = [s for s in types_of_gene_data["degree_characteristics"] if "out-degree" in s]
-    types_of_gene_data["in-degree"] = [s for s in types_of_gene_data["degree_characteristics"] if "in-degree" in s]
+    types_of_gene_data["in-degree"]  = [s for s in types_of_gene_data["degree_characteristics"] if "in-degree" in s]
     for t in types_of_gene_data.keys():
         long_data = pd.melt(
             evaluationPerTarget, 
@@ -161,13 +159,9 @@ def studyPredictableGenes(evaluationPerTarget, train_data, save_path, factor_var
             value_name='value', 
             col_level=None, 
             ignore_index=True)
-        long_data[f"{factor_varied}_"] = long_data[factor_varied] + "__" + long_data["model_beats_mean_on_this_gene"].astype(str)
-        try:
-            long_data = long_data.query(f"{factor_varied} != '{default_level}'")
-        except:
-            pass
+        long_data[f"{factor_varied}_"] = long_data[factor_varied].astype(str) + "__" + long_data["model_beats_mean_on_this_gene"].astype(str)
         chart = alt.Chart(long_data).mark_boxplot().encode(
-                x = f'{factor_varied}_:N',
+                x = f'{factor_varied}_',
                 y = "value:Q",
                 color='model_beats_mean_on_this_gene:N',
             ).facet(
@@ -179,8 +173,8 @@ def studyPredictableGenes(evaluationPerTarget, train_data, save_path, factor_var
         _ = alt.data_transformers.disable_max_rows()
         try:
             chart.save(os.path.join(save_path, genes_considered_as, f"predictability_vs_{t}.svg"), method = "selenium")
-        except:
-            print(f"Exception when saving predictability versus {t}: repr(e). Is the chart empty?")
+        except Exception as e:
+            print(f"Exception when saving predictability versus {t}: {repr(e)}. Is the chart empty?")
 
     # How many genes are we just predicting a constant for?
     if genes_considered_as == "targets":
@@ -205,19 +199,20 @@ def studyPredictableGenes(evaluationPerTarget, train_data, save_path, factor_var
 
     # Gene set enrichments on best-predicted genes
     for condition in evaluationPerTarget[factor_varied].unique():
-        os.makedirs(os.path.join(save_path, genes_considered_as, "enrichr_on_best", condition), exist_ok=True)
+        os.makedirs(os.path.join(save_path, genes_considered_as, "enrichr_on_best", str(condition)), exist_ok=True)
         gl = evaluationPerTarget.loc[evaluationPerTarget[factor_varied]==condition]
         gl = list(gl.sort_values("mae_benefit", ascending=False).head(50)["gene"].unique())
-        pd.DataFrame(gl).to_csv(os.path.join(save_path, genes_considered_as, "enrichr_on_best", condition, "input_genes.txt"), index = False,  header=False)
+        pd.DataFrame(gl).to_csv(os.path.join(save_path, genes_considered_as, "enrichr_on_best", str(condition), "input_genes.txt"), index = False,  header=False)
         for gene_sets in ['GO Molecular Function 2021', 'GO Biological Process 2021', 'Jensen TISSUES', 'ARCHS4 Tissues', 'Chromosome Location hg19']:
             try:
                 _ = gseapy.enrichr(
                     gene_list=gl,
                     gene_sets=gene_sets.replace(" ", "_"), 
-                    outdir=os.path.join(save_path, genes_considered_as, "enrichr_on_best", condition, f"{gene_sets}"), 
+                    outdir=os.path.join(save_path, genes_considered_as, "enrichr_on_best", str(condition), f"{gene_sets}"), 
                     format='svg',
                 )
-            except ValueError:
+            except (ValueError, ConnectionError) as e:
+                print(f"While running enrichr via gseapy, encountered error {repr(e)}.")
                 pass
     return evaluationPerTarget
 
@@ -258,19 +253,20 @@ def plotOneTargetGene(gene, outputs, experiments, factor_varied, train_data, hel
     ).save(os.path.join(outputs, gene + ".svg"), method = "selenium")
     return   
 
-def postprocessEvaluations(evaluations, experiments, factor_varied, default_level):
+def postprocessEvaluations(evaluations, experiments):
     evaluations   = pd.concat(evaluations)
     evaluations   = evaluations.merge(experiments,   how = "left", right_index = True, left_on = "index")
     evaluations   = pd.DataFrame(evaluations.to_dict())
     # Add some info on each evaluation-per-target, such as the baseline MAE
     evaluations["target"] = [i[1] for i in evaluations.index]
-    is_baseline = [f==default_level for f in evaluations[factor_varied]]
+    baseline_conditions = set(evaluations["baseline_condition"].unique())
+    is_baseline = [i in baseline_conditions for i in evaluations["condition"]]
     evaluations["mae_baseline"] = np.NaN
     evaluations.loc[is_baseline, "mae_baseline"] = evaluations.loc[is_baseline, "mae"]
     evaluations = evaluations.groupby("target", group_keys=False).apply(
         lambda x:
             x.fillna(
-                x.loc[x[factor_varied] == default_level, "mae"].values[0]
+                x.loc[x["condition"] == x["baseline_condition"], "mae"].values[0]
             )
     )
     evaluations["mae_benefit"] = evaluations["mae_baseline"] - evaluations["mae"]
@@ -293,8 +289,6 @@ def evaluateCausalModel(
     baseline:dict,
     experiments: pd.DataFrame, 
     outputs: str, 
-    factor_varied: str,
-    default_level = None, 
     classifier = None, 
     do_scatterplots = True):
     """Compile plots and tables comparing heldout data and predictions for same. 
@@ -305,15 +299,12 @@ def evaluateCausalModel(
             Baseline is expression before perturbation, for use in calculating log fold change. 
         classifier (sklearn.LogisticRegression): Optional, to judge results on cell type accuracy. 
         experiments (pd.DataFrame): Metadata for the different combinations used in this experiment. 
-        default_level: a value found in experiments.loc[:,factor_varied] to compare all others against. This is for use in repeated-measures analyses to remove the variation from gene to gene. 
         outputs (String): Saves output here.
     """
-    if default_level is None:
-        default_level = experiments.loc[0,factor_varied]
     evaluationPerPert = {}
     evaluationPerTarget = {}
     shared_var_names = list(set.intersection(*[set(predictions[experiment].var_names) for experiment in predictions.keys()]))    
-    evaluations = Parallel(n_jobs=cpu_count()-1, verbose = 1, backend="loky")(
+    evaluations = Parallel(n_jobs=int(cpu_count()/2), verbose = 1, backend="loky")(
         delayed(evaluateOnePrediction)(
             expression =            heldout[experiment][:, shared_var_names],
             predictedExpression=predictions[experiment][:, shared_var_names],
@@ -332,8 +323,8 @@ def evaluateCausalModel(
         evaluationPerTarget[experiment]["index"] = experiment
     del evaluations
     # Concatenate and add some extra info
-    evaluationPerPert = postprocessEvaluations(evaluationPerPert, experiments, factor_varied, default_level)
-    evaluationPerTarget = postprocessEvaluations(evaluationPerTarget, experiments, factor_varied, default_level)
+    evaluationPerPert = postprocessEvaluations(evaluationPerPert, experiments)
+    evaluationPerTarget = postprocessEvaluations(evaluationPerTarget, experiments)
     return evaluationPerPert, evaluationPerTarget
 
 def evaluateOnePrediction(

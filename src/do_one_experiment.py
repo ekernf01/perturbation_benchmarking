@@ -101,8 +101,11 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
                     outputs = outputs,
                     metadata = metadata,
                 )
-            except Exception as e:
-                print(f"Caught exception {repr(e)} on experiment {i}; skipping.")
+            except Exception as e: 
+                if metadata["skip_bad_runs"]:
+                    print(f"Caught exception {repr(e)} on experiment {i}; skipping.")
+                else:
+                    raise e
                 continue
 
             if args.save_models:
@@ -112,9 +115,11 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
             # Make predictions on test and (maybe) train set
             print("Generating predictions...", flush = True)
             if experiments.loc[i, "starting_expression"] == "control":
-                starting_expression = None
+                starting_expression       = None
+                starting_expression_train = None
             elif experiments.loc[i, "starting_expression"] == "heldout":
-                starting_expression = perturbed_expression_data_heldout[i].copy()
+                starting_expression       = perturbed_expression_data_heldout[i].copy()
+                starting_expression_train = perturbed_expression_data_train[i].copy()
             else:
                 raise ValueError(f"Unexpected value of 'starting_expression' in metadata: { experiments.loc[i, 'starting_expression'] }")
             predictions   = grn.predict(
@@ -132,7 +137,7 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
                         (r[1][0], r[1][1]) 
                         for r in perturbed_expression_data_train[i].obs[["perturbation", "expression_level_after_perturbation"]].iterrows()
                     ], 
-                    starting_expression = starting_expression
+                    starting_expression = starting_expression_train
                 )
                 fitted_values.obs.index = perturbed_expression_data_train[i].obs.index.copy()
                 fitted_values.write_h5ad( h5ad_fitted )
@@ -167,8 +172,6 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
         },
         experiments = experiments,
         outputs = outputs,
-        factor_varied = metadata["factor_varied"],
-        default_level = None,
         classifier = None,
         do_scatterplots = False,
     )
@@ -185,8 +188,6 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
             },
             experiments = experiments,
             outputs = os.path.join(outputs, "trainset_performance"),
-            factor_varied = metadata["factor_varied"],
-            default_level = None,
             classifier = None,
             do_scatterplots = False,
         )
@@ -202,46 +203,11 @@ if args.amount_to_do in {"plots", "models", "missing_models", "evaluations"}:
         fitted_values = {i:sc.read_h5ad( os.path.join(outputs, "fitted_values", str(i) + ".h5ad" ) ) for i in experiments.index}
     except FileNotFoundError:
         fitted_values = None
+
     print("Retrieving saved evaluations", flush = True)
     evaluationPerPert   = pd.read_parquet(os.path.join(outputs, "evaluationPerPert.parquet"))
     evaluationPerTarget = pd.read_parquet(os.path.join(outputs, "evaluationPerTarget.parquet"))
-    print("Studying predictability for each target gene.")
-    evaluationPerTarget = evaluator.studyPredictableGenes(
-        evaluationPerTarget, 
-        perturbed_expression_data_train[0], 
-        save_path = outputs,
-        factor_varied = metadata["factor_varied"],
-        default_level = metadata["default_level"],
-        genes_considered_as = "targets"
-    )
-    print("Studying predictability for each perturbation.")
-    evaluationPerTarget = evaluator.studyPredictableGenes(
-        evaluationPerPert, 
-        perturbed_expression_data_train[0], 
-        save_path = outputs,
-        factor_varied = metadata["factor_varied"],        
-        default_level = metadata["default_level"],
-        genes_considered_as = "perturbations"
-    )
-    print("Plotting all data and predictions for some example target genes.")
-    if fitted_values is not None:
-        for type in ["best", "worst", "random"]:
-            if type=="best":
-                genes = evaluationPerTarget.nlargest( 5, "mae_benefit")["target"]
-            elif type=="worst":
-                genes = evaluationPerTarget.nsmallest(5, "mae_benefit")["target"]
-            else:
-                genes = np.random.choice(size=5, a=evaluationPerTarget["target"].unique())
-            for gene in genes:
-                evaluator.plotOneTargetGene(
-                    gene=gene, 
-                    outputs=os.path.join(outputs,"targets", type), 
-                    experiments=experiments,
-                    factor_varied=metadata["factor_varied"],
-                    train_data=perturbed_expression_data_train, 
-                    heldout_data=perturbed_expression_data_heldout, 
-                    fitted_values=fitted_values, 
-                    predictions=predictions)
+
     print("Plotting main summaries of results.")
     evaluator.makeMainPlots(
         evaluationPerPert, 
@@ -264,6 +230,42 @@ if args.amount_to_do in {"plots", "models", "missing_models", "evaluations"}:
         )
     except FileNotFoundError:
         pass
+
+    print("Studying predictability for each target gene.")
+    evaluationPerTarget = evaluator.studyPredictableGenes(
+        evaluationPerTarget, 
+        perturbed_expression_data_train[0], 
+        save_path = outputs,
+        factor_varied = metadata["factor_varied"],
+        genes_considered_as = "targets"
+    )
+    print("Studying predictability for each perturbation.")
+    evaluationPerTarget = evaluator.studyPredictableGenes(
+        evaluationPerPert, 
+        perturbed_expression_data_train[0], 
+        save_path = outputs,
+        factor_varied = metadata["factor_varied"],        
+        genes_considered_as = "perturbations"
+    )
+    print("Plotting all data and predictions for some example target genes.")
+    if fitted_values is not None:
+        for type in ["best", "worst", "random"]:
+            if type=="best":
+                genes = evaluationPerTarget.nlargest( 5, "mae_benefit")["target"]
+            elif type=="worst":
+                genes = evaluationPerTarget.nsmallest(5, "mae_benefit")["target"]
+            else:
+                genes = np.random.choice(size=5, a=evaluationPerTarget["target"].unique())
+            for gene in genes:
+                evaluator.plotOneTargetGene(
+                    gene=gene, 
+                    outputs=os.path.join(outputs,"targets", type), 
+                    experiments=experiments,
+                    factor_varied=metadata["factor_varied"],
+                    train_data=perturbed_expression_data_train, 
+                    heldout_data=perturbed_expression_data_heldout, 
+                    fitted_values=fitted_values, 
+                    predictions=predictions)
     
 
 
