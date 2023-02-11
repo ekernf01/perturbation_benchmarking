@@ -3,6 +3,7 @@ import os
 import unittest
 import pandas as pd
 import numpy as np
+import scipy
 import torch
 import anndata
 import networkx as nx
@@ -106,6 +107,7 @@ adata.obs["logFC"] = -999
 adata.obs["spearmanCorr"] = -999
 adata.raw = adata
 adata.X = adata.raw.X.copy()
+adata.X = scipy.sparse.csr_matrix(adata.X)
 perturbed_and_measured_genes = adata.var.index
 perturbed_but_not_measured_genes = list()
 print("These genes were perturbed but not measured:")
@@ -148,7 +150,7 @@ class TestDCDFG(unittest.TestCase):
             cell_type_sharing_strategy = "identical",
             network_prior = "ignore",
             kwargs = { 
-                "num_train_epochs": 2, 
+                "num_train_epochs": 20, # This fails with 2 epochs 
                 "num_fine_epochs": 1,
                 "num_gpus": 1 if torch.cuda.is_available() else 0,
                 "train_batch_size": 64,

@@ -5,8 +5,7 @@ import unittest
 import pandas as pd
 import numpy as np
 import scanpy as sc 
-import torch
-import torch.nn as nn
+import scipy
 import anndata
 os.chdir(PROJECT_PATH + "perturbation_benchmarking")
 import sys
@@ -21,8 +20,9 @@ importlib.reload(load_networks)
 
 
 train   = sc.read_h5ad("../accessory_data/nakatake.h5ad")
+train.X = scipy.sparse.csr_matrix(train.X) 
 network = load_networks.LightNetwork(files=["../accessory_data/human_promoters.parquet"])
-example_perturbations = (("Control,KLF8", "0,0"), ("GATA1", 0), ("GATA1,GFP", f"0,{str(np.nan)}"), ("empty_vector", np.nan))
+example_perturbations = [("Control,KLF8", "0,0"), ("GATA1", 0), ("GATA1,GFP", f"0,{str(np.nan)}"), ("empty_vector", np.nan)]
 
 class TestModelRuns(unittest.TestCase):
     def test_make_GRN(self):
@@ -79,7 +79,9 @@ class TestModelRuns(unittest.TestCase):
                 pruning_strategy = "none", 
                 pruning_parameter = None, 
                 do_parallel=False, #catch bugs easier
-            )    
+            )
+            x1 = grn.predict(perturbations = example_perturbations)  
+            x2 = grn.predict(perturbations = example_perturbations, starting_expression=train[0:len(example_perturbations), 0:10].copy())
     
     def test_simple_fit_and_predict(self):
         grn    = ggrn.GRN(train[0:100, 0:100].copy(), validate_immediately=False)
@@ -207,7 +209,7 @@ class TestModelExactlyRightOnEasySimulation(unittest.TestCase):
             network_prior = "ignore", 
             pruning_strategy = "none",
         )
-        p = grn.predict((("g1", 0), ("g1", 1), ("g1", 2)), do_parallel=False)
+        p = grn.predict([("g1", 0), ("g1", 1), ("g1", 2)], do_parallel=False)
         np.testing.assert_almost_equal(p[:, "g0"].X.squeeze(), [0,2,4], decimal=1)
 
     def test_simple_dense_parallel_predict(self):
@@ -219,7 +221,7 @@ class TestModelExactlyRightOnEasySimulation(unittest.TestCase):
             network_prior = "ignore", 
             pruning_strategy = "none",
         )
-        p = grn.predict((("g1", 0), ("g1", 1), ("g1", 2)), do_parallel=True)
+        p = grn.predict([("g1", 0), ("g1", 1), ("g1", 2)], do_parallel=True)
         np.testing.assert_almost_equal(p[:, "g0"].X.squeeze(), [0,2,4], decimal=1)
 
     def test_network_dense(self):
@@ -231,7 +233,7 @@ class TestModelExactlyRightOnEasySimulation(unittest.TestCase):
             network_prior = "restrictive",
             pruning_strategy = "none"
         )
-        p = grn.predict((("g1", 0), ("g1", 1), ("g1", 2)), do_parallel=True)
+        p = grn.predict([("g1", 0), ("g1", 1), ("g1", 2)], do_parallel=True)
         np.testing.assert_almost_equal(p[:, "g0"].X.squeeze(), [0,2,4], decimal=1)
 
     def test_network_correct(self):
@@ -243,7 +245,7 @@ class TestModelExactlyRightOnEasySimulation(unittest.TestCase):
             network_prior = "restrictive",
             pruning_strategy = "none",
         )
-        p = grn.predict((("g1", 0), ("g1", 1), ("g1", 2)), do_parallel=True)
+        p = grn.predict([("g1", 0), ("g1", 1), ("g1", 2)], do_parallel=True)
         np.testing.assert_almost_equal(p[:, "g0"].X.squeeze(), [0,2,4], decimal=1)
 
     def test_network_empty(self):
@@ -255,7 +257,7 @@ class TestModelExactlyRightOnEasySimulation(unittest.TestCase):
             network_prior = "restrictive",
             pruning_strategy = "none",
         )
-        p = grn.predict((("g1", 0), ("g1", 1), ("g1", 2)), do_parallel=True)
+        p = grn.predict([("g1", 0), ("g1", 1), ("g1", 2)], do_parallel=True)
         np.testing.assert_almost_equal(p[:, "g0"].X.squeeze(), [0,0,0], decimal=1)
 
     def test_ct_specific(self):
@@ -274,17 +276,17 @@ class TestModelExactlyRightOnEasySimulation(unittest.TestCase):
             dummy_control = easy_simulated[0:3,:].copy()
             dummy_control.X = dummy_control.X*0
             dummy_control.obs["cell_type"] = 1
-            p = grn.predict((("g2", 0), ("g2", 1), ("g2", 2)), starting_expression=dummy_control.copy(), do_parallel=dp)
+            p = grn.predict([("g2", 0), ("g2", 1), ("g2", 2)], starting_expression=dummy_control.copy(), do_parallel=dp)
             np.testing.assert_almost_equal(p[:,"g4"].X.squeeze(), [0,2,4], decimal=1)
-            p = grn.predict((("g3", 0), ("g3", 1), ("g3", 2)), starting_expression=dummy_control.copy(), do_parallel=dp)
+            p = grn.predict([("g3", 0), ("g3", 1), ("g3", 2)], starting_expression=dummy_control.copy(), do_parallel=dp)
             np.testing.assert_almost_equal(p[:,"g4"].X.squeeze(), [0,0,0], decimal=1)
             # Cell type 2: only gene 3 affects gene 4
             dummy_control = easy_simulated[0:3,:].copy()
             dummy_control.X = dummy_control.X*0
             dummy_control.obs["cell_type"] = 2
-            p = grn.predict((("g2", 0), ("g2", 1), ("g2", 2)), starting_expression=dummy_control.copy(), do_parallel=dp)
+            p = grn.predict([("g2", 0), ("g2", 1), ("g2", 2)], starting_expression=dummy_control.copy(), do_parallel=dp)
             np.testing.assert_almost_equal(p[:,"g4"].X.squeeze(), [0,0,0], decimal=1)
-            p = grn.predict((("g3", 0), ("g3", 1), ("g3", 2)), starting_expression=dummy_control.copy(), do_parallel=dp)
+            p = grn.predict([("g3", 0), ("g3", 1), ("g3", 2)], starting_expression=dummy_control.copy(), do_parallel=dp)
             np.testing.assert_almost_equal(p[:,"g4"].X.squeeze(), [0,2,4], decimal=1)
 
 

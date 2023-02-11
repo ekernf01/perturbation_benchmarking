@@ -47,7 +47,7 @@ print(args)
 # For interactive sessions
 if args.experiment_name is None:
     args = Namespace(**{
-        "experiment_name":"1.6.1_3",
+        "experiment_name":"1.6.1_1",
         "amount_to_do": "missing_models",
         "save_trainset_predictions": True,
         "save_models": False,

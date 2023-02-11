@@ -214,7 +214,6 @@ class MLPModuleGaussianModel(pl.LightningModule):
             self.trainer.satisfied_constraints = True
 
 
-
     def simulateKO(self, control_expression: np.ndarray, KO_gene_indices: list, KO_gene_values: list, maxiter=1, maxiter_cyclic=1):
         """Simulate one or more perturbation experiment outcome(s) given a control expression,
         and given which gene(s) and corresponding perturbation value(s). 
@@ -245,8 +244,9 @@ class MLPModuleGaussianModel(pl.LightningModule):
             x = torch.from_numpy(control_expression.copy())
             x = x.double()
             for _ in range(maxiter):
-                x[KO_gene_indices] = KO_gene_values
+                for which_perturbation in range(len(KO_gene_indices)):
+                    x[KO_gene_indices[which_perturbation]] = KO_gene_values[which_perturbation]
                 x = self.module.forward(x)
-            x[KO_gene_indices] = KO_gene_values
-
+            for which_perturbation in range(len(KO_gene_indices)):
+                x[KO_gene_indices[which_perturbation]] = KO_gene_values[which_perturbation]
         return x.detach().numpy()

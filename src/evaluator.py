@@ -171,6 +171,7 @@ def studyPredictableGenes(evaluationPerTarget, train_data, save_path, factor_var
                 y='independent'
             )
         _ = alt.data_transformers.disable_max_rows()
+        os.makedirs(os.path.join(save_path, genes_considered_as), exist_ok=True)
         try:
             chart.save(os.path.join(save_path, genes_considered_as, f"predictability_vs_{t}.svg"), method = "selenium")
         except Exception as e:

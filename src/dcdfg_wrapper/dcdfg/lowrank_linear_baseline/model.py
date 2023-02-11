@@ -238,8 +238,9 @@ class LinearModuleGaussianModel(pl.LightningModule):
             x = torch.from_numpy(control_expression.copy())
             x = x.double()
             for _ in range(maxiter):
-                x[KO_gene_indices] = KO_gene_values
+                for which_perturbation in range(len(KO_gene_indices)):
+                    x[KO_gene_indices[which_perturbation]] = KO_gene_values[which_perturbation]
                 x = self.module.forward(x)
-            x[KO_gene_indices] = KO_gene_values
-
+            for which_perturbation in range(len(KO_gene_indices)):
+                x[KO_gene_indices[which_perturbation]] = KO_gene_values[which_perturbation]
         return x.detach().numpy()

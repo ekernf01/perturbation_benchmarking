@@ -63,6 +63,10 @@ class GRN:
                 eligible_regulators = train.var_names
 
         self.train = train 
+        try:
+            self.train.X = self.train.X.toarray()
+        except AttributeError:
+            pass
         assert network is None or type(network)==load_networks.LightNetwork
         self.network = network 
         self.eligible_regulators = [tf for tf in eligible_regulators if tf in train.var_names]
@@ -509,6 +513,9 @@ class GRN:
         """
         if type(self.models)==list and not self.models:
             raise ValueError("You may not call GRN.predict() until you have called GRN.fit().")
+        assert type(perturbations)==list, "Perturbations must be like [('NANOG', 1.56), ('OCT4', 1.82)]"
+        assert all(type(p)==tuple  for p in perturbations), "Perturbations must be like [('NANOG', 1.56), ('OCT4', 1.82)]"
+        assert all(len(p)==2       for p in perturbations), "Perturbations must be like [('NANOG', 1.56), ('OCT4', 1.82)]"
         assert all(type(p[0])==str for p in perturbations), "Perturbations must be like [('NANOG', 1.56), ('OCT4', 1.82)]"
         
         # Set up containers for expression + metadata 
@@ -536,8 +543,13 @@ class GRN:
             # Determine contents of one observation (expr and metadata)
             all_controls = np.where(self.train.obs["is_control"])[0]
             starting_metadata_one   = self.train.obs.iloc[[all_controls[0]], :].copy()
-            starting_expression_one = self.train.X[        all_controls,:].mean(axis=0, keepdims = True)
-            starting_features_one   = self.features[       all_controls,:].mean(axis=0, keepdims = True)
+            def toArraySafe(X):
+                try:
+                    return X.toarray()
+                except:
+                    return X
+            starting_expression_one = toArraySafe(self.train.X[        all_controls,:]).mean(axis=0, keepdims = True)
+            starting_features_one   = toArraySafe(self.features[       all_controls,:]).mean(axis=0, keepdims = True)
             # Now fill up all observations the same way
             starting_features = np.zeros((nrow, len(self.eligible_regulators)))
             for i in range(len(perturbations)):

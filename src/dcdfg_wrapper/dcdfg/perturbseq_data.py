@@ -18,7 +18,11 @@ class PerturbSeqDataset(Dataset):
         :param str adata: AnnData object
         """
         super(PerturbSeqDataset, self).__init__()
-        # load data
+        # load data, converting sparse to dense 
+        try:
+            adata.X = adata.X.toarray()
+        except AttributeError:
+            pass
         self.adata = adata
         all_data, all_masks, all_regimes = self.set_up_masks()
 
