@@ -237,11 +237,11 @@ class DCDFGWrapper:
         def convert_gene_symbol_to_index(gene):
             return [i for i,g in enumerate(genes) if g==gene]
         
-        for obs_i in range(len(perturbations)):
+        def reformat_perturbation(p):
             # Comma-separated lists allow multi-gene perts
-            pert_genes = perturbations[obs_i][0].split(",")
-            target_val = [float(f) for f in str(perturbations[obs_i][1]).split(",")]
-            assert len(pert_genes) == len(target_val), f"Malformed perturbation in sample {i}: {perturbations[i][0]}, {perturbations[i][1]}"
+            pert_genes = p[0].split(",")
+            target_val = [float(f) for f in str(p[1]).split(",")]
+            assert len(pert_genes) == len(target_val), f"Malformed perturbation in sample {i}: {p[0]}, {p[1]}"
             # Ignore anything with unknown expression or gene 
             not_nan = [i for i, x in enumerate(target_val) if not np.isnan(x)]
             pert_genes = [pert_genes[i] for i in not_nan]
@@ -254,15 +254,20 @@ class DCDFGWrapper:
                     print(f"Warning: Post-perturbation expression is not NaN. But because the perturbed gene {g} cannot be located, the profile is treated as a control sample lacking perturbation.")
             pert_genes = [pert_genes[i] for i in genes_recognized]
             target_val = [target_val[i] for i in genes_recognized]
-            
             target_loc = [convert_gene_symbol_to_index(g) for g in pert_genes]
-            with torch.no_grad():
-                predicted_adata.X[obs_i, :]  = self.model.simulateKO(
-                    control_expression = baseline_expression[obs_i, :].squeeze(),
-                    KO_gene_indices    = np.array(target_loc, dtype=int),
-                    KO_gene_values     = np.array(target_val, dtype=np.float64),
-                    maxiter            = 1,
-                )
-                
+            return target_loc, target_val
+
+        KO_gene_indices = [None for _ in perturbations]
+        KO_gene_values  = [None for _ in perturbations]
+        for obs_i, p in enumerate(perturbations):
+            KO_gene_indices[obs_i], KO_gene_values[obs_i]  = reformat_perturbation(p)
+
+        with torch.no_grad():
+            predicted_adata.X  = self.model.simulateKO(
+                control_expression = baseline_expression,
+                KO_gene_indices    = KO_gene_indices,
+                KO_gene_values     = KO_gene_values,
+                maxiter            = 1,
+            )
         
         return predicted_adata

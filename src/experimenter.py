@@ -301,6 +301,10 @@ def set_up_data_networks_conditions(metadata, amount_to_do, outputs):
         perturbed_expression_data = perturbed_expression_data.to_memory()
     except ValueError: #Object is already in memory.
         pass
+    try:
+        perturbed_expression_data.X = perturbed_expression_data.X.toarray()
+    except AttributeError: #Matrix is already dense.
+        pass
     if metadata["merge_replicates"]:
         perturbed_expression_data = averageWithinPerturbation(ad=perturbed_expression_data)
 

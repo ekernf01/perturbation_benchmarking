@@ -281,7 +281,7 @@ class TestDCDFG(unittest.TestCase):
                 "train_batch_size": 64,
                 "verbose": False,
                 "regularization_parameter": 0.1,
-                }
+            }
         )
         posWeight = (grn.models.model.module.weights * grn.models.model.module.weight_mask).detach().cpu().numpy()
         posWeightAnswer = np.array(

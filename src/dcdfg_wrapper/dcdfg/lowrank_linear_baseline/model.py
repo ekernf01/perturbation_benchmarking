@@ -208,18 +208,19 @@ class LinearModuleGaussianModel(pl.LightningModule):
         else:
             self.trainer.satisfied_constraints = True
 
+
     def simulateKO(self, control_expression: np.ndarray, KO_gene_indices: list, KO_gene_values: list, maxiter=1, maxiter_cyclic=1):
         """Simulate one or more perturbation experiment outcome(s) given a control expression,
         and given which gene(s) and corresponding perturbation value(s). 
         
         Args:
             control_expression (np.ndarray)   : The assumed gene expression profile prior to perturbation. 
-                The input numpy array must be 1 dimensional. 
-            KO_gene_indices    (list[int])    : A list of indices indicating where the perturbed genes 
+                The input numpy array must be n_perts by  n_genes. 
+            KO_gene_indices    (list[list[int]])    : List of length n_perts. Each entry is a list of indices indicating where the perturbed genes 
                 are located in the control expression array. The length of this list should be the same 
                 as "KO_gene_values". All of these genes are perturbed simultaneously in one predicted expression profile.
-            KO_gene_values     (list[double]) : A list of simulated expression values for the perturbed 
-                genes. The length of this list should be the same as "KO_gene_indices".
+            KO_gene_values     (list[list[double]]) :List of length n_perts. Each entry is a list of simulated expression values for the perturbed 
+                genes. The length of this sub-list should be the same as its counterpart in "KO_gene_indices".
             maxiter            (int)          : The maximum number of iterations to propagate.
             maxiter_cyclic     (int)          : The maximum number of iterations to propagate when the graph is cyclic.
 
@@ -229,18 +230,20 @@ class LinearModuleGaussianModel(pl.LightningModule):
         if not self.module.check_acyclicity():
             print(f"Warning: graph is not acyclic. Predictions may diverge (give NaN's). Setting maxiter to {maxiter_cyclic}.")
             maxiter = maxiter_cyclic
-        if len(control_expression.shape) > 1:
-            raise ValueError("simulateKO only accepts 1d input for control expression.")
-                    
-        KO_gene_values   = torch.from_numpy(np.array(KO_gene_values))
-        KO_gene_indices  = np.array(KO_gene_indices)
+        if len(control_expression.shape) != 2:
+            raise ValueError("simulateKO only accepts 2d input for control expression.")
+        assert control_expression.shape[0] == len(KO_gene_indices), f"Inconsistent input length. Starting expression: {control_expression.shape[0]}. KO_gene_indices: {len(KO_gene_indices)}"
+        assert control_expression.shape[0] == len(KO_gene_values),  f"Inconsistent input length. Starting expression: {control_expression.shape[0]}. KO_gene_indices: {len(KO_gene_values )}"
         with torch.no_grad():
             x = torch.from_numpy(control_expression.copy())
             x = x.double()
             for _ in range(maxiter):
-                for which_perturbation in range(len(KO_gene_indices)):
-                    x[KO_gene_indices[which_perturbation]] = KO_gene_values[which_perturbation]
-                x = self.module.forward(x)
-            for which_perturbation in range(len(KO_gene_indices)):
-                x[KO_gene_indices[which_perturbation]] = KO_gene_values[which_perturbation]
+                for which_obs_perturbed in range(len(KO_gene_indices)):
+                    for which_gene_perturbed in range(len(KO_gene_indices[which_obs_perturbed])):
+                        x[which_obs_perturbed, KO_gene_indices[which_obs_perturbed][which_gene_perturbed]] = KO_gene_values[which_obs_perturbed][which_gene_perturbed]
+                x = self.module(x)
+            # Enforce perturbation one last time outside main loop
+            for which_obs_perturbed in range(len(KO_gene_indices)):
+                for which_gene_perturbed in range(len(KO_gene_indices[which_obs_perturbed])):
+                    x[which_obs_perturbed, KO_gene_indices[which_obs_perturbed][which_gene_perturbed]] = KO_gene_values[which_obs_perturbed][which_gene_perturbed]
         return x.detach().numpy()
