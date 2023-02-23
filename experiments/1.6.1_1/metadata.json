@@ -15,8 +15,8 @@
     ],
     "baseline_condition": 0,
     "kwargs": { 
-        "num_train_epochs": 20, 
-        "num_fine_epochs" : 10,
+        "num_train_epochs": 600, 
+        "num_fine_epochs" : 100,
         "train_batch_size": 64,
         "verbose": false
     },

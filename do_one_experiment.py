@@ -1,30 +1,31 @@
 import os
+PROJECT_PATH = '/home/ekernf01/Desktop/jhu/research/projects/perturbation_prediction/cell_type_knowledge_transfer/'
+os.chdir(PROJECT_PATH + "perturbation_benchmarking_experiments")
 import numpy as np
-import matplotlib.colors as colors
-import matplotlib.pyplot as plt
-plt.rcParams['figure.figsize'] = [6, 4.5]
-plt.rcParams["savefig.dpi"] = 300
 import pandas as pd
 import scanpy as sc
 import gc
 import argparse
 from argparse import Namespace
 import datetime
-# Deal with various data and modules specific to this project
-PROJECT_PATH = '/home/ekernf01/Desktop/jhu/research/projects/perturbation_prediction/cell_type_knowledge_transfer/'
-os.chdir(PROJECT_PATH + "perturbation_benchmarking")
-import importlib
-import sys
-sys.path.append(os.path.expanduser(os.path.join(PROJECT_PATH, 'perturbation_data', 'load_perturbations'))) 
-sys.path.append(os.path.expanduser(os.path.join(PROJECT_PATH, 'perturbation_benchmarking', 'src'))) 
-import evaluator
-import experimenter
+
+# Access our code
+import perturbation_benchmarking_package.evaluator as evaluator
+import perturbation_benchmarking_package.experimenter as experimenter
 import load_perturbations
-import ggrn
-importlib.reload(evaluator)
-importlib.reload(experimenter)
-importlib.reload(load_perturbations)
-os.environ["PERTURBATION_PATH"]  = PROJECT_PATH + "perturbation_data/perturbations"
+import load_networks
+import ggrn.api as ggrn
+
+# Access our data collections
+load_networks.set_grn_location(
+    '../network_collection/networks'
+)
+load_perturbations.set_data_path(
+    '../perturbation_data/perturbations'
+)
+DEFAULT_HUMAN_TFs = pd.read_csv("../accessory_data/humanTFs.csv")
+DEFAULT_HUMAN_TFs = DEFAULT_HUMAN_TFs.loc[DEFAULT_HUMAN_TFs["Is TF?"]=="Yes", "HGNC symbol"]
+
 # User input: name of experiment and whether to fully rerun or just remake plots. 
 parser = argparse.ArgumentParser("experimenter")
 parser.add_argument("--experiment_name", help="Unique id for the experiment.", type=str)
@@ -47,8 +48,8 @@ print(args)
 # For interactive sessions
 if args.experiment_name is None:
     args = Namespace(**{
-        "experiment_name":"1.6.1_1",
-        "amount_to_do": "missing_models",
+        "experiment_name":"1.0_0",
+        "amount_to_do": "models",
         "save_trainset_predictions": True,
         "save_models": False,
     })
@@ -68,21 +69,32 @@ perturbed_expression_data, networks, experiments = experimenter.set_up_data_netw
 
 perturbed_expression_data_train = {}
 perturbed_expression_data_heldout = {}
-if args.amount_to_do in {"models", "missing_models", "evaluations"}:
-    os.makedirs(os.path.join( outputs, "predictions"   ), exist_ok=True) 
-    os.makedirs(os.path.join( outputs, "fitted_values" ), exist_ok=True) 
-    for i in experiments.index:
-        models      = os.path.join( outputs, "models",        str(i) )
-        h5ad        = os.path.join( outputs, "predictions",   str(i) + ".h5ad" )
-        h5ad_fitted = os.path.join( outputs, "fitted_values", str(i) + ".h5ad" )
-        perturbed_expression_data = experimenter.filter_genes(perturbed_expression_data, num_genes = experiments.loc[i, "num_genes"], outputs = outputs)
-        perturbed_expression_data_train[i], perturbed_expression_data_heldout[i] = experimenter.splitDataWrapper(
-            perturbed_expression_data,
-            networks = networks, 
-            desired_heldout_fraction = experiments.loc[i, "desired_heldout_fraction"],  
-            type_of_split            = experiments.loc[i, "type_of_split"],
-            data_split_seed          = experiments.loc[i, "data_split_seed"],
-        )
+os.makedirs(os.path.join( outputs, "predictions"   ), exist_ok=True) 
+os.makedirs(os.path.join( outputs, "fitted_values" ), exist_ok=True) 
+for i in experiments.index:
+    models      = os.path.join( outputs, "models",        str(i) )
+    h5ad        = os.path.join( outputs, "predictions",   str(i) + ".h5ad" )
+    h5ad_fitted = os.path.join( outputs, "fitted_values", str(i) + ".h5ad" )
+    perturbed_expression_data = experimenter.filter_genes(perturbed_expression_data, num_genes = experiments.loc[i, "num_genes"], outputs = outputs)
+    perturbed_expression_data_train[i], perturbed_expression_data_heldout[i] = experimenter.splitDataWrapper(
+        perturbed_expression_data,
+        networks = networks, 
+        desired_heldout_fraction = experiments.loc[i, "desired_heldout_fraction"],  
+        type_of_split            = experiments.loc[i, "type_of_split"],
+        data_split_seed          = experiments.loc[i, "data_split_seed"],
+    )
+
+    # Delete the new copies and replace with shallow copies unless the data split is actually different
+    def is_equal_anndata(ad1, ad2):
+        return np.array_equal(ad1.X, ad2.X) and ad1.obs.equals(ad2.obs) and ad1.var.equals(ad2.var)
+    if i>0 and \
+    is_equal_anndata(perturbed_expression_data_train[i], perturbed_expression_data_train[i-1]) and \
+    is_equal_anndata(perturbed_expression_data_heldout[i], perturbed_expression_data_heldout[i-1]):
+        perturbed_expression_data_train[i] = perturbed_expression_data_train[i-1]
+        perturbed_expression_data_heldout[i] = perturbed_expression_data_heldout[i-1]
+        gc.collect()
+
+    if args.amount_to_do in {"models", "missing_models"}:
         # Fit models!!
         if \
             (args.amount_to_do in {"models"}) or \
@@ -100,6 +112,7 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
                     networks = networks, 
                     outputs = outputs,
                     metadata = metadata,
+                    human_tfs = DEFAULT_HUMAN_TFs,
                 )
             except Exception as e: 
                 if metadata["skip_bad_runs"]:
@@ -146,10 +159,10 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
 
 if args.amount_to_do in {"models", "missing_models", "evaluations"}:
     print("Retrieving saved predictions", flush = True)
-    experiments = pd.read_csv( os.path.join(outputs, "experiments.csv") )
-    predictions = {i:sc.read_h5ad( os.path.join(outputs, "predictions",   str(i) + ".h5ad" ) ) for i in experiments.index}
+    experiments =     pd.read_csv( os.path.join(outputs, "experiments.csv") )
+    predictions = {i:sc.read_h5ad( os.path.join(outputs, "predictions",   str(i) + ".h5ad" ), backed=True ) for i in experiments.index}
     try:
-        fitted_values = {i:sc.read_h5ad( os.path.join(outputs, "fitted_values", str(i) + ".h5ad" ) ) for i in experiments.index}
+        fitted_values = {i:sc.read_h5ad( os.path.join(outputs, "fitted_values", str(i) + ".h5ad" ), backed=True ) for i in experiments.index}
     except FileNotFoundError:
         fitted_values = None
     assert all(

@@ -9,4 +9,6 @@ finish_time.txt
 *__pycache__*
 *.pyc
 old_experiments/*
-experiments/*/outputs*
+experiments/*/outputs/*
+experiments/*/old_outputs/*
+node_modules/*
