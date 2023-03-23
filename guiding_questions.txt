@@ -1,0 +1,41 @@
+We wanted experiment identifiers to be concise, stable, and informative. To help compromise among these properties, we maintain this numbered list of guiding questions. These have been numbered the same way since the start of the project; we allow new sub-questions but we seldom change the number of a question after it is added. Each experiment refers explicitly to one of these questions. 
+
+1. What is the best computational/statistical framework for predicting unseen perturbations of the transcriptome, and what characteristics of that framework are important to its performance?
+    1.0. How important is the specific choice of ML method (e.g. ridge regression, LASSO, kernel regression, neural nets, boosted trees/random forests)?
+    1.1. How dense are the network structures that best predict expression following new perturbations?
+        1.1.1. How harshly should we prune features?
+        1.1.2 Should we allow non-TF regulators?
+    1.2. How does handling of time affect performance? 
+         1.2.1. For dynamic models, is RNA velocity better or worse than modeling based on sample collection time?
+         1.2.2. Given no time-series labels, is it better to match each treatment to the nearest control, or match each treatment to itself and assume steady state?
+    1.3. How much are causal effects or causal structures shared across different cell types? 
+        1.3.1. Do estimators treating cell types as "separate", "shared", or "similar" work best?
+        1.3.2. See 1.4.1
+    1.4. About existing drafts of causal networks affecting transcription:
+        1.4.0. Do most regulators have similar effects across all their targets?
+        1.4.1. Do cell-type-specific draft networks work better on the corresponding cell types?
+        1.4.2. What’s the best way to use a given network?
+        1.4.3. Do some sources of network structures work better than others?
+    1.5. How do existing methods compare on common tasks?
+    1.6. What method of imposing low-rank structure works best, if any?
+        1.6.1. Does DCD-FG work?
+        1.6.2. Leaving aside causal inference or held-out perturbations, does low-rank structure also help learn fold changes for perturbations, as in FR-Perturb?
+    1.7. What method of measuring TF activity works best?
+    1.8. What types of data contain more useful signal? How do mundane details (e.g. data splitting) affect apparent performance? 
+        1.8.1. Which is more useful: lots of perturbations, or wild-type time-series data? 
+        1.8.2. Does pseudobulk aggregation or metacell aggregation or averaging of replicates hurt performance?
+        1.8.3. How does variable gene selection affect apparent performance? 
+        1.8.4. Is the main problem statistical generalization, or causal identification? Specifically, is it harder when the perturbations in the test set do not appear in the training set, or is it just as hard with a simple random split?
+        1.8.5. How do different data splits affect performance (50-50 vs 90-10, different seeds)?
+        1.8.6. Some evaluations require revealing all the test data to the predictor -- for instance, any evaluation of heldout data log likelihood. Does this make the task substantially easier?
+
+
+2. Different model assumptions imply different amounts of perturbations are needed to identify network structure. What do our results imply about identifiability?
+3. Is it possible to obtain calibrated predictive intervals for expression profiles after unseen perturbations? 
+    3.1. What are the biggest drivers of uncertainty?
+        3.1.1. Measurement noise? 
+        3.1.2. Network structure? 
+        3.1.3. Causal effect size & direction?
+        3.1.4. Systematic errors such as samples failing sequencing or off-target CRISPR effects
+4. What makes some genes easier to predict and others harder?
+
