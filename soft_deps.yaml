@@ -9,6 +9,7 @@ dependencies:
   - pytorch
   - pyg
   - pytorch-lightning
+  - numpy <=1.23
   - scanpy
   - scipy
   - numpy 
@@ -19,3 +20,4 @@ dependencies:
   - wandb
   - python-duckdb
   - scikit-learn
+  - gseapy
