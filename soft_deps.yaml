@@ -9,7 +9,7 @@ dependencies:
   - pytorch
   - pyg
   - pytorch-lightning
-  - numpy <=1.23
+  - numpy[version='<=1.23']
   - scanpy
   - scipy
   - numpy 
