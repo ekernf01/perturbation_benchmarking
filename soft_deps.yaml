@@ -1,0 +1,21 @@
+name: ggrn2
+channels:
+  - pytorch  
+  - pyg
+  - conda-forge
+  - bioconda
+dependencies:
+  - python=3.9
+  - pytorch
+  - pyg
+  - pytorch-lightning
+  - scanpy
+  - scipy
+  - numpy 
+  - yaml
+  - altair
+  - altair_saver
+  - jupyterlab
+  - wandb
+  - python-duckdb
+  - scikit-learn
