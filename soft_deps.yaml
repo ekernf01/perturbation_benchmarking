@@ -1,23 +1,23 @@
 name: ggrn2
 channels:
-  - pytorch  
-  - pyg
   - conda-forge
   - bioconda
+  - defaults
 dependencies:
-  - python=3.9
-  - pytorch
-  - pyg
-  - pytorch-lightning
-  - numpy[version='<=1.23']
-  - scanpy
-  - scipy
-  - numpy 
-  - yaml
   - altair
   - altair_saver
-  - jupyterlab
-  - wandb
   - python-duckdb
+  - pytorch-lightning
+  - scipy
+  - pytorch
+  - numpy[version='<=1.23']
   - scikit-learn
+  - python=3.9
+  - jupyterlab
+  - yaml
+  - pyg
+  - wandb
+  - scanpy
   - gseapy
+  - selenium=3.141.0
+prefix: /home/ekernf01/.local/share/r-miniconda/envs/ggrn2
