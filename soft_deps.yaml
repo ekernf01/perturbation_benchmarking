@@ -1,23 +1,36 @@
-name: ggrn2
+name: ggrn
 channels:
+  - pytorch
+  - pyg
   - conda-forge
   - bioconda
   - defaults
 dependencies:
-  - altair
-  - altair_saver
   - python-duckdb
   - pytorch-lightning
   - scipy
   - pytorch
+  - pyg
+  - torchvision 
+  - torchaudio 
   - numpy[version='<=1.23']
+  - cython
   - scikit-learn
   - python=3.9
   - jupyterlab
+  - jupyter
+  - ipywidgets
   - yaml
-  - pyg
   - wandb
-  - scanpy
-  - gseapy
   - selenium=3.141.0
-prefix: /home/ekernf01/.local/share/r-miniconda/envs/ggrn2
+  - altair
+  - altair_saver
+  - dcor
+  - velocyto.py
+  - scanpy
+  - python-igraph
+  - louvain
+  - genomepy
+  - gimmemotifs[version'<=0.17.1']
+  - gseapy
+  - goatools
