@@ -19,14 +19,33 @@ It can be hard to understand how all these experiments relate to one another, so
 
 ### Installation
 
-The project is written in Python with the main dependencies being gseapy, DCD-FG, scanpy + AnnData, DuckDB, PyTorch, and the usuals (joblib, numpy, pandas, scipy, etc). We use Conda to manage the environment, except for specific dependencies of PRESCIENT. The environment can be exactly reproduced via the commands below. This requires a linux64 system (we use Ubuntu 20.04). 
+The project is written in Python. We use Conda to manage most dependencies.
+
+#### Flexible install
+
+Some flexibility in exact requirements is useful in case of different operating systems and GPU availability.
+To install the roughly the same versions we use, start with the dependencies given in `soft_deps.yaml`. We also use a few packages only available via pip.
 
 ```bash
-conda create --name ggrn --file spec_file.txt
-pip install cell-gears # hopefully we can condify this. Status: build complete, awaiting upload.
-pip install celloracle # hopefully we can condify this. Status: build is buggy (gimmemotifs problem). 
-pip install prescient --no-deps # Don't usurp the existing torch installation
-pip install geomloss==0.2.3
+mamba env create --name ggrn --file soft_deps.yaml
+conda activate ggrn
+pip install cell-gears==0.0.2  --no-deps
+pip install celloracle==0.12.0 --no-deps
+pip install prescient==0.1.0   --no-deps 
+pip install geomloss==0.2.3    --no-deps 
+```
+
+#### Exact reproduction
+
+Exactly reproducing our environment requires a linux64 system (we use Ubuntu 20.04). The environment can be exactly reproduced via the commands below. 
+
+```bash
+mamba env create --name ggrn --file exact_deps.yaml
+conda activate ggrn
+pip install cell-gears==0.0.2  --no-deps
+pip install celloracle==0.12.0 --no-deps
+pip install prescient==0.1.0   --no-deps 
+pip install geomloss==0.2.3    --no-deps 
 ```
 
 **TO DO: explain how to install our packages** Our experiments rely on [adjacent repos](https://github.com/ekernf01/perturbation_writing) for network modeling and for quick loading of network structures and perturbation data. 
