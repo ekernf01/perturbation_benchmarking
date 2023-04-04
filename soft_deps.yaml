@@ -35,3 +35,4 @@ dependencies:
   - gseapy
   - goatools
   - python-annoy
+  - pyreadr
