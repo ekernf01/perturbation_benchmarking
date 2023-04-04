@@ -16,6 +16,7 @@ dependencies:
   - numpy[version='<=1.23']
   - cython
   - scikit-learn
+  - pyarrow
   - python=3.9
   - jupyterlab
   - jupyter

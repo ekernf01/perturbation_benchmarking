@@ -33,6 +33,9 @@ pip install cell-gears==0.0.2  --no-deps
 pip install celloracle==0.12.0 --no-deps
 pip install prescient==0.1.0   --no-deps 
 pip install geomloss==0.2.3    --no-deps 
+for p in load_networks load_perturbations ggrn_backend2 ggrn_backend3 ggrn perturbation_benchmarking_package do
+    pip install -e ../$p
+done
 ```
 
 #### Exact reproduction
