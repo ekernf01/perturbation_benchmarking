@@ -1,6 +1,4 @@
 import os
-PROJECT_PATH = '/home/ekernf01/Desktop/jhu/research/projects/perturbation_prediction/cell_type_knowledge_transfer/'
-os.chdir(PROJECT_PATH + "perturbation_benchmarking")
 import numpy as np
 import pandas as pd
 import scanpy as sc
