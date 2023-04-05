@@ -4,7 +4,7 @@
     "readme": "people have published big fat lists of TF-target or gene-gene relationships, often for GWAS interpretation or reprogramming. Existing benchmarks have limited information content and seldom compare these published network structures directly without introducing confounding factors. For instance, one might ask whether the networks used by CellNet, Mogrify, Irene, and CellOracle are of comparable value in predicting perturbation outcomes. Those methods have been compared, but they each involve many other components that may also affect the outcome, confounding the effect of network structure. This experiment benchmarks many networks using otherwise-equivalent methods to see how much each network helps predict held-out perturbations.",
     "question": "1.4.3",
     "is_active": true,
-    "factor_varied": "network",
+    "factor_varied": "network_datasets",
     "color_by": null,
     "facet_by": null,
     "merge_replicates": false,
@@ -12,20 +12,21 @@
     "perturbation_dataset": "nakatake",
     "only_tfs_are_regulators": true,
     "num_genes": 10000,
+    "network_prior": "restrictive",
     "network_datasets": {
+        "empty":     { "do_aggregate_subnets": true }, 
+        "dense":     { "do_aggregate_subnets": true },    
         "celloracle_human":      { "do_aggregate_subnets": true },
         "gtex_rna":              { "do_aggregate_subnets": true },
         "magnum_compendium_32":  { "do_aggregate_subnets": true },   
         "magnum_compendium_ppi": { "do_aggregate_subnets": true },
-        "humanbase":             { "do_aggregate_subnets": true },
         "cellnet_human_Hg1332":  { "do_aggregate_subnets": true },
         "cellnet_human_Hugene":  { "do_aggregate_subnets": true },
         "MARA_FANTOM4":          { "do_aggregate_subnets": true },
-        "STRING":                { "do_aggregate_subnets": true },    
+        "STRING":                { "do_aggregate_subnets": true },
         "ANANSE_0.5":            { "do_aggregate_subnets": true },
         "ANANSE_tissue_0.5":     { "do_aggregate_subnets": true },
-        "empty":     { "do_aggregate_subnets": true }, 
-        "dense":     { "do_aggregate_subnets": true }
+        "humanbase":             { "do_aggregate_subnets": true }
     }
 }
 

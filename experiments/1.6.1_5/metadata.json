@@ -1,0 +1,22 @@
+{
+    "unique_id": "1.6.1_5",
+    "nickname": "dcdfg",
+    "readme": "Compromise between experiment 1.6.1_1 (DCD-FG repro) and 1.0_1 (different ML methods on Nakatake).",
+    "refers_to": "1.0_1",
+    "is_active": true,
+    "perturbation_dataset": "nakatake", 
+    "only_tfs_are_regulators": false,
+    "regression_method": [
+        "mean", 
+        "median",
+        "DCDFG-spectral_radius-linearlr-False",   
+        "DCDFG-spectral_radius-mlplr-False" 
+    ],
+    "kwargs": { 
+        "num_train_epochs": 600, 
+        "num_fine_epochs" : 100,
+        "train_batch_size": 64,
+        "verbose": false
+    }
+}
+

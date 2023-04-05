@@ -1,0 +1,12 @@
+{
+    "unique_id": "1.6.1_6",
+    "nickname": "dcdfg",
+    "readme": "Like experiment 1.6.1_1, but with nakatake. Note: only 1000 genes selected.",
+    "refers_to": "1.6.1_1",
+    "is_active": true,
+    "perturbation_dataset": "nakatake", 
+    "network_datasets": {
+        "dense":{}
+    }
+}
+

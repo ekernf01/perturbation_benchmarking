@@ -5,7 +5,7 @@ wc -l experiments/*/err.txt
 wc -l experiments/*/out.txt
 "
 conda activate ggrn
-for experiment in 1.0_0
+for experiment in 1.4.5_1 #1.0_2
 do
     echo "Starting ${experiment}"
     python do_one_experiment.py --experiment_name $experiment --amount_to_do missing_models --save_trainset_predictions \

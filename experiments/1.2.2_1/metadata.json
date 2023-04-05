@@ -1,0 +1,28 @@
+{
+    "unique_id": "1.2.2_1",
+    "nickname": "autoregressive",
+    "readme": "Do autoregressive models help extract more from the data than steady-state methods?",
+    "question": "1.2.2",
+    "is_active": true,
+    "facet_by": "starting_expression",
+    "color_by": null,
+    "factor_varied": "regression_method",
+    "regression_method":[
+        "mean", 
+        "median",
+        "autoregressive-rgq-supervised",
+        "autoregressive-rgq-svd",
+        "autoregressive-none-supervised"
+    ],
+    "baseline_condition": 0,
+    "merge_replicates": false,
+    "predict_self": true,
+    "perturbation_dataset": "frangieh_IFNγ_v3",
+    "skip_bad_runs": false,
+    "num_genes": 1000,
+    "starting_expression": ["control", "heldout"],
+    "network_datasets": {
+        "dense":{}
+    }
+}
+

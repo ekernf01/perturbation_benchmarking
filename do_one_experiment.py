@@ -1,6 +1,6 @@
 import os
 PROJECT_PATH = '/home/ekernf01/Desktop/jhu/research/projects/perturbation_prediction/cell_type_knowledge_transfer/'
-os.chdir(PROJECT_PATH + "perturbation_benchmarking_experiments")
+os.chdir(PROJECT_PATH + "perturbation_benchmarking")
 import numpy as np
 import pandas as pd
 import scanpy as sc
@@ -48,8 +48,8 @@ print(args)
 # For interactive sessions
 if args.experiment_name is None:
     args = Namespace(**{
-        "experiment_name":"1.0_0",
-        "amount_to_do": "models",
+        "experiment_name":"test",
+        "amount_to_do": "missing_models",
         "save_trainset_predictions": True,
         "save_models": False,
     })
@@ -115,6 +115,7 @@ for i in experiments.index:
                     human_tfs = DEFAULT_HUMAN_TFs,
                 )
             except Exception as e: 
+                raise e
                 if metadata["skip_bad_runs"]:
                     print(f"Caught exception {repr(e)} on experiment {i}; skipping.")
                 else:
@@ -143,7 +144,15 @@ for i in experiments.index:
                 starting_expression = starting_expression
             )   
             predictions.obs.index = perturbed_expression_data_heldout[i].obs.index.copy()
-            predictions.write_h5ad( h5ad )
+            # Sometimes AnnData has trouble saving pandas bool columns and sets, and they aren't needed here anyway.
+            try:
+                del predictions.obs["is_control"] 
+                del predictions.obs["is_treatment"] 
+                predictions.uns["perturbed_and_measured_genes"] = list(predictions.uns["perturbed_and_measured_genes"])
+                predictions.uns["perturbed_but_not_measured_genes"] = list(predictions.uns["perturbed_but_not_measured_genes"])
+            except KeyError as e:
+                pass
+            experimenter.safe_save_adata( predictions, h5ad )
             if args.save_trainset_predictions:
                 fitted_values = grn.predict(
                     [
@@ -153,22 +162,29 @@ for i in experiments.index:
                     starting_expression = starting_expression_train
                 )
                 fitted_values.obs.index = perturbed_expression_data_train[i].obs.index.copy()
-                fitted_values.write_h5ad( h5ad_fitted )
+                # Sometimes AnnData has trouble saving pandas bool columns, and they aren't needed here anyway.
+                experimenter.safe_save_adata( fitted_values, h5ad_fitted )
             print("... done.", flush = True)
             del grn
 
 if args.amount_to_do in {"models", "missing_models", "evaluations"}:
     print("Retrieving saved predictions", flush = True)
     experiments =     pd.read_csv( os.path.join(outputs, "experiments.csv") )
-    predictions = {i:sc.read_h5ad( os.path.join(outputs, "predictions",   str(i) + ".h5ad" ), backed=True ) for i in experiments.index}
+    predictions = {i:sc.read_h5ad( os.path.join(outputs, "predictions",   str(i) + ".h5ad" ), backed='r' ) for i in experiments.index}
     try:
-        fitted_values = {i:sc.read_h5ad( os.path.join(outputs, "fitted_values", str(i) + ".h5ad" ), backed=True ) for i in experiments.index}
+        fitted_values = {i:sc.read_h5ad( os.path.join(outputs, "fitted_values", str(i) + ".h5ad" ), backed='r' ) for i in experiments.index}
     except FileNotFoundError:
         fitted_values = None
-    assert all(
-        [obs.shape[0] == pred.shape[0] 
-        for obs,pred in zip(predictions.values(), perturbed_expression_data_heldout.values())]
-    )
+    op = zip(predictions.values(), perturbed_expression_data_heldout.values())
+    try:
+        assert all(
+            [obs.shape[0] == pred.shape[0] 
+            for obs,pred in op]
+        )
+    except AssertionError:
+        op = zip(predictions.values(), perturbed_expression_data_heldout.values())
+        print([(obs.shape, pred.shape) for obs,pred in op], flush = True)
+        raise AssertionError("Predicted and observed anndata are different shapes.")
     assert all(
         [all(
             np.sort(predictions[i].obs_names) == np.sort(perturbed_expression_data_heldout[i].obs_names)) 
@@ -247,15 +263,17 @@ if args.amount_to_do in {"plots", "models", "missing_models", "evaluations"}:
     print("Studying predictability for each target gene.")
     evaluationPerTarget = evaluator.studyPredictableGenes(
         evaluationPerTarget, 
-        perturbed_expression_data_train[0], 
+        train_data = perturbed_expression_data_train[0], 
+        test_data = perturbed_expression_data_heldout[0], 
         save_path = outputs,
         factor_varied = metadata["factor_varied"],
         genes_considered_as = "targets"
     )
     print("Studying predictability for each perturbation.")
-    evaluationPerTarget = evaluator.studyPredictableGenes(
-        evaluationPerPert, 
-        perturbed_expression_data_train[0], 
+    evaluationPerPert = evaluator.studyPredictableGenes(
+        evaluationPerTarget = evaluationPerPert, 
+        train_data = perturbed_expression_data_train[0], 
+        test_data = perturbed_expression_data_heldout[0], 
         save_path = outputs,
         factor_varied = metadata["factor_varied"],        
         genes_considered_as = "perturbations"

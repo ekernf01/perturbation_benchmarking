@@ -1,0 +1,12 @@
+{
+    "unique_id": "1.0_3",
+    "nickname": "ml methods",
+    "readme": "Like 1.0_1 but frangieh pseudobulk data instead of nakatake.",
+    "refers_to": "1.0_1",
+    "is_active": true,
+    "perturbation_dataset": "frangieh_IFNγ_v3",
+    "network_datasets": {
+        "dense":{}
+    }
+}
+
