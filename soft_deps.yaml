@@ -37,3 +37,4 @@ dependencies:
   - goatools
   - python-annoy
   - pyreadr
+  - regex
