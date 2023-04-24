@@ -5,6 +5,7 @@ channels:
   - conda-forge
   - bioconda
   - defaults
+  - lingfeiwang
 dependencies:
   - python-duckdb
   - pytorch-lightning
@@ -38,3 +39,5 @@ dependencies:
   - python-annoy
   - pyreadr
   - regex
+  - scikit-misc
+  - dictys
