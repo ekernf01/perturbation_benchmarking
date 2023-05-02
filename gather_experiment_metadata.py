@@ -1,12 +1,8 @@
 import os
 import pandas as pd
-PROJECT_PATH = '/home/ekernf01/Desktop/jhu/research/projects/perturbation_prediction/cell_type_knowledge_transfer/'
-os.chdir(PROJECT_PATH + "perturbation_benchmarking")
 import importlib
 import sys
-sys.path.append(os.path.expanduser(os.path.join(PROJECT_PATH, 'perturbation_benchmarking', 'src'))) 
-import experimenter
-importlib.reload(experimenter)
+import perturbation_benchmarking_package.experimenter as experimenter
 all_active_experiments = []
 for experiment in os.listdir("experiments"):
     try:

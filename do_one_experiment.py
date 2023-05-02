@@ -14,6 +14,12 @@ import load_perturbations
 import load_networks
 import ggrn.api as ggrn
 
+# Helpful for interactive use given Eric's project folder setup
+try:
+    os.chdir("perturbation_benchmarking")
+except:
+    pass
+
 # Access our data collections
 load_networks.set_grn_location(
     '../network_collection/networks'
@@ -43,10 +49,10 @@ parser.add_argument(
 args = parser.parse_args()
 print("args to experimenter.py:", flush = True)
 print(args)
-# For interactive sessions
+# For interactive use
 if args.experiment_name is None:
     args = Namespace(**{
-        "experiment_name":"test",
+        "experiment_name":"1.4.2_1",
         "amount_to_do": "missing_models",
         "save_trainset_predictions": True,
         "save_models": False,
@@ -113,7 +119,6 @@ for i in experiments.index:
                     human_tfs = DEFAULT_HUMAN_TFs,
                 )
             except Exception as e: 
-                raise e
                 if metadata["skip_bad_runs"]:
                     print(f"Caught exception {repr(e)} on experiment {i}; skipping.")
                 else:
@@ -139,7 +144,8 @@ for i in experiments.index:
                     (r[1][0], r[1][1]) 
                     for r in perturbed_expression_data_heldout[i].obs[["perturbation", "expression_level_after_perturbation"]].iterrows()
                 ], 
-                starting_expression = starting_expression
+                starting_expression = starting_expression,
+                control_subtype = experiments.loc[i, "control_subtype"]
             )   
             predictions.obs.index = perturbed_expression_data_heldout[i].obs.index.copy()
             # Sometimes AnnData has trouble saving pandas bool columns and sets, and they aren't needed here anyway.
@@ -167,7 +173,7 @@ for i in experiments.index:
 
 if args.amount_to_do in {"models", "missing_models", "evaluations"}:
     print("Retrieving saved predictions", flush = True)
-    experiments =     pd.read_csv( os.path.join(outputs, "experiments.csv") )
+    experiments = experimenter.load_successful_experiments(outputs)
     predictions = {i:sc.read_h5ad( os.path.join(outputs, "predictions",   str(i) + ".h5ad" ), backed='r' ) for i in experiments.index}
     try:
         fitted_values = {i:sc.read_h5ad( os.path.join(outputs, "fitted_values", str(i) + ".h5ad" ), backed='r' ) for i in experiments.index}
@@ -184,11 +190,14 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
         print([(obs.shape, pred.shape) for obs,pred in op], flush = True)
         raise AssertionError("Predicted and observed anndata are different shapes.")
     assert all(
-        [all(
-            np.sort(predictions[i].obs_names) == np.sort(perturbed_expression_data_heldout[i].obs_names)) 
-            for i in range(len(predictions.keys())
-        )]
+        [
+            all(
+                np.sort(predictions[i].obs_names) == np.sort(perturbed_expression_data_heldout[i].obs_names)
+            ) 
+            for i in predictions.keys()
+        ]
     )
+    
     print("(Re)doing evaluations")
     evaluationPerPert, evaluationPerTarget = evaluator.evaluateCausalModel(
         heldout = perturbed_expression_data_heldout,
@@ -218,13 +227,14 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
             classifier = None,
             do_scatterplots = False,
         )
+        os.makedirs(os.path.join(outputs, "trainset_performance"), exist_ok=True)
         evaluationPerPertTrainset.to_parquet(   os.path.join(outputs, "trainset_performance", "evaluationPerPert.parquet"))
         evaluationPerTargetTrainset.to_parquet( os.path.join(outputs, "trainset_performance", "evaluationPerTarget.parquet"))
         
 
 if args.amount_to_do in {"plots", "models", "missing_models", "evaluations"}:
     print("Retrieving saved predictions", flush = True)
-    experiments = pd.read_csv( os.path.join(outputs, "experiments.csv") )
+    experiments = experimenter.load_successful_experiments(outputs)
     predictions   = {i:sc.read_h5ad( os.path.join(outputs, "predictions",   str(i) + ".h5ad" ) ) for i in experiments.index}
     try:
         fitted_values = {i:sc.read_h5ad( os.path.join(outputs, "fitted_values", str(i) + ".h5ad" ) ) for i in experiments.index}
@@ -286,6 +296,7 @@ if args.amount_to_do in {"plots", "models", "missing_models", "evaluations"}:
             else:
                 genes = np.random.choice(size=5, a=evaluationPerTarget["target"].unique())
             for gene in genes:
+                print(gene)
                 evaluator.plotOneTargetGene(
                     gene=gene, 
                     outputs=os.path.join(outputs,"targets", type), 
