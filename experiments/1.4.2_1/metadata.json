@@ -1,0 +1,16 @@
+{
+    "unique_id": "1.4.2_1",
+    "nickname": "GEARS",
+    "readme": "Related Q asks, what's the best way of using a given network? GEARS has an interesting take on this. Here we test it out.",
+    "refers_to": "1.0_1",
+    "only_tfs_are_regulators": false,
+    "predict_self" : true,
+    "merge_replicates": false,
+    "regression_method":[
+        "median",
+        "mean",
+        "GEARS" 
+    ]
+}
+
+

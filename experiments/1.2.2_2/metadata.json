@@ -4,7 +4,8 @@
     "readme": "Hybrid of 1.2.2_1 and 1.0_1: autoregressive modeling of nakatake data.",
     "question": "1.2.2",
     "is_active": true,
-    "refers_to": "1.0_1",    
+    "refers_to": "1.0_1",
+    "control_subtype": "Emerald",
     "only_tfs_are_regulators": false,
     "predict_self": true,
     "regression_method":[

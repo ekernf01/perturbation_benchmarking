@@ -22,7 +22,7 @@
     "facet_by": null,
     "color_by": null,
     "factor_varied": "regression_method",
-    "default_level": "mean",
+    "baseline_condition": 0,
     "merge_replicates": true,
     "perturbation_dataset": "nakatake",
     "data_split_seed": 0,
