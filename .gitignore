@@ -4,6 +4,7 @@
 *.pdf
 err.txt
 out.txt
+stdout.txt
 start_time.txt
 finish_time.txt
 *__pycache__*
