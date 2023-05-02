@@ -19,17 +19,17 @@ It can be hard to understand how all these experiments relate to one another, so
 
 ### Installation
 
-The project is written in Python. We use Conda + Mamba to manage most dependencies.
+The project is written in Python. We use Conda + Mamba to manage most dependencies. We offer either a flexible install or an exact install of our environment.
 
 #### Flexible install
 
 Some flexibility in exact requirements is useful in case of different operating systems and GPU availability.
-To install the roughly the same versions we use, start with the dependencies given in `soft_deps.yaml`. We also use a few packages only available via pip.
+To install the roughly the same versions we use, start with the dependencies given in `soft_deps.yaml`. We also use a few packages only available via pip. Here is the code.
 
 ```bash
 mamba env create --name ggrn --file soft_deps.yaml
 conda activate ggrn
-pip install cell-gears==0.0.2  --no-deps
+pip install cell-gears==0.0.3  --no-deps
 pip install celloracle==0.12.0 --no-deps
 pip install prescient==0.1.0   --no-deps 
 pip install geomloss==0.2.3    --no-deps 
@@ -41,4 +41,4 @@ done
 
 #### Exact reproduction
 
-Exactly reproducing our experiments requires a large computer running Ubuntu 20.04. We recommend using Amazon Web Services. For most experiments, 250GB of disk space and 64GB of RAM is enough, but for preprocessing the Saunders zebrafish data, more RAM may be needed. The environment can be reproduced via `set_up_environment.sh`. 
+Exactly reproducing our experiments requires a large computer running Ubuntu 20.04. We recommend using Amazon Web Services. When selecting an instance, we expect 250GB of disk space and 64GB of RAM is enough. The environment can be reproduced via `set_up_environment.sh`. 
