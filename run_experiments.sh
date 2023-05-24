@@ -1,5 +1,5 @@
 conda activate ggrn
-for experiment in 1.4.2_2 1.4.2_3 1.4.2_4 # 1.2.2_1 1.2.2_2 1.2.2_3 
+for experiment in 1.9_1 # 1.2.2_1 1.2.2_2 1.2.2_3 
 do
     echo "Starting ${experiment}"
     echo "Monitor progress:

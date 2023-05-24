@@ -1,0 +1,12 @@
+{
+    "unique_id": "1.0_6",
+    "nickname": "ml methods",
+    "readme": "Like 1.0_1 but replogle2_large_effect instead of nakatake.",
+    "refers_to": "1.0_1",
+    "is_active": true,
+    "perturbation_dataset": "replogle2_large_effect",
+    "network_datasets": {
+        "dense":{}
+    }
+}
+
