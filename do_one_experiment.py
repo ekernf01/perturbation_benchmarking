@@ -14,12 +14,6 @@ import load_perturbations
 import load_networks
 import ggrn.api as ggrn
 
-# Helpful for interactive use given Eric's project folder setup
-try:
-    os.chdir("perturbation_benchmarking")
-except:
-    pass
-
 # Access our data collections
 load_networks.set_grn_location(
     '../network_collection/networks'
@@ -44,6 +38,8 @@ parser.add_argument(
     To do plots and evaluations using saved models, specify "evaluations".
     To do everything, specify "models". 
     If it crashes, specify "missing_models" to keep previous progress. 
+    To skip certain models (e.g. skip ExtraTrees if low on RAM), manually place 
+    empty results like 'touch outputs/results/predictions/3.h5ad' and specify "missing_models".
     """
 )
 args = parser.parse_args()
@@ -52,7 +48,7 @@ print(args)
 # For interactive use
 if args.experiment_name is None:
     args = Namespace(**{
-        "experiment_name":"1.4.2_1",
+        "experiment_name":"1.0_9",
         "amount_to_do": "missing_models",
         "save_trainset_predictions": True,
         "save_models": False,
@@ -87,7 +83,7 @@ for i in experiments.index:
         type_of_split            = experiments.loc[i, "type_of_split"],
         data_split_seed          = experiments.loc[i, "data_split_seed"],
     )
-
+    
     # Delete the new copies and replace with shallow copies unless the data split is actually different
     def is_equal_anndata(ad1, ad2):
         return np.array_equal(ad1.X, ad2.X) and ad1.obs.equals(ad2.obs) and ad1.var.equals(ad2.var)
