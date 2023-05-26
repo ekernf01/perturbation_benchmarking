@@ -10,7 +10,7 @@ git clone http://github.com/ekernf01/perturbation_benchmarking #currently privat
 cd perturbation_benchmarking
 mamba create --name ggrn --file spec_file.yaml
 conda activate ggrn
-pip install cell-gears==0.0.2  --no-deps
+pip install cell-gears==0.0.4  --no-deps
 pip install celloracle==0.12.0 --no-deps
 pip install prescient==0.1.0   --no-deps 
 pip install geomloss==0.2.3    --no-deps 

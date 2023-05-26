@@ -28,7 +28,7 @@ To install the roughly the same versions we use, we start with the dependencies 
 ```bash
 mamba env create --name ggrn --file soft_deps.yaml
 conda activate ggrn
-pip install cell-gears==0.0.3  --no-deps
+pip install cell-gears==0.0.4  --no-deps
 pip install celloracle==0.12.0 --no-deps
 pip install prescient==0.1.0   --no-deps 
 pip install geomloss==0.2.3    --no-deps 
