@@ -8,7 +8,7 @@
     "facet_by": null,    
     "color_by": null,
     "merge_replicates": true,
-    "only_tfs_are_regulators": true,
+    "eligible_regulators": "human_tfs",
     "perturbation_dataset": "nakatake",
     "network_datasets": {
         "empty": {},

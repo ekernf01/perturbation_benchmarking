@@ -5,5 +5,6 @@
     "readme": "Testing different network structures like in experiment 1.4.3_1, but with simulated data based on the celloracle network.",
     "question": "1.9",
     "is_active": true,
+    "eligible_regulators": "all",
     "perturbation_dataset": "simulation_100_steps"
 }

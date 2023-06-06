@@ -5,7 +5,7 @@
     "refers_to": "1.0_1",
     "is_active": true,
     "perturbation_dataset": "nakatake", 
-    "only_tfs_are_regulators": false,
+    "eligible_regulators": "all",
     "regression_method": [
         "mean", 
         "median",

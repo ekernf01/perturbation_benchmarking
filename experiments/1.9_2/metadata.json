@@ -1,0 +1,23 @@
+{
+    "unique_id": "1.9_2",
+    "nickname": "base_network",
+    "refers_to": "1.4.3_1",
+    "readme": "Testing different network structures like in experiment 1.4.3_1, but with simulated data based on the celloracle network. Unlike 1.9_{0,1}, we use autoregressive and not steady-state models.",
+    "question": "1.9",
+    "is_active": true,
+    "eligible_regulators": "all",
+    "perturbation_dataset": "simulation_1_steps",
+    "regression_method":[
+        "autoregressive-rgq-supervised",
+        "autoregressive-rgq-svd",
+        "autoregressive-none-supervised"??? TODO: Add user-input network structure
+    ],
+    "kwargs": {
+        "matching_method": "user",
+    },
+    "merge_replicates": false,
+    "predict_self": true,
+    "starting_expression": ["control"]
+}
+
+

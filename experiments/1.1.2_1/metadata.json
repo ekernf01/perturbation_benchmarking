@@ -6,7 +6,7 @@
     "is_active": true,
     "factor_varied": "only_tfs_are_regulators",
     "network_prior": "ignore",
-    "only_tfs_are_regulators":[true, false],
+    "eligible_regulators": ["human_tfs", "all"],
     "regression_method": ["mean", "RidgeCV"],
     "data_split_seed": [0,1,2],
     "facet_by": "data_split_seed",

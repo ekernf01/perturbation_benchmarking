@@ -3,7 +3,8 @@
     "nickname": "GEARS",
     "readme": "Test of GEARS on their preferred demo datasets.",
     "refers_to": "1.0_1",
-    "only_tfs_are_regulators": false,
+    "eligible_regulators": ["all", "perturbed_genes"],
+    "facet_by": "eligible_regulators",
     "predict_self" : true,
     "merge_replicates": false,
     "desired_heldout_fraction": 0.2, 
@@ -11,7 +12,7 @@
         "median",
         "mean",
         "GEARS" 
-    ], 
+    ],
     "perturbation_dataset": "adamson"
 }
 

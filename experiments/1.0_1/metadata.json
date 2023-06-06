@@ -17,7 +17,7 @@
         "BayesianRidge"
     ],
     "num_genes": 10000,
-    "only_tfs_are_regulators": true,
+    "eligible_regulators": "human_tfs",
     "is_active": true,
     "facet_by": null,
     "color_by": null,

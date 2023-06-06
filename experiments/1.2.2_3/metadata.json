@@ -5,7 +5,7 @@
     "question": "1.2.2",
     "is_active": true,
     "refers_to": "1.0_1",
-    "only_tfs_are_regulators": false,
+    "eligible_regulators": "all",
     "predict_self": true,
     "regression_method":[
         "mean", 

@@ -1,9 +1,10 @@
 {
-    "unique_id": "1.9_0",
+    "unique_id": "1.9_1",
     "nickname": "base_network",
     "refers_to": "1.4.3_1",
     "readme": "Testing different network structures like in experiment 1.4.3_1, but with simulated data based on the celloracle network. Unlike 1.9_0, data are NOT at steady state.",
     "question": "1.9",
     "is_active": true,
+    "eligible_regulators": "all",
     "perturbation_dataset": "simulation_1_steps"
 }
