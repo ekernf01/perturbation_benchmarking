@@ -2,6 +2,10 @@
 *.parquet
 *.csv
 *.pdf
+*.svg
+*.html
+GEARS_gene_set.pkl
+ggrn_gears_input/*
 err.txt
 out.txt
 stdout.txt
