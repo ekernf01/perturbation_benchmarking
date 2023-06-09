@@ -14,7 +14,8 @@
         "LassoCV",
         "ElasticNetCV",
         "OrthogonalMatchingPursuitCV",
-        "BayesianRidge"
+        "BayesianRidge",
+        "QuantileRegressor"
     ],
     "num_genes": 10000,
     "eligible_regulators": "human_tfs",

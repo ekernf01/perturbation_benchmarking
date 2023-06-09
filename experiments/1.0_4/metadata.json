@@ -4,9 +4,6 @@
     "readme": "Like 1.0_1 (various sklearn methods) but using only the GFP controls.",
     "refers_to": "1.0_1",
     "is_active": true,
-    "control_subtype": "Emerald",
-    "network_datasets": {
-        "dense":{}
-    }
+    "control_subtype": "Emerald"
 }
 

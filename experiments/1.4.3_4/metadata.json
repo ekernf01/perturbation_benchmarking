@@ -1,15 +1,10 @@
 {
     "unique_id": "1.4.3_4",
     "nickname": "base_network",
-    "refers_to": "1.4.3_1",
-    "readme": "This is like experiment 1.4.3_3, except we use more conservative penalty param selection.",
-    "merge_replicates": true,
-    "question": "1.4",
+    "readme": "Networks experiment but only using GFP controls.",
+    "question": "1.4.3",
     "is_active": true,
-    "regression_method": "RidgeCVExtraPenalty",
-    "do_simulate":{
-        "network": "gtex_rna",
-        "noise_sd":0
-    }
+    "refers_to": "1.4.3_1", 
+    "control_subtype": "Emerald"
 }
 

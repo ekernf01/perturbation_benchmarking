@@ -6,5 +6,5 @@
     "question": "1.9",
     "is_active": true,
     "eligible_regulators": "all",
-    "perturbation_dataset": "simulation_100_steps"
+    "perturbation_dataset": "simulation_S=100_noisesd=0"
 }

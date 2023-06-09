@@ -1,9 +1,10 @@
 {
     "unique_id": "1.4.3_2",
     "nickname": "base_network",
-    "refers_to": "1.4.3_1",
-    "readme": "This experiment uses the same logic as experiment <refers_to>, but with replicates merged.",
-    "is_active": true,    
-    "merge_replicates": true
+    "readme": "Network experiment but on replogle2",
+    "question": "1.4.3",
+    "is_active": true,
+    "refers_to": "1.4.3_1", 
+    "perturbation_dataset": "replogle2"
 }
 
