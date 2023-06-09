@@ -36,6 +36,9 @@ pip install vl-convert-python
 for p in load_networks load_perturbations ggrn_backend2 ggrn_backend3 ggrn perturbation_benchmarking_package do
     pip install -e ../$p
 done
+git clone https://huggingface.co/ctheodoris/Geneformer
+cd Geneformer
+pip install .
 ```
 
 #### Exact reproduction

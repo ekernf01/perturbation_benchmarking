@@ -24,6 +24,12 @@ do
     pip install -e $p
 done
 
+# Get GeneFormer
+git clone https://huggingface.co/ctheodoris/Geneformer
+cd Geneformer
+pip install .
+
+
 # Get data collections
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
 unzip awscliv2.zip
