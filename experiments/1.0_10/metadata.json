@@ -1,0 +1,9 @@
+{
+    "unique_id": "1.0_10",
+    "nickname": "ml methods",
+    "readme": "Like 1.0_1 but  instead of nakatake.",
+    "refers_to": "1.0_1",
+    "is_active": true,
+    "perturbation_dataset": "replogle3"
+}
+

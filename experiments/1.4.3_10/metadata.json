@@ -1,0 +1,10 @@
+{
+    "unique_id": "1.4.3_10",
+    "nickname": "base_network",
+    "readme": "Network experiment but on replogle3",
+    "question": "1.4.3",
+    "is_active": true,
+    "refers_to": "1.4.3_1", 
+    "perturbation_dataset": "replogle3"
+}
+
