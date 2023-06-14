@@ -47,6 +47,3 @@ do
 done
 # My AWS backups have old files too, not just current ones. These can cause issues. 
 rm ../network_collection/networks/*/networks/*.csv.gz 
-
-# To move results back to EK laptop via Patrick s3
-aws s3 sync perturbation_benchmarking/experiments s3://cahanlab/eric.kernfeld/eric_laptop/research/projects/perturbation_prediction/cell_type_knowledge_transfer/perturbation_benchmarking/experiments
