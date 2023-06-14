@@ -48,7 +48,7 @@ print(args)
 # For interactive use
 if args.experiment_name is None:
     args = Namespace(**{
-        "experiment_name":"1.0_9",
+        "experiment_name":"1.0_1",
         "amount_to_do": "missing_models",
         "save_trainset_predictions": True,
         "save_models": False,
@@ -105,8 +105,8 @@ for i in experiments.index:
                 pass
             try:
                 grn = experimenter.do_one_run(
-                    experiments, 
-                    i,
+                    experiments = experiments, 
+                    i = i,
                     train_data = perturbed_expression_data_train[i], 
                     test_data  = perturbed_expression_data_heldout[i],
                     networks = networks, 
@@ -273,6 +273,7 @@ if args.amount_to_do in {"plots", "models", "missing_models", "evaluations"}:
         factor_varied = metadata["factor_varied"],
         genes_considered_as = "targets"
     )
+    evaluationPerTarget.to_parquet(f"{outputs}/evaluationPerTarget.parquet")
     print("Studying predictability for each perturbation.")
     evaluationPerPert = evaluator.studyPredictableGenes(
         evaluationPerTarget = evaluationPerPert, 
@@ -282,6 +283,8 @@ if args.amount_to_do in {"plots", "models", "missing_models", "evaluations"}:
         factor_varied = metadata["factor_varied"],        
         genes_considered_as = "perturbations"
     )
+    evaluationPerPert.to_parquet(f"{outputs}/evaluationPerPert.parquet")
+
     print("Plotting all data and predictions for some example target genes.")
     if fitted_values is not None:
         for type in ["best", "worst", "random"]:
