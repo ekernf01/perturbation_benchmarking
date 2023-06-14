@@ -1,3 +1,10 @@
+library(ggplot2)
+library(dplyr)
+library(stringr)
+library(arrow)
+library(magrittr)
+setwd("/home/ekernf01/Desktop/jhu/research/projects/perturbation_prediction/cell_type_knowledge_transfer/perturbation_benchmarking/make_figures/")
+
 # Figure <gears>
 collect_experiments = function(experiments){
   X <- list()
@@ -22,7 +29,7 @@ for(metric in c("mae_benefit")){
   ggplot(X) + 
     geom_point(aes_string(x = "regression_method", 
                           y = metric,
-                          color='eligible_regulators')) + 
+                          color='eligible_regulators'), position = position_dodge(width=0.3)) + 
     labs(x='', 
          y = "MAE improvement over baseline",
          color='Eligible regulators') +

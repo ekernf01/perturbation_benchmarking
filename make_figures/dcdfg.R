@@ -31,7 +31,7 @@ X %<>%
 
 for (metric in c("mae_benefit")) {
   ggplot(X, aes(x = regression_method, y = mae_benefit, fill = starting_expression, color = starting_expression)) +
-    geom_point() +
+    geom_point(position = position_dodge(width = 0.5)) +
     facet_wrap(~perturbation_dataset, scales = "free") +
     labs(x = "Method",
          y = "MAE improvement over baseline") + 
