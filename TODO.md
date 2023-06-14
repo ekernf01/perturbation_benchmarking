@@ -6,21 +6,18 @@
 
 ### Now
 
-- Clean up data qc figure **need to make remaining svgs**
 - contact GEARS and let them know what's going on
     > Dear Dr. Leskovic,
     I’m a PhD student at JHU working with Patrick Cahan and Alexis Battle. We have been working with GEARS recently. We wanted to give you a heads up that we haven’t been able to reproduce figure 2b (as discussed with Yusuf Roohani on github issue #5), and are seeing overall performance that doesn’t exceed baseline levels on some of our evaluations. We would be happy to hear feedback from your team. Our code will be made public soon, so if there any errors or other comments on how we have been running GEARS, we can discuss further and update our analysis.
     Best,
-    Eric
-- Add quantile regression **too slow. Try statsmodels?**
-- Add different evaluation metrics **just need to remake the plot**
-- Add remaining datasets **need to start this up on Alexis AWS**
+    Eric Kernfeld
+- Run DCD-FG and GEARS on other datasets
 - Standardize the GGRN API!! Match up the docs with the args to `ggrn.api.GRN.fit()`.
-- Add GeneFormer **needs GPU**
-- Add different data split seeds  **will need to rerun fucking everything**
 
 ### Eventually maybe
 
+- Add GeneFormer **No GPU access on Battle AWS**
+- Add different data split seeds  **Ready to run 1.0-series and 1.4.3-series.**
 - Dockerize to make it extensible 
     - Nice test-bed: add Hyttinen et al.??  
 - Redo autoregressive trials on real data, 1.2.2_{1-3} 
