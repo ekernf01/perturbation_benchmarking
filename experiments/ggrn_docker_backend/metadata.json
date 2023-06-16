@@ -1,0 +1,14 @@
+{
+    "unique_id": "ggrn_docker_backend",
+    "nickname": "ggrn_docker_backend",
+    "readme": "Test of the ggrn backend that runs a user-specified docker container.",
+    "question": "None", 
+    "is_active": true,
+    "factor_varied": "regression_method",  
+    "color_by": null,
+    "facet_by": null,
+    "perturbation_dataset": "nakatake",
+    "regression_method":"docker____ekernf01/ggrn_docker_backend" 
+    
+}
+
