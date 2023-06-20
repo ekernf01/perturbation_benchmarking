@@ -9,7 +9,7 @@ source "${HOME}/mambaforge/etc/profile.d/conda.sh"
 git clone http://github.com/ekernf01/perturbation_benchmarking #currently private
 cd perturbation_benchmarking
 # If you have a GPU, you can use conda_list_explicit_gpu.txt.
-mamba create --name ggrn --file conda_list_explicit.txt
+mamba create --name ggrn --file environment/conda_list_explicit.txt
 conda activate ggrn
 pip install cell-gears==0.0.4  --no-deps
 pip install celloracle==0.12.0 --no-deps
