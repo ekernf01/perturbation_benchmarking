@@ -35,7 +35,7 @@ dependencies:
   - python-igraph
   - louvain
   - genomepy
-  - gimmemotifs[version'<=0.17.1']
+  - gimmemotifs[version'==0.17.1']
   - gseapy
   - goatools
   - python-annoy
