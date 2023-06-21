@@ -2,8 +2,6 @@
 
 This repo contains tools for benchmarking various strategies for predicting in detail the outcome of perturbation experiments. For more context, see the [project summary](https://docs.google.com/document/d/1vvZi5c0nU3VTvKiWpEka8AtDORxJ3Ymv0ZzoFQwoDoI/edit).
 
-[TOC]
-
 ### Installation
 
 The project is written in Python. We use Conda + Mamba to manage most dependencies. We offer either a flexible install or an exact install of our environment. Each option has a CPU version and a GPU version, though the GPU version is not well-tested. This project is tightly coupled with our collections of data, our GGRN package for network inference, and a companion package containing benchmarking infrastructure. It will not work without all of those components.
@@ -49,7 +47,7 @@ Here is an abridged, annotated description of Experiment outputs.
 
 ```bash
 ├── perturbations # Same as targets but stratified by perturbation instead
-├── targets #  best
+├── targets 
 │   ├── predictability_vs_in-degree.svg # Display of MAE of groups of targets stratified by in-degree in our networks.
 │   ├── variety_in_predictions # Histogram meant to answer, "Are the predictions roughly constant?"
 │   ├── enrichr_on_best # Enrichr pathway analysis of best-predicted targets for each condition in this experiment.
@@ -57,13 +55,13 @@ Here is an abridged, annotated description of Experiment outputs.
 │   ├── random # Scatterplots of predicted vs observed for a few randomly chosen targets.
 │   └── worst # Scatterplots of predicted vs observed for the worst-predicted targets.
 ├── experiments.csv # All combinations of values provided in the metadata. Would be better named "conditions.csv". 
-├── fitted_values # Predictions on training data
+├── fitted_values # Predictions on training data ...
 │   ├── 0.h5ad # ... from row 0 of experiments.csv
 │   ├── 1.h5ad # ... from row 1 of experiments.csv
 │   ├── ...
 ├── genes_modeled.csv # The genes included in this experiment.
 ├── mae.svg # Mean absolute prediction error for each test set observation
-├── new_experiments.csv # This is generated and compared to experiments.csv to prevent confusion about the contents of each h5ad file.
+├── new_experiments.csv # This is generated and compared to any existing experiments.csv to prevent confusion upon editing metadata.
 ├── predictions # Predictions on test data 
 │   ├── 0.h5ad 
 │   ├── 1.h5ad
@@ -83,12 +81,13 @@ Experiment metadata files are JSON dictionaries. Most simple entries can be eith
 
 With apologies, many metadata keys have idiosyncratic formatting and meaning. 
 
-- `perturbation_dataset` describes a dataset using the same names as our perturbation dataset collection. Only one dataset is allowed per Experiment. Sorry. 
+- `perturbation_dataset` describes a dataset using the same names as our perturbation dataset collection. Only one dataset is allowed per Experiment. 
 - `readme` describes the purpose of the experiment. `nickname` conveys the essence curtly. 
 - `unique_id` must match the folder the Experiment is in.
 - `question` refers to `guiding_questions.txt` in this repo. 
 - `is_active` must be `true` or the experiment won't run. 
-- `refers_to` points to another Experiment. If A refers to B, then all key/value pairs are copied from B's metadata unless explicitly overwritten in A's metadata. You may not refer to an experiment that already refers to something. You may not refer to multiple experiments.
+- `skip_bad_runs`, if `true`, will allow experiments to continue if one condition encounters an error. Set this to `false` for easier debugging.
+- `refers_to` points to another Experiment. If A refers to B, then all key/value pairs are copied from B's metadata unless explicitly provided in A's metadata. You may not refer to an experiment that already refers to something. You may not refer to multiple experiments.
 - `kwargs` is a dict of keyword args passed on to GEARS, or DCD-FG, or any method [wrapped via Docker](https://github.com/ekernf01/ggrn_docker_backend).
 - `baseline_condition` is a number, most often 0. This experimental condition, which corresponds to the same-numbered h5ad file in the `predictions` output and the same-numbered row in the `experiments.csv` output, is used as a baseline for computing performance improvement over baseline.
 - `network_datasets` describes a GRN using the same names as our network collection. The behavior is complicated because the network collection separates out tissue-specific subnetworks. The value is a dict where keys are network sources and values are (sub-)dicts controlling specific behaviors.
