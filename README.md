@@ -1,11 +1,18 @@
-## GGRN: benchmarking across a Grammar of Gene Regulatory Network inference methods 
+## A systematic comparison of computational methods for in silico genetic perturbation
 
-This repo contains tools for benchmarking various strategies for predicting in detail the outcome of perturbation experiments. For more context, see the [project summary](https://docs.google.com/document/d/1vvZi5c0nU3VTvKiWpEka8AtDORxJ3Ymv0ZzoFQwoDoI/edit).
+This repo contains benchmark experiments to evaluate various strategies for predicting in detail the outcome of perturbation experiments. 
 
 ### Installation
 
-The project is written in Python. We use Conda + Mamba to manage most dependencies. We offer either a flexible install or an exact install of our environment. Each option has a CPU version and a GPU version, though the GPU version is not well-tested. This project is tightly coupled with our collections of data, our GGRN package for network inference, and a companion package containing benchmarking infrastructure. It will not work without all of those components.
+The project is written in Python. We use Conda + Mamba to manage most dependencies. This project is tightly coupled with our collections of data, our GGRN package for network inference, and a companion package containing benchmarking infrastructure. It will not work without all of those components. Our installation script will attempt to install them all automatically, or you can learn more about them at the following links.
 
+- Perturbation data and network collection are on Zenodo with DOI 10.5281/zenodo.8071809
+    - [Perturbation loader](https://github.com/ekernf01/load_perturbations) and [network loader](https://github.com/ekernf01/load_networks) to easily access them from Python  
+- [GGRN](https://github.com/ekernf01/ggrn)
+- [Perturbation benchmarking package](https://github.com/ekernf01/perturbation_benchmarking_package)
+
+We offer either a flexible install or an exact install of our environment. Each option has a CPU version and a GPU version, though the GPU version is not well-tested. 
+ 
 #### Flexible install
 
 Some flexibility in exact requirements is useful in case of different operating systems. To install roughly the same versions we use, we start with the dependencies given in `environment/conda_inputs.yaml`. We also use a few packages only available via pip. Here is the code.
