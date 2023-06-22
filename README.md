@@ -9,9 +9,11 @@ The project is written in Python. We use Conda + Mamba to manage most dependenci
 - [GGRN](https://github.com/ekernf01/ggrn) offers flexible combination of different features for regulatory network inference
 - Our [perturbation benchmarking package](https://github.com/ekernf01/perturbation_benchmarking_package) helps conduct the `Experiment`s that are specified in this repo. 
 
-### Installation
+### Resource requirements and installation
 
-We offer either a flexible install or an exact install of our environment. Each option has a CPU version and a GPU version, though the GPU version is not well-tested. 
+If you use cloud computing, we expect 500GB of disk space and 64GB of RAM is enough resources to run everything except certain tree-based models. Certain models nominally require GPU's, but we have been able to run most experiments using a CPU, sometimes by making minimal changes to Pytorch source code. See the GGRN repo for details on specific methods.
+
+We offer either a flexible install or an exact install of our environment. Each option has a CPU version and a GPU version, though the GPU version is not well-tested.
  
 #### Flexible install
 
@@ -36,7 +38,7 @@ cd ..
 
 #### Exact reproduction
 
-Exactly reproducing our environment requires a large computer running Ubuntu 20.04. We recommend using Amazon Web Services. When selecting an instance, we expect 500GB of disk space and 64GB of RAM is enough. The environment can be reproduced via `environment/set_up_environment.sh`. 
+Exactly reproducing our environment requires Ubuntu 20.04. The environment can be reproduced via `environment/set_up_environment.sh`. 
 
 ### Experiments
 
