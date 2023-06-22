@@ -26,11 +26,12 @@ pip install prescient==0.1.0   --no-deps
 pip install geomloss==0.2.3    --no-deps 
 pip install vl-convert-python
 for p in load_networks load_perturbations ggrn_backend2 ggrn_backend3 ggrn perturbation_benchmarking_package do
-    pip install https://github.com/ekernf01/${p}
+    pip install git+https://github.com/ekernf01/${p}
 done
 git clone https://huggingface.co/ctheodoris/Geneformer
 cd Geneformer
 pip install .
+cd ..
 ```
 
 #### Exact reproduction
