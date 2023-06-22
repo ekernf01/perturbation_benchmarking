@@ -8,8 +8,8 @@ The project is written in Python. We use Conda + Mamba to manage most dependenci
 
 - Perturbation data and network collection are on Zenodo with DOI 10.5281/zenodo.8071809
     - Use our [perturbation loader](https://github.com/ekernf01/load_perturbations) and [network loader](https://github.com/ekernf01/load_networks) to easily access them from Python  
-- [GGRN](https://github.com/ekernf01/ggrn)
-- [Perturbation benchmarking package](https://github.com/ekernf01/perturbation_benchmarking_package)
+- [GGRN](https://github.com/ekernf01/ggrn) offers flexible combination of different features for regulatory network inference
+- Our [perturbation benchmarking package](https://github.com/ekernf01/perturbation_benchmarking_package) helps conduct the `Experiment`s that are specified in this repo. 
 
 We offer either a flexible install or an exact install of our environment. Each option has a CPU version and a GPU version, though the GPU version is not well-tested. 
  
