@@ -7,7 +7,7 @@ This repo contains benchmark experiments to evaluate various strategies for pred
 The project is written in Python. We use Conda + Mamba to manage most dependencies. This project is tightly coupled with our collections of data, our GGRN package for network inference, and a companion package containing benchmarking infrastructure. It will not work without all of those components. Our installation script will attempt to install them all automatically, or you can learn more about them at the following links.
 
 - Perturbation data and network collection are on Zenodo with DOI 10.5281/zenodo.8071809
-    - [Perturbation loader](https://github.com/ekernf01/load_perturbations) and [network loader](https://github.com/ekernf01/load_networks) to easily access them from Python  
+    - Use our [perturbation loader](https://github.com/ekernf01/load_perturbations) and [network loader](https://github.com/ekernf01/load_networks) to easily access them from Python  
 - [GGRN](https://github.com/ekernf01/ggrn)
 - [Perturbation benchmarking package](https://github.com/ekernf01/perturbation_benchmarking_package)
 
