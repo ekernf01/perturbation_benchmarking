@@ -4,14 +4,16 @@ This repo contains benchmark experiments to evaluate various strategies for pred
 
 The project is written in Python. We use Conda + Mamba to manage most dependencies. This project is tightly coupled with our collections of data, our GGRN package for network inference, and a companion package containing benchmarking infrastructure. It will not work without all of those components. Our installation script will attempt to install them all automatically, or you can obtain them at the following links.
 
-- Perturbation data and network collection are on Zenodo with DOI 10.5281/zenodo.8071809
-    - Use our [perturbation loader](https://github.com/ekernf01/load_perturbations) and [network loader](https://github.com/ekernf01/load_networks) to easily access them from Python  
+- Perturbation data, the network collection, and some accessory data (e.g. a list of TF's) are on Zenodo with DOI `10.5281/zenodo.8071809`.
+    - We expect each of those three folders to be unzipped and placed adjacent to this repo.
+    - Use our [perturbation loader](https://github.com/ekernf01/load_perturbations) and [network loader](https://github.com/ekernf01/load_networks) to easily access and validate data from Python.
 - [GGRN](https://github.com/ekernf01/ggrn) offers flexible combination of different features for regulatory network inference
-- Our [perturbation benchmarking package](https://github.com/ekernf01/perturbation_benchmarking_package) helps conduct the `Experiment`s that are specified in this repo. 
+- Our [perturbation benchmarking package](https://github.com/ekernf01/perturbation_benchmarking_package) helps conduct the `Experiment`s that are specified in this repo.
+- Certain additional experiments are implemented in [our fork of DCD-FG](https://github.com/ekernf01/dcdfg).
 
 ### Resource requirements and installation
 
-If you use cloud computing, we expect 500GB of disk space and 64GB of RAM is enough resources to run everything except certain tree-based models. Certain models nominally require GPU's, but we have been able to run most experiments using a CPU, sometimes by making minimal changes to Pytorch source code. See the GGRN repo for details on specific methods.
+If you use cloud computing, we expect 250GB of disk space and 64GB of RAM is enough resources to run everything except certain tree-based models. Certain models nominally require GPU's, but we have been able to run most experiments using a CPU, sometimes by making minimal changes to Pytorch code. See the GGRN repo for details on specific methods.
 
 We offer either a flexible install or an exact install of our environment. Each option has a CPU version and a GPU version, though the GPU version is not well-tested.
  
@@ -22,12 +24,17 @@ Some flexibility in exact requirements is useful in case of different operating 
 ```bash
 mamba env create --name ggrn --file environment/conda_inputs.yaml
 conda activate ggrn
+pip install vl-convert-python
+# Avoid interfering with gimmemotifs 0.17 or with the PyTorch install by using --no-deps
+# The deps should be taken care of by the above.
+mamba install 'pandas>=1.2' --no-deps
 pip install cell-gears==0.0.4  --no-deps
 pip install celloracle==0.12.0 --no-deps
 pip install prescient==0.1.0   --no-deps 
 pip install geomloss==0.2.3    --no-deps 
-pip install vl-convert-python
-for p in load_networks load_perturbations ggrn_backend2 ggrn_backend3 ggrn perturbation_benchmarking_package do
+pip install git+https://huggingface.co/ctheodoris/Geneformer@f0b6641f --no-deps
+pip install git+https://github.com/bowang-lab/scFormer@2df344a --no-deps
+pip install 'scib>=1.0.3' --no-depsfor p in load_networks load_perturbations ggrn_backend2 ggrn_backend3 ggrn perturbation_benchmarking_package do
     pip install git+https://github.com/ekernf01/${p}
 done
 git clone https://huggingface.co/ctheodoris/Geneformer

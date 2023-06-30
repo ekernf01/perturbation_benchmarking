@@ -454,7 +454,7 @@ python-json-logger        2.0.7              pyhd8ed1ab_0    conda-forge
 python-tzdata             2023.3             pyhd8ed1ab_0    conda-forge
 python-xxhash             3.2.0            py39h72bdee0_0    conda-forge
 python_abi                3.9                      3_cp39    conda-forge
-pytorch                   2.0.0               py3.9_cpu_0    pytorch
+pytorch                   2.0.1               py3.9_cpu_0    pytorch
 pytorch-lightning         2.0.1              pyhd8ed1ab_0    conda-forge
 pytorch-mutex             1.0                         cpu    pytorch
 pytz                      2023.3             pyhd8ed1ab_0    conda-forge
@@ -517,9 +517,11 @@ tktable                   2.10                 hb7b940f_3    conda-forge
 tokenizers                0.13.3                   pypi_0    pypi
 tomli                     2.0.1              pyhd8ed1ab_0    conda-forge
 toolz                     0.12.0             pyhd8ed1ab_0    conda-forge
-torchaudio                2.0.0                  py39_cpu    pytorch
+torchaudio                2.0.2                  py39_cpu    pytorch
+torchdata                 0.6.1                      py39    pytorch
 torchmetrics              0.11.4             pyhd8ed1ab_0    conda-forge
-torchvision               0.15.0                 py39_cpu    pytorch
+torchtext                 0.15.2                     py39    pytorch
+torchvision               0.15.2                 py39_cpu    pytorch
 tornado                   6.2              py39hb9d737c_1    conda-forge
 tqdm                      4.65.0             pyhd8ed1ab_1    conda-forge
 traitlets                 5.9.0              pyhd8ed1ab_0    conda-forge

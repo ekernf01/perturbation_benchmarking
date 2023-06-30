@@ -11,6 +11,7 @@ dependencies:
   - pytorch-lightning
   - scipy
   - pytorch
+  - torchtext
   - pyg
   - torchvision 
   - torchaudio 
@@ -41,4 +42,8 @@ dependencies:
   - regex
   - scikit-misc
   - dictys
-  - tensorboard
+  - tensorboard[version'>=2.4,<2.5']
+  - matplotlib[version'>=3.4,<3.5']
+  - rpy2
+  - anndata2ri
+  - deprecated
