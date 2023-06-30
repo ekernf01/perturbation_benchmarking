@@ -15,7 +15,7 @@ collect_experiments = function(experiments){
   X <- bind_rows(X)
   return(X)
 }
-X = collect_experiments(c("1.6.1_1", "1.6.1_3", "1.6.1_6"))
+X = collect_experiments(c("1.6.1_1", "1.6.1_3", "1.6.1_6", "1.6.1_7","1.6.1_8", "1.6.1_9", "1.6.1_10", "1.6.1_11"))
 X <- X %>% mutate(chart_x = paste(regression_method, starting_expression, sep = "_"))
 method_tidy = c(
   "DCDFG-spectral_radius-mlplr-False"="DCD-FG" ,
@@ -28,7 +28,8 @@ X$perturbation_dataset %<>% gsub("γ", "g", .)
 X %<>%
   group_by(regression_method, starting_expression, perturbation_dataset) %>%
   summarise(across(ends_with("benefit"), mean))
-
+my_levels = unique(X$perturbation_dataset)
+X$perturbation_dataset %<>% factor(levels = unique(c("frangieh_IFNg_v1", "frangieh_IFNg_v3", "nakatake", my_levels)))
 for (metric in c("mae_benefit")) {
   ggplot(X, aes(x = regression_method, y = mae_benefit, fill = starting_expression, color = starting_expression)) +
     geom_point(position = position_dodge(width = 0.5)) +
@@ -38,5 +39,6 @@ for (metric in c("mae_benefit")) {
     theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) 
   
   dir.create("plots", showWarnings = FALSE)
-  ggsave(filename = paste0("plots/fig_dcdfg_", metric, ".pdf"), width = 8, height = 4)
+  ggsave(filename = paste0("plots/fig_dcdfg_", metric, ".pdf"), width = 8, height = 8)
 }
+

@@ -9,8 +9,10 @@ setwd("/home/ekernf01/Desktop/jhu/research/projects/perturbation_prediction/cell
 collect_experiments = function(experiments){
   X <- list()
   for (experiment in experiments) {
+    print(experiment)
     filepath <- paste0("../experiments/", experiment, "/outputs/evaluationPerPert.parquet")
     X[[experiment]] <- arrow::read_parquet(filepath)
+    X[[experiment]]$color_by %<>% as.character
     X[[experiment]]$refers_to %<>% as.character
     X[[experiment]]$question %<>% as.character
   }
@@ -18,7 +20,8 @@ collect_experiments = function(experiments){
   return(X)
 }
 
-X = collect_experiments(c("1.4.2_1","1.4.2_2","1.4.2_3","1.4.2_5","1.4.2_6"))
+X = collect_experiments(c("1.4.2_1","1.4.2_2","1.4.2_3","1.4.2_5","1.4.2_6","1.4.2_7"))
+X$regression_method %<>% gsub("0$", "", .)
 X %<>%
   group_by(regression_method, eligible_regulators, perturbation_dataset, desired_heldout_fraction) %>%
   summarise(across(ends_with("benefit"), mean))
