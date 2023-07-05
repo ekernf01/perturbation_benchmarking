@@ -1,6 +1,6 @@
 ## A systematic comparison of computational methods for in silico genetic perturbation
 
-This repo contains benchmark experiments to evaluate various strategies for predicting in detail the outcome of perturbation experiments. to reproduce our results, you'll need to install our code, download our data to the expected relative path, run our Experiments, and finally re-create the figures.
+This repo contains benchmark experiments to evaluate various strategies for predicting in detail the outcome of perturbation experiments. To reproduce our results, you'll need to install our code, download our data to the expected relative path, run our Experiments, and finally re-create the figures.
 
 ### Related infrastructure
 
