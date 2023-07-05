@@ -1,8 +1,10 @@
 ## A systematic comparison of computational methods for in silico genetic perturbation
 
-This repo contains benchmark experiments to evaluate various strategies for predicting in detail the outcome of perturbation experiments. 
+This repo contains benchmark experiments to evaluate various strategies for predicting in detail the outcome of perturbation experiments. to reproduce our results, you'll need to install our code, download our data to the expected relative path, run our Experiments, and finally re-create the figures.
 
-The project is written in Python. We use Conda + Mamba to manage most dependencies. This project is tightly coupled with our collections of data, our GGRN package for network inference, and a companion package containing benchmarking infrastructure. It will not work without all of those components. Our installation script will attempt to install them all automatically, or you can obtain them at the following links.
+### Related infrastructure
+
+This project is tightly coupled with our collections of data, our GGRN package for network inference, and a companion package containing benchmarking infrastructure. It will not work without all of those components. Our installation script will attempt to set them all up automatically. You can also learn more about them at the following links.
 
 - Perturbation data, the network collection, and some accessory data (e.g. a list of TF's) are on Zenodo with DOI `10.5281/zenodo.8071809`.
     - We expect each of those three folders to be unzipped and placed adjacent to this repo.
@@ -15,7 +17,7 @@ The project is written in Python. We use Conda + Mamba to manage most dependenci
 
 If you use cloud computing, we expect 250GB of disk space and 64GB of RAM is enough resources to run everything except certain tree-based models. Certain models nominally require GPU's, but we have been able to run most experiments using a CPU, sometimes by making minimal changes to Pytorch code. See the GGRN repo for details on specific methods.
 
-We offer either a flexible install or an exact install of our environment. Each option has a CPU version and a GPU version, though the GPU version is not well-tested.
+The project is written in Python. We use Conda + Mamba to manage most dependencies. We offer either a flexible install or an exact install of our environment. Each option has a CPU version and a GPU version, though the GPU version is not well-tested.
  
 #### Flexible install
 
