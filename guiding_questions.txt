@@ -11,6 +11,7 @@ We wanted experiment identifiers to be concise, stable, and informative. To help
     1.3. How much are causal effects or causal structures shared across different cell types? 
         1.3.1. Do estimators treating cell types as "separate", "shared", or "similar" work best?
         1.3.2. See 1.4.1
+        1.3.3. Can transfer learning or pre-training approaches such as GeneFormer improve causal effect predictions?
     1.4. About existing drafts of causal networks affecting transcription:
         1.4.0. Do most regulators have similar effects across all their targets?
         1.4.1. Do cell-type-specific draft networks work better on the corresponding cell types?
