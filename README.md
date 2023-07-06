@@ -7,7 +7,7 @@ This repo contains benchmark experiments to evaluate various strategies for pred
 This project is tightly coupled with our collections of data, our GGRN package for network inference, and a companion package containing benchmarking infrastructure. It will not work without all of those components. Our installation script will attempt to set them all up automatically. You can also learn more about them at the following links.
 
 - Perturbation data, the network collection, and some accessory data (e.g. a list of TF's) are on Zenodo with DOI `10.5281/zenodo.8071809`.
-    - We expect each of those three folders to be unzipped and placed adjacent to this repo.
+    - Our code expects each of those three folders to be unzipped and placed adjacent to this repo.
     - Use our [perturbation loader](https://github.com/ekernf01/load_perturbations) and [network loader](https://github.com/ekernf01/load_networks) to easily access and validate data from Python.
 - [GGRN](https://github.com/ekernf01/ggrn) offers flexible combination of different features for regulatory network inference
 - Our [perturbation benchmarking package](https://github.com/ekernf01/perturbation_benchmarking_package) helps conduct the `Experiment`s that are specified in this repo.
@@ -15,7 +15,7 @@ This project is tightly coupled with our collections of data, our GGRN package f
 
 ### Resource requirements and installation
 
-If you use cloud computing, we expect 250GB of disk space and 64GB of RAM is enough resources to run everything except certain tree-based models. Certain models nominally require GPU's, but we have been able to run most experiments using a CPU, sometimes by making minimal changes to Pytorch code. See the GGRN repo for details on specific methods.
+250GB of disk space and 64GB of RAM is enough resources to run everything except certain tree-based models. Certain models nominally require GPU's, but we have been able to run most experiments using a CPU, sometimes by making minimal changes to Pytorch code. See the GGRN repo for details on specific methods.
 
 The project is written in Python. We use Conda + Mamba to manage most dependencies. We offer either a flexible install or an exact install of our environment. Each option has a CPU version and a GPU version, though the GPU version is not well-tested.
  
