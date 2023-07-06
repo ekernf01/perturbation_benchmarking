@@ -1,5 +1,5 @@
 {
-    "unique_id": "1.2.2_1",
+    "unique_id": "1.2.2_10",
     "nickname": "autoregressive",
     "readme": "Autoregressive modeling of nakatake data.",
     "question": "1.2.2",
@@ -12,13 +12,12 @@
         "median",
         "autoregressive"
     ],
-    "skip_bad_runs": false,
     "low_dimensional_structure": ["none", "dynamics"],
     "low_dimensional_training": ["pca", "supervised"],
     "factor_varied": "regression_method", 
     "color_by": "low_dimensional_training", 
     "facet_by": "low_dimensional_structure", 
-    "perturbation_dataset": "nakatake",
+    "perturbation_dataset": "replogle3",
     "matching_method": "closest"
 }
 

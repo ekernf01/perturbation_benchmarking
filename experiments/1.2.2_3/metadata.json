@@ -1,7 +1,7 @@
 {
     "unique_id": "1.2.2_3",
     "nickname": "autoregressive",
-    "readme": "Hybrid of 1.2.2_1 and 1.0_1: autoregressive modeling of nakatake data (1000 genes only).",
+    "readme": "Autoregressive modeling of nakatake data.",
     "question": "1.2.2",
     "is_active": true,
     "refers_to": "1.0_1",
@@ -10,10 +10,14 @@
     "regression_method":[
         "mean", 
         "median",
-        "autoregressive-rgq-supervised",
-        "autoregressive-rgq-svd",
-        "autoregressive-none-supervised"
+        "autoregressive"
     ],
-    "num_genes": 1000
+    "low_dimensional_structure": ["none", "dynamics"],
+    "low_dimensional_training": ["pca", "supervised"],
+    "factor_varied": "regression_method", 
+    "color_by": "low_dimensional_training", 
+    "facet_by": "low_dimensional_structure", 
+    "perturbation_dataset":  "frangieh_IFNγ_v3",
+    "matching_method": "closest"
 }
 
