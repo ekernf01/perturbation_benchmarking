@@ -1,7 +1,7 @@
 {
     "unique_id": "1.2.2_2",
     "nickname": "autoregressive",
-    "readme": "Autoregressive modeling of nakatake data.",
+    "readme": "Autoregressive modeling series.",
     "question": "1.2.2",
     "is_active": true,
     "refers_to": "1.2.2_1", 
