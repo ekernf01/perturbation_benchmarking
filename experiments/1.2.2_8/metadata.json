@@ -4,20 +4,7 @@
     "readme": "Autoregressive modeling of nakatake data.",
     "question": "1.2.2",
     "is_active": true,
-    "refers_to": "1.0_1",
-    "eligible_regulators": "all",
-    "predict_self": true,
-    "regression_method":[
-        "mean", 
-        "median",
-        "autoregressive"
-    ],
-    "low_dimensional_structure": ["none", "dynamics"],
-    "low_dimensional_training": ["pca", "supervised"],
-    "factor_varied": "regression_method", 
-    "color_by": "low_dimensional_training", 
-    "facet_by": "low_dimensional_structure", 
-    "perturbation_dataset": "replogle",
-    "matching_method": "closest"
+    "refers_to": "1.2.2_1",
+    "perturbation_dataset": "replogle"
 }
 

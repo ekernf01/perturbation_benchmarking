@@ -14,7 +14,7 @@
     ],
     "skip_bad_runs": false,
     "low_dimensional_structure": ["none", "dynamics"],
-    "low_dimensional_training": ["pca", "supervised"],
+    "low_dimensional_training": ["svd", "supervised"],
     "factor_varied": "regression_method", 
     "color_by": "low_dimensional_training", 
     "facet_by": "low_dimensional_structure", 
