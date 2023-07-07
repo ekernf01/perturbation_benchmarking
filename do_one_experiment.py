@@ -21,6 +21,7 @@ load_networks.set_grn_location(
 load_perturbations.set_data_path(
     '../perturbation_data/perturbations'
 )
+
 DEFAULT_HUMAN_TFs = pd.read_csv("../accessory_data/humanTFs.csv")
 DEFAULT_HUMAN_TFs = DEFAULT_HUMAN_TFs.loc[DEFAULT_HUMAN_TFs["Is TF?"]=="Yes", "HGNC symbol"]
 
@@ -48,7 +49,7 @@ print(args)
 # For interactive use
 if args.experiment_name is None:
     args = Namespace(**{
-        "experiment_name":"1.0_1",
+        "experiment_name": "1.2.2_1",
         "amount_to_do": "missing_models",
         "save_trainset_predictions": True,
         "save_models": False,
@@ -58,8 +59,6 @@ print("Running experiment", flush = True)
 outputs = os.path.join("experiments", args.experiment_name, "outputs")
 os.makedirs(outputs, exist_ok=True)
 metadata = experimenter.validate_metadata(experiment_name=args.experiment_name)
-
-
 print("Starting at " + str(datetime.datetime.now()), flush = True)
 perturbed_expression_data, networks, experiments = experimenter.set_up_data_networks_conditions(
     metadata,
@@ -182,7 +181,8 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
             for obs,pred in op]
         )
     except AssertionError:
-        op = zip(predictions.values(), perturbed_expression_data_heldout.values())
+        print("Object shapes (observed, predicted):", flush = True)
+        op = zip(perturbed_expression_data_heldout.values(),predictions.values())
         print([(obs.shape, pred.shape) for obs,pred in op], flush = True)
         raise AssertionError("Predicted and observed anndata are different shapes.")
     assert all(

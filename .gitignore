@@ -4,6 +4,7 @@
 *.pdf
 *.svg
 *.html
+*.Rhistory
 GEARS_gene_set.pkl
 ggrn_gears_input/*
 err.txt
@@ -17,3 +18,4 @@ old_experiments/*
 experiments/*/outputs/*
 experiments/*/old_outputs/*
 node_modules/*
+lightning_logs/*
