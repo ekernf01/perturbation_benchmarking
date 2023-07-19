@@ -15,7 +15,7 @@ This project is tightly coupled with our collections of data, our GGRN package f
 
 ### Resource requirements and installation
 
-250GB of disk space and 64GB of RAM is enough resources to run everything except certain tree-based models. Certain models nominally require GPU's, but we have been able to run most experiments using a CPU, sometimes by making minimal changes to Pytorch code. See the GGRN repo for details on specific methods.
+50GB of disk space and 64GB of RAM is enough resources to run everything except certain tree-based models. The more benchmarks you run, the more predictions are saved and the more disk space is occupied. To re-run all experiments, we would recommend 250GB disk space to be safe. Certain models nominally require GPU's, but we have been able to run most experiments using a CPU, sometimes by making minimal changes to Pytorch code. See the GGRN repo for details on specific methods.
 
 The project is written in Python. We use Conda + Mamba to manage most dependencies. We offer either a flexible install or an exact install of our environment. Each option has a CPU version and a GPU version, though the GPU version is not well-tested.
  
