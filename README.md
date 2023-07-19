@@ -19,9 +19,13 @@ This project is tightly coupled with our collections of data, our GGRN package f
 
 The project is written in Python. We use Conda + Mamba to manage most dependencies. We offer either a flexible install or an exact install of our environment. Each option has a CPU version and a GPU version, though the GPU version is not well-tested.
  
+#### Exact reproduction
+
+Exactly reproducing our environment requires Ubuntu 20.04. The environment can be reproduced via `environment/set_up_environment.sh`.
+
 #### Flexible install
 
-Some flexibility in exact requirements is useful in case of different operating systems. To install roughly the same versions we use, we start with the dependencies given in `environment/conda_inputs.yaml`. We also use a few packages only available via pip. Here is the code.
+In case of different operating systems, to install roughly the same versions we use, use the dependencies given in `environment/conda_inputs.yaml`. This code requires mamba and conda to be installed already.
 
 ```bash
 mamba env create --name ggrn --file environment/conda_inputs.yaml
@@ -45,9 +49,6 @@ pip install .
 cd ..
 ```
 
-#### Exact reproduction
-
-Exactly reproducing our environment requires Ubuntu 20.04. The environment can be reproduced via `environment/set_up_environment.sh`. 
 
 ### Experiments
 
