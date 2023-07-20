@@ -2,23 +2,45 @@
 
 ### Personal
 
-- Train tickets: September 1 to MA and Sunday, september 10 to Balt, or at least to Boston. Also get bike tour rezi and get Boston to Maine and back.
-- Walk-thrus + JHPD convos + Broadstripes data entry
-    - Resources [here](https://docs.google.com/document/d/1kVwgRLckzIaYc5bl-upF4Xz0KSOh-VjL1DqORaeQZi4/edit)
+- Train tickets: Portland bike tour rezi
+- Lab captains: Monika and Elise??
+- Make a list of MRB organizers (add to BroadStripes?)
+    - Charlie Walters
+    - Jacob Mitchell
+    - Noah Workman
+    - Mara Lanis
+- Onboarding doc
 
 ### Now
 
+- Add suggested reviewers
+    - Meinshausen & Buhlmann?
+    - Sushmita Roy
+    - TM Murali or other BEELINE authors
+    - SCENIC-related people: Stein Aerts, Pierre Guerts, Sara Aibar, VA Huynh-Thu, or Carmen Bravo Gonzales-Blas?
+    - Geoffrey Schiebinger? (the WOT guy)
+    - Julio Saez-Rodrigues (wrote recent GRN review https://www.nature.com/articles/s41576-023-00618-5)
 - contact GEARS and let them know what's going on
     > Dear Dr. Leskovic,
     I’m a PhD student at JHU working with Patrick Cahan and Alexis Battle. We have been working with GEARS recently. We wanted to give you a heads up that we haven’t been able to reproduce figure 2b (as discussed with Yusuf Roohani on github issue #5), and are seeing overall performance that doesn’t exceed baseline levels on some of our evaluations. We would be happy to hear feedback from your team. Our code will be made public soon, so if there any errors or other comments on how we have been running GEARS, we can discuss further and update our analysis.
     Best,
     Eric Kernfeld
-- Try out the "simple" split again
-- Add scFormer
+
+- invite Josh W to view the code
+- Show MAE instead of MAE benefit, or show MAE benefit as a percentage of baseline MAE?
+- REMOVE autoregressive models and separate software
+- Update simulations to include more base networks??
+- **Goal: post benchmarking preprint week of July 24th**
 
 ### Eventually maybe
 
-- Redo autoregressive trials on real data, 1.2.2_{1-3} 
+- Handle indirect effects:
+    - Treat perturbed TF as unknown / random
+    - Try CO-style iteration
+    - try alternate matching scheme
+
+- Add scFormer (take over from Zexi)
+- Try out the "simple" split again
 - PRESCIENT:
     - NN architecture?
     - Project then simulate for KO's?
