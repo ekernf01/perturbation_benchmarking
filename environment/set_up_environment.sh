@@ -25,7 +25,7 @@ pip install 'scib>=1.0.3' --no-deps
 
 # Install our packages
 cd
-for p in load_networks load_perturbations ggrn_backend2 ggrn_backend3 ggrn perturbation_benchmarking_package 
+for p in load_networks load_perturbations ggrn_backend2 ggrn perturbation_benchmarking_package 
 do
     git clone http://github.com/ekernf01/${p}
     pip install -e $p
@@ -38,9 +38,8 @@ sudo ./aws/install
 
 # For now, get data from AWS S3
 # Eventually this should be a Zenodo download or something public.
-# Note to self: if you sync perturbation_benchmarking, then you put all local results onto this ec2 instance.
 aws configure 
-for d in network_collection perturbation_data accessory_data perturbation_benchmarking 
+for d in network_collection perturbation_data accessory_data  
 do
     mkdir $d
     aws s3 sync s3://cahanlab/eric.kernfeld/eric_laptop/research/projects/perturbation_prediction/cell_type_knowledge_transfer/$d/ $d
