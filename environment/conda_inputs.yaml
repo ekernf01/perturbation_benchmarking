@@ -12,7 +12,6 @@ dependencies:
   - scipy
   - pytorch
   - torchtext
-  - pyg
   - torchvision 
   - torchaudio 
   - numpy[version='<=1.23']
@@ -29,21 +28,23 @@ dependencies:
   - altair
   - altair_saver
   - dcor
-  - velocyto.py
   - scanpy
   - python-igraph
   - louvain
   - genomepy
-  - gimmemotifs[version'==0.17.1']
-  - gseapy
   - goatools
   - python-annoy
   - pyreadr
   - regex
   - scikit-misc
-  - dictys
-  - tensorboard[version'>=2.4,<2.5']
   - matplotlib[version'>=3.4,<3.5']
   - rpy2
   - anndata2ri
   - deprecated
+run_constrained:
+  - gseapy
+  - dictys
+  - velocyto.py
+  - pyg
+  - tensorboard[version'>=2.4,<2.5']
+  - gimmemotifs[version'==0.17.1']
