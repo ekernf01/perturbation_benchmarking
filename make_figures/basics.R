@@ -42,10 +42,10 @@ main_experiments = c("1.0_1",     "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
   ggplot(X) +
     geom_boxplot(aes(x = x, y = mae_benefit)) + 
     facet_grid(perturbation_dataset~factor_varied, scales = "free") + 
-    labs(x = "", y = "Improvement in MAE over mean") +
+    labs(x = "", y = "Percentage improvement in MAE over mean") +
     theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) + 
-    geom_hline(aes(yintercept=0, color = "red")) + 
-    theme(legend.position = "none")
+    scale_y_continuous(labels = scales::label_number_si()) +
+    geom_hline(data = subset(X, x %in% c("mean", "median", "empty", "dense")), aes(yintercept=mae_benefit, color = x)) 
   ggsave('plots/fig_basics_a.pdf', width = 5, height = 8)
 }
 

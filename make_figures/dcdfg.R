@@ -33,12 +33,12 @@ X$perturbation_dataset %<>% factor(levels = unique(c("frangieh_IFNg_v1", "frangi
 for (metric in c("mae_benefit")) {
   ggplot(X, aes(x = regression_method, y = mae_benefit, fill = starting_expression, color = starting_expression)) +
     geom_point(position = position_dodge(width = 0.5)) +
-    facet_wrap(~perturbation_dataset, scales = "free") +
+    facet_wrap(~perturbation_dataset, scales = "free", ncol = 4) +
     labs(x = "Method",
          y = "MAE improvement over baseline") + 
     theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) 
   
   dir.create("plots", showWarnings = FALSE)
-  ggsave(filename = paste0("plots/fig_dcdfg_", metric, ".pdf"), width = 8, height = 8)
+  ggsave(filename = paste0("plots/fig_dcdfg_", metric, ".pdf"), width = 8, height = 4)
 }
 
