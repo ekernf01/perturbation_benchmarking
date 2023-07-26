@@ -1,24 +1,20 @@
 {
     "unique_id": "1.2.2_1",
-    "nickname": "autoregressive",
-    "readme": "Autoregressive modeling series.",
+    "nickname": "matching_and_timescale",
+    "readme": "Testing whether we should use the steady-state assumption or match to controls, and whether we should predict after one, a few, or many time-steps.",
     "question": "1.2.2",
     "is_active": true,
-    "refers_to": "1.0_1",
-    "eligible_regulators": "all",
-    "predict_self": true,
+    "eligible_regulators": "human_tfs",
+    "data_split_seed": [0],
+    "merge_replicates": true,
     "regression_method":[
-        "mean", 
-        "median",
-        "autoregressive"
+        "RidgeCV"
     ],
-    "skip_bad_runs": false,
-    "low_dimensional_structure": ["none", "dynamics"],
-    "low_dimensional_training": ["svd", "supervised"],
-    "factor_varied": "regression_method", 
-    "color_by": "low_dimensional_training", 
-    "facet_by": "low_dimensional_structure", 
-    "perturbation_dataset": "nakatake",
-    "matching_method": "closest"
+    "matching_method": ["steady_state", "closest"],
+    "prediction_timescale": [1, 3, 10],
+    "factor_varied": "matching_method", 
+    "color_by": "prediction_timescale", 
+    "facet_by": null, 
+    "perturbation_dataset": "nakatake"
 }
 

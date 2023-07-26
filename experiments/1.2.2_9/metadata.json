@@ -1,7 +1,7 @@
 {
     "unique_id": "1.2.2_9",
-    "nickname": "autoregressive",
-    "readme": "Autoregressive modeling series.",
+    "nickname": "matching_and_timescale",
+    "readme": "Testing whether we should use the steady-state assumption or match to controls, and whether we should predict after one, a few, or many time-steps.",
     "question": "1.2.2",
     "is_active": true,
     "refers_to": "1.2.2_1",
