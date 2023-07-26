@@ -40,7 +40,7 @@ parser.add_argument(
     To do everything, specify "models". 
     If it crashes, specify "missing_models" to keep previous progress. 
     To skip certain models (e.g. skip ExtraTrees if low on RAM), manually place 
-    empty results like 'touch outputs/results/predictions/3.h5ad' and specify "missing_models".
+    an empty results file like 'touch outputs/results/predictions/3.h5ad'.
     """
 )
 args = parser.parse_args()
@@ -49,7 +49,7 @@ print(args)
 # For interactive use
 if args.experiment_name is None:
     args = Namespace(**{
-        "experiment_name": "1.2.2_3",
+        "experiment_name": "1.0_0",
         "amount_to_do": "missing_models",
         "save_trainset_predictions": True,
         "save_models": False,
@@ -65,11 +65,11 @@ perturbed_expression_data, networks, experiments = experimenter.set_up_data_netw
     amount_to_do = args.amount_to_do, 
     outputs = outputs,
 )
-
 perturbed_expression_data_train = {}
 perturbed_expression_data_heldout = {}
 os.makedirs(os.path.join( outputs, "predictions"   ), exist_ok=True) 
 os.makedirs(os.path.join( outputs, "fitted_values" ), exist_ok=True) 
+
 for i in experiments.index:
     models      = os.path.join( outputs, "models",        str(i) )
     h5ad        = os.path.join( outputs, "predictions",   str(i) + ".h5ad" )
@@ -192,14 +192,14 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
             ) 
             for i in predictions.keys()
         ]
-    )
+    ) 
     
     print("(Re)doing evaluations")
     evaluationPerPert, evaluationPerTarget = evaluator.evaluateCausalModel(
         heldout = perturbed_expression_data_heldout,
         predictions = predictions,
         baseline = {
-            i: perturbed_expression_data_train[i][perturbed_expression_data_train[i].obs["is_control"], :] 
+            i: perturbed_expression_data_train[i][[bool(b) for b in perturbed_expression_data_train[i].obs["is_control"]], :] 
             for i in perturbed_expression_data_train.keys()
         },
         experiments = experiments,
