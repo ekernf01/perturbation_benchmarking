@@ -19,7 +19,7 @@ pip install cell-gears==0.0.4  --no-deps
 pip install celloracle==0.12.0 --no-deps
 pip install prescient==0.1.0   --no-deps 
 pip install geomloss==0.2.3    --no-deps 
-pip install git+https://huggingface.co/ctheodoris/Geneformer@f0b6641f --no-deps
+pip install git+https://huggingface.co/ctheodoris/Geneformer@50e921d --no-deps
 pip install git+https://github.com/bowang-lab/scFormer@2df344a --no-deps
 pip install 'scib>=1.0.3' --no-deps
 
