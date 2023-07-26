@@ -19,3 +19,4 @@ experiments/*/outputs/*
 experiments/*/old_outputs/*
 node_modules/*
 lightning_logs/*
+TODO.md
