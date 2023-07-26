@@ -7,8 +7,10 @@
 *.Rhistory
 GEARS_gene_set.pkl
 ggrn_gears_input/*
-geneformer_loom_data/
-geneformer_tokenized_data/
+geneformer_loom_data
+geneformer_tokenized_data
+logs
+wandb
 err.txt
 out.txt
 stdout.txt
