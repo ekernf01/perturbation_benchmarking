@@ -7,7 +7,7 @@ We wanted experiment identifiers to be concise, stable, and informative. To help
         1.1.2 Should we allow non-TF regulators?
     1.2. How does handling of time affect performance? 
          1.2.1. For dynamic models, is RNA velocity better or worse than modeling based on sample collection time?
-         1.2.2. Given no time-series labels, is it better to match each treatment to the nearest control, or match each treatment to itself and assume steady state?
+         1.2.2. Is it better to match each treatment to the nearest control (estimating total effects), or match each treatment to itself and assume steady state (estimating direct effects)? Is it better to predict results after a single iteration of the model, or a few, or many (steady state)? How do these decisions interact?
     1.3. How much are causal effects or causal structures shared across different cell types? 
         1.3.1. Do estimators treating cell types as "separate", "shared", or "similar" work best?
         1.3.2. See 1.4.1
