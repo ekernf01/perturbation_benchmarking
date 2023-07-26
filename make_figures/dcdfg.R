@@ -25,17 +25,27 @@ method_tidy = c(
 ) 
 X$regression_method = method_tidy[X$regression_method] %>% factor(levels = c("median", "mean", "NOTEARS-LR", "DCD-FG"))
 X$perturbation_dataset %<>% gsub("γ", "g", .)
+t.test(
+  subset(X, regression_method=="DCD-FG" & perturbation_dataset == "nakatake" & starting_expression == "control", select = "mae") - 
+    subset(X, regression_method=="mean" & perturbation_dataset == "nakatake" & starting_expression == "control", select = "mae"),
+)
+
+t.test(
+  subset(X, regression_method=="DCD-FG" & perturbation_dataset == "nakatake" & starting_expression == "control", select = "mae") - 
+    subset(X, regression_method=="NOTEARS-LR" & perturbation_dataset == "nakatake" & starting_expression == "control", select = "mae"),
+)
+
 X %<>%
   group_by(regression_method, starting_expression, perturbation_dataset) %>%
-  summarise(across(ends_with("benefit"), mean))
+  summarise(across(starts_with("mae"), mean))
 my_levels = unique(X$perturbation_dataset)
 X$perturbation_dataset %<>% factor(levels = unique(c("frangieh_IFNg_v1", "frangieh_IFNg_v3", "nakatake", my_levels)))
-for (metric in c("mae_benefit")) {
-  ggplot(X, aes(x = regression_method, y = mae_benefit, fill = starting_expression, color = starting_expression)) +
+for (metric in c("mae")) {
+  ggplot(X, aes(x = regression_method, y = mae, fill = starting_expression, color = starting_expression)) +
     geom_point(position = position_dodge(width = 0.5)) +
     facet_wrap(~perturbation_dataset, scales = "free", ncol = 4) +
     labs(x = "Method",
-         y = "MAE improvement over baseline") + 
+         y = "Mean absolute error") + 
     theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) 
   
   dir.create("plots", showWarnings = FALSE)

@@ -25,11 +25,12 @@ make_the_usual_labels_nice = function(X){
   try({X$network_datasets %<>% gsub("0$", "", .)})
   X$x = ifelse(X$factor_varied=="regression_method", X$regression_method, X$network_datasets)
   X$x %<>% gsub("_", " ", .)
-  the_usual_levels = unique(X$x)
-  X %<>% mutate(x = factor(x, levels = unique(c("empty", "dense", "median", "mean", "celloracle human", the_usual_levels))))
+  the_usual_levels = sort(unique(X$x))
+  X %<>% mutate(x = factor(x, levels = unique(c("empty", "dense", "median", "mean", the_usual_levels))))
   return(X)
 }
 main_experiments = c("1.0_1",     "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1.0_7",   "1.0_8",   "1.0_9", "1.0_10",
+                     # "1.2.2_1", "1.2.2_2", "1.2.2_3", "1.2.2_5", "1.2.2_6", "1.2.2_7", "1.2.2_8", "1.2.2_9", "1.2.2_10",
                      "1.4.3_1", "1.4.3_2", "1.4.3_3", "1.4.3_5", "1.4.3_6", "1.4.3_7", "1.4.3_8", "1.4.3_9", "1.4.3_10")
 {
   X = collect_experiments(main_experiments) 
@@ -37,38 +38,43 @@ main_experiments = c("1.0_1",     "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
   X %<>% subset(x!="QuantileRegressor")
   X %<>%
     group_by(x, perturbation_dataset, factor_varied) %>%
-    summarise(across(ends_with("benefit"), mean))
+    summarise(across(starts_with("mae"), mean))
   X$factor_varied %<>% factor(levels = c("regression_method", "network_datasets"))
   ggplot(X) +
-    geom_boxplot(aes(x = x, y = mae_benefit)) + 
+    geom_boxplot(aes(x = x, y = mae)) + 
     facet_grid(perturbation_dataset~factor_varied, scales = "free") + 
-    labs(x = "", y = "Percentage improvement in MAE over mean") +
+    labs(x = "", y = "Mean absolute error") +
     theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) + 
     scale_y_continuous(labels = scales::label_number_si()) +
-    geom_hline(data = subset(X, x %in% c("mean", "median", "empty", "dense")), aes(yintercept=mae_benefit, color = x)) 
+    geom_hline(data = subset(X, x %in% c("mean", "median", "empty", "dense")), aes(yintercept=mae, color = x)) 
   ggsave('plots/fig_basics_a.pdf', width = 5, height = 8)
 }
 
 {
-  X = collect_experiments(c("1.9_0", "1.9_1", "1.9_2", "1.9_3"))
+  X = collect_experiments(c("1.9_0", "1.9_1", "1.9_2", "1.9_3", "1.9_4"))
   X %<>%
     group_by(network_datasets, perturbation_dataset, factor_varied) %>%
-    summarise(across(ends_with("benefit"), mean))
-  X = X %>%
-    tidyr::separate(perturbation_dataset, into = c(".",  "number_of_steps", "noise_sd"), sep = "_") %>%
+    summarise(across(starts_with("MAE"), mean))
+  X %<>%    
+    dplyr::mutate(perturbation_dataset = gsub("MARA_FANTOM4", "MARA FANTOM4", perturbation_dataset)) %>%
+    dplyr::mutate(perturbation_dataset = gsub("cellnet_human_Hg1332", "cellnet human Hg1332", perturbation_dataset)) %>%
+    dplyr::mutate(perturbation_dataset = gsub("cellnet_human_Hugene", "cellnet human Hugene", perturbation_dataset)) %>%
+    dplyr::mutate(perturbation_dataset = gsub("gtex_rna", "gtex rna", perturbation_dataset)) %>%
+    dplyr::mutate(perturbation_dataset = gsub("celloracle_human", "celloracle human", perturbation_dataset)) %>%
+    tidyr::separate(perturbation_dataset, into = c(".",  "true_network", "number_of_steps", "noise_sd"), sep = "_") %>%
     make_the_usual_labels_nice %>%
-    dplyr::mutate(number_of_steps = gsub(".*=", "", number_of_steps)) %>%
-    dplyr::mutate(number_of_steps = paste0(number_of_steps, " steps")) %>%
+    dplyr::mutate(true_network = gsub(".*=", "", true_network)) %>%
     dplyr::mutate(noise_sd = gsub(".*=", "", noise_sd)) %>%
-    dplyr::mutate(noise = ifelse(noise_sd=="1", "noise", "no noise"))
+    dplyr::mutate(number_of_steps = gsub(".*=", "", number_of_steps)) %>%
+    dplyr::mutate(number_of_steps = paste0(number_of_steps, " steps")) 
+  X$is_true_network = X$true_network == X$x
   ggplot(X) +
-    geom_boxplot(aes(x = network_datasets, y = mae_benefit)) + 
-    labs(x = "Network source", y = "Improvement in MAE over empty network") +
-    facet_wrap(number_of_steps~noise, scales = "free_y", ncol = 1) + 
-    theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) + 
-    geom_hline(aes(yintercept=0, color = "red")) + 
-    theme(legend.position = "none")
-  ggsave('plots/fig_basics_simulation.pdf', width = 2.5, height = 6)
+    geom_point(aes(x = x, y = mae, color = is_true_network)) + 
+    scale_color_manual(values = c("FALSE"="black", "TRUE"="RED")) +
+    labs(x = "Network source", y = "Mean absolute error") +
+    facet_wrap(~true_network, scales = "free_y", ncol = 1) + 
+    theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) 
+  ggsave('plots/fig_basics_simulation.pdf', width = 3.5, height = 6)
 }
 {
   evaluationPerTarget = arrow::read_parquet("../experiments/1.0_1/outputs/evaluationPerTarget.parquet")

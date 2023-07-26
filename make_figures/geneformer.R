@@ -28,12 +28,12 @@ X %<>%
 X$desired_heldout_fraction %<>% 
   multiply_by(100) %>%
   paste0("Held-out : ", ., "%")
-for(metric in c("mae_benefit")){
+for(metric in c("mae")){
   ggplot(X) + 
     geom_point(aes_string(x = "regression_method", 
                           y = metric), position = position_dodge(width=0.3)) + 
     labs(x='', 
-         y = "MAE improvement over baseline") +
+         y = "Mean absolute error") +
     facet_wrap(~perturbation_dataset, scales = "free_y", nrow = 2) + 
     theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) 
 }
