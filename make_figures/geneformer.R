@@ -20,14 +20,17 @@ collect_experiments = function(experiments){
   return(X)
 }
 
-X = collect_experiments(c("1.3.3_1", "1.3.3_2", "1.3.3_3", "1.3.3_5", "1.3.3_6", "1.3.3_7", "1.3.3_8", "1.3.3_9", "1.3.3_10"))
+X = collect_experiments(c("1.3.3_1",# "1.3.3_2",
+                          "1.3.3_3", "1.3.3_5", "1.3.3_6", "1.3.3_7", "1.3.3_8", "1.3.3_9", "1.3.3_10"))
 X$regression_method %<>% gsub("0$", "", .)
+X$regression_method %<>% gsub("RidgeCV", "Ridge regression on\nperturbed GeneFormer\nembeddings", .)
 X %<>%
   group_by(regression_method, eligible_regulators, perturbation_dataset, desired_heldout_fraction) %>%
-  summarise(across(ends_with("benefit"), mean))
+  summarise(across(starts_with("mae"), mean))
 X$desired_heldout_fraction %<>% 
   multiply_by(100) %>%
   paste0("Held-out : ", ., "%")
+
 for(metric in c("mae")){
   ggplot(X) + 
     geom_point(aes_string(x = "regression_method", 
@@ -37,4 +40,4 @@ for(metric in c("mae")){
     facet_wrap(~perturbation_dataset, scales = "free_y", nrow = 2) + 
     theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) 
 }
-ggsave(paste0('plots/fig_geneformer_', metric, '.pdf'), width = 8, height = 3)
+ggsave(paste0('plots/fig_geneformer_', metric, '.pdf'), width = 8, height = 3.5)
