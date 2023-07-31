@@ -24,7 +24,7 @@ git clone https://huggingface.co/ctheodoris/Geneformer
 cd Geneformer
 pip install .
 cd ..
-```
+
 
 # Get data collections from Zenodo 
 # accessory data, e.g. pLI and list of TF names
@@ -35,4 +35,5 @@ wget https://zenodo.org/api/files/077c17cc-c54b-4f5c-baf0-f7aca944d523/perturbat
   && unzip perturbation_data.zip 
 # networks
 wget https://zenodo.org/api/files/077c17cc-c54b-4f5c-baf0-f7aca944d523/network_collection.zip?versionId=aab4e174-e575-4653-96f8-ab2273ea896c \
-  && unzip network_collection.zip 
+  && unzip network_collection.zip
+```
