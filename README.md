@@ -50,7 +50,7 @@ pip install prescient==0.1.0   --no-deps
 pip install geomloss==0.2.3    --no-deps 
 pip install git+https://github.com/bowang-lab/scFormer@2df344a --no-deps
 pip install 'scib>=1.0.3' --no-deps
-for p in load_networks load_perturbations ggrn_backend2 ggrn perturbation_benchmarking_package
+for p in load_networks load_perturbations ggrn_backend2 ggrn perturbation_benchmarking_package geneformer_embeddings
 do
     pip install "${p} @ git+https://github.com/ekernf01/${p}"
 done
