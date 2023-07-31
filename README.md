@@ -1,11 +1,28 @@
 ## A systematic comparison of computational methods for expression forecasting
 
-This repo contains benchmark experiments to evaluate various strategies for predicting in detail the outcome of perturbation experiments. To extend this to evaluate a new method, make a [docker container with the behavior we expect](https://github.com/ekernf01/ggrn_docker_backend), then modify the [metadata for our docker demo experiment](https://github.com/ekernf01/perturbation_benchmarking/blob/main/experiments/ggrn_docker_backend/metadata.json), then run it:
+This repo contains benchmark experiments to evaluate various strategies for predicting in detail the outcome of perturbation experiments. 
+
+### Extend
+
+To extend this to evaluate a new method, make a [docker container with the behavior we expect](https://github.com/ekernf01/ggrn_docker_backend), then modify the [metadata for our docker demo experiment](https://github.com/ekernf01/perturbation_benchmarking/blob/main/experiments/ggrn_docker_backend/metadata.json), then run it:
 
 ```bash
 python do_one_experiment.py --experiment_name your_experiment_name --amount_to_do missing_models --save_trainset_predictions \
     > experiments/your_experiment_name/stdout.txt 2> experiments/your_experiment_name/err.txt
 ```
+
+### Install and/or reproduce results
+
+The project is written in Python. We use Conda + Mamba to manage most dependencies. We offer either a flexible install or an exact install of our environment. Each option has a CPU version and a GPU version, though the GPU version is not well-tested.
+
+To reproduce our results, you'll need to install our code, download our data to the expected relative path, run our Experiments, and finally re-create the figures. 
+
+- Exactly reproducing our environment requires Ubuntu 20.04. The environment can be reproduced via `environment/set_up_environment.sh`. For another OS, see `enviroment/flexible_install.md`. 
+- Our data are on Zenodo at DOI `10.5281/zenodo.8071809`. The install script will try to set it up for you.
+- Experiments can be run via `source run_experiments.sh &`. This takes a while. 
+- Figures are produced using the R scripts in `make_figures`.
+
+50GB of disk space and 64GB of RAM is enough resources to run most experiments. Certain tree-based models require more RAM. The more benchmarks you run, the more predictions are saved and the more disk space is occupied. To re-run all experiments, we would recommend 250GB disk space to be safe. Certain models nominally require GPU's, but we have been able to run most experiments using a CPU, sometimes by making minimal changes to Pytorch code. See the [GGRN repo](https://github.com/ekernf01/ggrn) for details on GPU requirements for specific methods.
 
 ### Related infrastructure
 
@@ -17,48 +34,6 @@ This project is tightly coupled with our collections of data, our GGRN package f
 - [GGRN](https://github.com/ekernf01/ggrn) offers flexible combination of different features for regulatory network inference.
 - Our [perturbation benchmarking package](https://github.com/ekernf01/perturbation_benchmarking_package) helps conduct the `Experiment`s that are specified in this repo.
 - Certain additional experiments are implemented in [our fork of DCD-FG](https://github.com/ekernf01/dcdfg).
-
-### Resource requirements
-
-50GB of disk space and 64GB of RAM is enough resources to run most experiments. Certain tree-based models require more RAM. The more benchmarks you run, the more predictions are saved and the more disk space is occupied. To re-run all experiments, we would recommend 250GB disk space to be safe. Certain models nominally require GPU's, but we have been able to run most experiments using a CPU, sometimes by making minimal changes to Pytorch code. See the GGRN repo for details on GPU requirements for specific methods.
-
-### Reproduction
-
-The project is written in Python. We use Conda + Mamba to manage most dependencies. We offer either a flexible install or an exact install of our environment. Each option has a CPU version and a GPU version, though the GPU version is not well-tested.
-
-To reproduce our results, you'll need to install our code, download our data to the expected relative path, run our Experiments, and finally re-create the figures. 
-
-- Exactly reproducing our environment requires Ubuntu 20.04. The environment can be reproduced via `environment/set_up_environment.sh`.
-- Our data are on Zenodo at DOI `10.5281/zenodo.8071809`.
-- Experiments can be run via `source run_experiments.sh &`.
-- Figures are produced using the R scripts in `make_figures`.
-
-#### Flexible install
-
-In case of different operating systems, exact conda environment reproduction is infeasible. You can use the more flexible code given below. This code requires mamba and conda to be installed already.
-
-```bash
-mamba env create --name ggrn --file environment/conda_inputs.yaml
-conda activate ggrn
-pip install vl-convert-python
-# Avoid interfering with gimmemotifs 0.17 or with the PyTorch install by using --no-deps
-# The deps should be taken care of by the above.
-mamba install 'pandas>=1.2' --no-deps
-pip install cell-gears==0.0.4  --no-deps
-pip install celloracle==0.12.0 --no-deps
-pip install prescient==0.1.0   --no-deps 
-pip install geomloss==0.2.3    --no-deps 
-pip install git+https://github.com/bowang-lab/scFormer@2df344a --no-deps
-pip install 'scib>=1.0.3' --no-deps
-for p in load_networks load_perturbations ggrn_backend2 ggrn perturbation_benchmarking_package geneformer_embeddings
-do
-    pip install "${p} @ git+https://github.com/ekernf01/${p}"
-done
-git clone https://huggingface.co/ctheodoris/Geneformer
-cd Geneformer
-pip install .
-cd ..
-```
 
 ### Experiments
 
