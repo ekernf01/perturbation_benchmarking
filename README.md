@@ -13,7 +13,7 @@ python do_one_experiment.py --experiment_name ggrn_docker_backend --amount_to_do
     > experiments/ggrn_docker_backend/stdout.txt 2> experiments/ggrn_docker_backend/err.txt
 ```
 
-Results are saved to `experiments/ggrn_docker_backend/outputs`.
+Results are saved to `experiments/ggrn_docker_backend/outputs`. Let us know and we may want to feature your method in our evaluations!
 
 ### Install and/or reproduce results
 
