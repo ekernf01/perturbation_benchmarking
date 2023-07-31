@@ -26,7 +26,7 @@ To reproduce our results, you'll need to install our code, download our data to 
 
 ### Related infrastructure
 
-This project is tightly coupled with our collections of data, our GGRN package for network inference, and a companion package containing benchmarking infrastructure. It will not work without all of those components. Our installation script, below, will attempt to set them all up automatically. You can also learn more about them at the following links.
+This project is tightly coupled with our collections of data, our GGRN package for network inference, and a companion package containing benchmarking infrastructure. More information:
 
 - Perturbation data, the network collection, and some accessory data (e.g. a list of TF's) are on Zenodo with DOI `10.5281/zenodo.8071809`.
     - Our code expects each of those three folders to be unzipped and placed adjacent to this repo.
