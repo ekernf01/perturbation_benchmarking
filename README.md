@@ -13,16 +13,18 @@ python do_one_experiment.py --experiment_name ggrn_docker_backend --amount_to_do
 
 ### Install and/or reproduce results
 
-The project is written in Python. We use Conda + Mamba to manage most dependencies. We offer either a flexible install or an exact install of our environment. Each option has a CPU version and a GPU version, though the GPU version is not well-tested.
-
 To reproduce our results, you'll need to install our code, download our data to the expected relative path, run our Experiments, and finally re-create the figures. 
 
-- Exactly reproducing our environment requires Ubuntu 20.04. The environment can be reproduced via `environment/set_up_environment.sh`. For another OS, see `enviroment/flexible_install.md`. 
-- Our data are on Zenodo at DOI `10.5281/zenodo.8071809`. The install script will try to set it up for you.
+- Exactly reproducing our environment requires Ubuntu 20.04. The environment can be reproduced via `environment/set_up_environment.sh`. For another OS, we make no guarantees, but see `enviroment/flexible_install.md`. 
+- Our data are on Zenodo at DOI `10.5281/zenodo.8071809`. The install script will try to put the data where it's expected to go.
 - Experiments can be run via `source run_experiments.sh &`. This takes a while. 
 - Figures are produced using the R scripts in `make_figures`.
 
-50GB of disk space and 64GB of RAM is enough resources to run most experiments. Certain tree-based models require more RAM. The more benchmarks you run, the more predictions are saved and the more disk space is occupied. To re-run all experiments, we would recommend 250GB disk space to be safe. Certain models nominally require GPU's, but we have been able to run most experiments using a CPU, sometimes by making minimal changes to Pytorch code. See the [GGRN repo](https://github.com/ekernf01/ggrn) for details on GPU requirements for specific methods.
+### Toolchain and resource requirements
+
+We use Conda + Mamba to manage most dependencies. We offer either a flexible install or an exact install of our environment. Each option has a CPU version and a GPU version, though the GPU version is not well-tested. Certain models nominally require GPU's, but we have been able to run most experiments using a CPU, sometimes by making minimal changes to Pytorch code. See the [GGRN repo](https://github.com/ekernf01/ggrn) for details on GPU requirements for specific methods. 
+
+50GB of disk space and 64GB of RAM is enough resources to run most experiments. Certain tree-based models require more RAM. The more benchmarks you run, the more predictions are saved and the more disk space is occupied. To re-run all experiments, we would recommend 250GB disk space to be safe. 
 
 ### Related infrastructure
 
