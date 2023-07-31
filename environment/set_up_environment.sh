@@ -25,7 +25,7 @@ pip install 'scib>=1.0.3' --no-deps
 
 # Install our packages
 cd
-for p in load_networks load_perturbations ggrn_backend2 ggrn perturbation_benchmarking_package 
+for p in load_networks load_perturbations ggrn_backend2 ggrn perturbation_benchmarking_package geneformer_embeddings
 do
     git clone http://github.com/ekernf01/${p}
     pip install -e $p
