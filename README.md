@@ -7,8 +7,8 @@ This repo contains benchmark experiments to evaluate various strategies for pred
 To extend this to evaluate a new method, make a [docker container with the behavior we expect](https://github.com/ekernf01/ggrn_docker_backend), then modify the [metadata for our docker demo experiment](https://github.com/ekernf01/perturbation_benchmarking/blob/main/experiments/ggrn_docker_backend/metadata.json), then run it:
 
 ```bash
-python do_one_experiment.py --experiment_name your_experiment_name --amount_to_do missing_models --save_trainset_predictions \
-    > experiments/your_experiment_name/stdout.txt 2> experiments/your_experiment_name/err.txt
+python do_one_experiment.py --experiment_name ggrn_docker_backend --amount_to_do missing_models --save_trainset_predictions \
+    > experiments/ggrn_docker_backend/stdout.txt 2> experiments/ggrn_docker_backend/err.txt
 ```
 
 ### Install and/or reproduce results
