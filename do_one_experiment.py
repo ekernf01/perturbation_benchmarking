@@ -30,6 +30,7 @@ parser = argparse.ArgumentParser("experimenter")
 parser.add_argument("--experiment_name", help="Unique id for the experiment.", type=str)
 parser.add_argument("--save_models",     help="If true, save model objects.", default = False, action = "store_true")
 parser.add_argument("--save_trainset_predictions", help="If true, make & save predictions of training data.", default = False, action = "store_true")
+parser.add_argument("--skip_bad_runs", help="If true, keep running when some runs hit errors.", default = True, type = bool)
 parser.add_argument(
     "--amount_to_do",
     choices = ["plots", "evaluations", "models", "missing_models"],
@@ -49,10 +50,11 @@ print(args)
 # For interactive use
 if args.experiment_name is None:
     args = Namespace(**{
-        "experiment_name": "1.0_0",
+        "experiment_name": "1.3.3_2",
         "amount_to_do": "missing_models",
         "save_trainset_predictions": True,
         "save_models": False,
+        "skip_bad_runs": False,
     })
 # Additional inputs and outputs
 print("Running experiment", flush = True)
@@ -114,7 +116,7 @@ for i in experiments.index:
                     human_tfs = DEFAULT_HUMAN_TFs,
                 )
             except Exception as e: 
-                if metadata["skip_bad_runs"]:
+                if args.skip_bad_runs:
                     print(f"Caught exception {repr(e)} on experiment {i}; skipping.")
                 else:
                     raise e
