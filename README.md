@@ -1,6 +1,11 @@
 ## A systematic comparison of computational methods for expression forecasting
 
-This repo contains benchmark experiments to evaluate various strategies for predicting in detail the outcome of perturbation experiments. To reproduce our results, you'll need to install our code, download our data to the expected relative path, run our Experiments, and finally re-create the figures.
+This repo contains benchmark experiments to evaluate various strategies for predicting in detail the outcome of perturbation experiments. To extend this to evaluate a new method, make a [docker container with the behavior we expect](https://github.com/ekernf01/ggrn_docker_backend), then modify the [metadata for our docker demo experiment](https://github.com/ekernf01/perturbation_benchmarking/blob/main/experiments/ggrn_docker_backend/metadata.json), then run it:
+
+```bash
+python do_one_experiment.py --experiment_name your_experiment_name --amount_to_do missing_models --save_trainset_predictions \
+    > experiments/your_experiment_name/stdout.txt 2> experiments/your_experiment_name/err.txt
+```
 
 ### Related infrastructure
 
@@ -21,7 +26,12 @@ This project is tightly coupled with our collections of data, our GGRN package f
 
 The project is written in Python. We use Conda + Mamba to manage most dependencies. We offer either a flexible install or an exact install of our environment. Each option has a CPU version and a GPU version, though the GPU version is not well-tested.
 
-Exactly reproducing our environment requires Ubuntu 20.04. The environment can be reproduced via `environment/set_up_environment.sh`.
+To reproduce our results, you'll need to install our code, download our data to the expected relative path, run our Experiments, and finally re-create the figures. 
+
+- Exactly reproducing our environment requires Ubuntu 20.04. The environment can be reproduced via `environment/set_up_environment.sh`.
+- Our data are on Zenodo at DOI `10.5281/zenodo.8071809`.
+- Experiments can be run via `source run_experiments.sh &`.
+- Figures are produced using the R scripts in `make_figures`.
 
 #### Flexible install
 
@@ -49,7 +59,6 @@ cd Geneformer
 pip install .
 cd ..
 ```
-
 
 ### Experiments
 
