@@ -13,6 +13,8 @@ python do_one_experiment.py --experiment_name ggrn_docker_backend --amount_to_do
     > experiments/ggrn_docker_backend/stdout.txt 2> experiments/ggrn_docker_backend/err.txt
 ```
 
+Results are saved to `experiments/ggrn_docker_backend/outputs`.
+
 ### Install and/or reproduce results
 
 To reproduce our results, you'll need to install our code, download our data to the expected relative path, run our Experiments, and finally re-create the figures. 
