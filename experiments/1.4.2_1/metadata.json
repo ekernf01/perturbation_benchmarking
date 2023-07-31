@@ -7,7 +7,6 @@
     "facet_by": "eligible_regulators",
     "predict_self" : true,
     "merge_replicates": false,
-    "skip_bad_runs": false,
     "regression_method":[
         "median",
         "mean",
