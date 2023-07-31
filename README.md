@@ -20,8 +20,8 @@ Results are saved to `experiments/ggrn_docker_backend/outputs`.
 To reproduce our results, you'll need to install our code, download our data to the expected relative path, run our Experiments, and finally re-create the figures. 
 
 - Install options:
-    - Flexible OS: see `enviroment/flexible_install.md`. 
-    - Exactly reproduction (requires Ubuntu 20.04): use `environment/set_up_environment.sh`.
+    - Flexible OS (not tested): see `enviroment/flexible_install.md`. 
+    - Exact reproduction (requires Ubuntu 20.04): use `environment/set_up_environment.sh`.
 - Our data are on Zenodo at DOI `10.5281/zenodo.8071809`. The install script will try to put the data where it's expected to go.
 - Experiments can be run via `source run_experiments.sh &`. This takes a while. 
 - Figures are produced using the R scripts in `make_figures`.
