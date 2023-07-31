@@ -1,4 +1,4 @@
-## A systematic comparison of computational methods for expression forecasting
+## A systematic comparison of computational methods for expression forecasting ([preprint](https://www.biorxiv.org/content/10.1101/2023.07.28.551039v1))
 
 This repo contains benchmark experiments to evaluate various strategies for predicting gene expression after knockout, knockdown, or overexpression. 
 
