@@ -24,23 +24,20 @@ pip install git+https://github.com/bowang-lab/scFormer@2df344a --no-deps
 pip install 'scib>=1.0.3' --no-deps
 
 # Install our packages
-cd
+cd ..
 for p in load_networks load_perturbations ggrn_backend2 ggrn perturbation_benchmarking_package geneformer_embeddings
 do
     git clone http://github.com/ekernf01/${p}
     pip install -e $p
 done
 
-# Get data collections
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-unzip awscliv2.zip
-sudo ./aws/install
-
-# For now, get data from AWS S3
-# Eventually this should be a Zenodo download or something public.
-aws configure 
-for d in network_collection perturbation_data accessory_data  
-do
-    mkdir $d
-    aws s3 sync s3://cahanlab/eric.kernfeld/eric_laptop/research/projects/perturbation_prediction/cell_type_knowledge_transfer/$d/ $d
-done
+# Get data collections from Zenodo 
+# accessory data, e.g. pLI and list of TF names
+wget https://zenodo.org/api/files/077c17cc-c54b-4f5c-baf0-f7aca944d523/accessory_data.zip?versionId=62235c35-cdd2-4be0-b397-069d7382a32f  \
+  && unzip accessory_data.zip
+# perturbations 
+wget https://zenodo.org/api/files/077c17cc-c54b-4f5c-baf0-f7aca944d523/perturbation_data.zip?versionId=fa60f8f8-abf7-4d5b-81e0-92ab3c6c2340 \
+  && unzip perturbation_data.zip 
+# networks
+wget https://zenodo.org/api/files/077c17cc-c54b-4f5c-baf0-f7aca944d523/network_collection.zip?versionId=aab4e174-e575-4653-96f8-ab2273ea896c \
+  && unzip network_collection.zip 
