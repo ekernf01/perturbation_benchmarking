@@ -4,11 +4,21 @@
 In case of different operating systems, exact conda environment reproduction is infeasible. However, you may be able to carry out some of our experiments even if some of these dependencies cannot be installed. You can try the code given below. This code requires mamba and conda to be installed already.
 
 ```bash
+
+# Get data collections from Zenodo 
+# accessory data, e.g. pLI and list of TF names
+wget https://zenodo.org/record/8071809/files/accessory_data.zip && unzip accessory_data.zip &
+# perturbations 
+wget https://zenodo.org/record/8071809/files/perturbation_data.zip && unzip perturbation_data.zip &
+# networks
+wget https://zenodo.org/record/8071809/files/network_collection.zip && unzip network_collection.zip &
+
+# Get Python packages
 mamba env create --name ggrn --file environment/conda_inputs.yaml
 conda activate ggrn
 pip install vl-convert-python
 # Avoid interfering with gimmemotifs 0.17 or with the PyTorch install by using --no-deps
-# The deps should be taken care of by the above.
+# The deps for all this should be taken care of by the above.
 mamba install 'pandas>=1.2' --no-deps
 pip install cell-gears==0.0.4  --no-deps
 pip install celloracle==0.12.0 --no-deps
@@ -25,13 +35,4 @@ git clone https://huggingface.co/ctheodoris/Geneformer
 cd Geneformer
 pip install .
 cd ..
-
-
-# Get data collections from Zenodo 
-# accessory data, e.g. pLI and list of TF names
-wget https://zenodo.org/record/8071809/files/accessory_data.zip && unzip accessory_data.zip &
-# perturbations 
-wget https://zenodo.org/record/8071809/files/perturbation_data.zip && unzip perturbation_data.zip &
-# networks
-wget https://zenodo.org/record/8071809/files/network_collection.zip && unzip network_collection.zip &
 ```

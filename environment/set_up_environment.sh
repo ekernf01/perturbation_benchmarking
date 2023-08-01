@@ -1,5 +1,13 @@
 # This script sets up a new box (for us, usually an AWS EC2 instance) to run benchmarking analyses. 
  
+# Get data collections from Zenodo 
+# accessory data, e.g. pLI and list of TF names
+wget https://zenodo.org/record/8071809/files/accessory_data.zip && unzip accessory_data.zip &
+# perturbations 
+wget https://zenodo.org/record/8071809/files/perturbation_data.zip && unzip perturbation_data.zip &
+# networks
+wget https://zenodo.org/record/8071809/files/network_collection.zip && unzip network_collection.zip &
+
 # Get mamba
 wget "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
 bash Mambaforge-$(uname)-$(uname -m).sh -b
@@ -31,11 +39,4 @@ do
     pip install -e $p --no-deps 
 done
 
-# Get data collections from Zenodo 
-# accessory data, e.g. pLI and list of TF names
-wget https://zenodo.org/record/8071809/files/accessory_data.zip && unzip accessory_data.zip &
-# perturbations 
-wget https://zenodo.org/record/8071809/files/perturbation_data.zip && unzip perturbation_data.zip &
-# networks
-wget https://zenodo.org/record/8071809/files/network_collection.zip && unzip network_collection.zip &
-
+echo "The package installation has finished, but the data download and unzip may still be running in the background."
