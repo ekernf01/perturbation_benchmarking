@@ -4,7 +4,7 @@
 # accessory data, e.g. pLI and list of TF names
 wget https://zenodo.org/record/8071809/files/accessory_data.zip && unzip accessory_data.zip &
 # perturbations 
-wget https://zenodo.org/record/8071809/files/perturbation_data.zip && unzip perturbation_data.zip &
+wget https://zenodo.org/record/8071809/files/perturbation_data.zip && unzip perturbation_data.zip && mv perturbation_data_ perturbation_data &
 # networks
 wget https://zenodo.org/record/8071809/files/network_collection.zip && unzip network_collection.zip &
 
