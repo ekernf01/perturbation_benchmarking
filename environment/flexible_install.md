@@ -18,7 +18,8 @@ pip install git+https://github.com/bowang-lab/scFormer@2df344a --no-deps
 pip install 'scib>=1.0.3' --no-deps
 for p in load_networks load_perturbations ggrn_backend2 ggrn perturbation_benchmarking_package geneformer_embeddings
 do
-    pip install "${p} @ git+https://github.com/ekernf01/${p}"
+    git clone "https://github.com/ekernf01/${p}"
+    pip install -e "${p}" --no-deps 
 done
 git clone https://huggingface.co/ctheodoris/Geneformer
 cd Geneformer

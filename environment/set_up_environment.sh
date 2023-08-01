@@ -27,8 +27,8 @@ pip install 'scib>=1.0.3' --no-deps
 cd ..
 for p in load_networks load_perturbations ggrn_backend2 ggrn perturbation_benchmarking_package geneformer_embeddings
 do
-    git clone http://github.com/ekernf01/${p}
-    pip install -e $p
+    git clone http://github.com/ekernf01/${p} 
+    pip install -e $p --no-deps 
 done
 
 # Get data collections from Zenodo 
