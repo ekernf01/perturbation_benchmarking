@@ -33,11 +33,9 @@ done
 
 # Get data collections from Zenodo 
 # accessory data, e.g. pLI and list of TF names
-wget https://zenodo.org/api/files/077c17cc-c54b-4f5c-baf0-f7aca944d523/accessory_data.zip?versionId=62235c35-cdd2-4be0-b397-069d7382a32f  \
-  && unzip accessory_data.zip
+wget https://zenodo.org/record/8071809/files/accessory_data.zip?download=1 && unzip accessory_data.zip
 # perturbations 
-wget https://zenodo.org/api/files/077c17cc-c54b-4f5c-baf0-f7aca944d523/perturbation_data.zip?versionId=fa60f8f8-abf7-4d5b-81e0-92ab3c6c2340 \
-  && unzip perturbation_data.zip 
+wget https://zenodo.org/record/8071809/files/perturbation_data.zip?download=1 && unzip perturbation_data.zip
 # networks
-wget https://zenodo.org/api/files/077c17cc-c54b-4f5c-baf0-f7aca944d523/network_collection.zip?versionId=aab4e174-e575-4653-96f8-ab2273ea896c \
-  && unzip network_collection.zip 
+wget https://zenodo.org/record/8071809/files/network_collection.zip?download=1 && unzip network_collection.zip
+
