@@ -21,10 +21,18 @@ To reproduce our results, you'll need to install our code, download our data to 
 
 - Install options:
     - Flexible OS (not tested): see `enviroment/flexible_install.md`. 
-    - Exact reproduction (requires Ubuntu 20.04): use `environment/set_up_environment.sh`.
+    - Exact reproduction (requires Ubuntu 20.04): use `environment/set_up_environment.sh` like this.
 - Our data are on Zenodo at DOI `10.5281/zenodo.8071809`. The install script will try to put the data where it's expected to go.
 - Experiments can be run via `source run_experiments.sh &`. This takes a while. 
-- Figures are produced using the R scripts in `make_figures`.
+- Figures are produced using the R scripts in `make_figures`. 
+
+```bash
+git clone https://github.com/ekernf01/perturbation_benchmarking
+source environment/set_up_environment.sh
+cd perturbation_benchmarking
+source run_experiments.sh &  #This could take a couple weeks.
+Rscript make_figures/*.R
+```
 
 ### Toolchain and resource requirements
 
