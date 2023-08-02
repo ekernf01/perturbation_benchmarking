@@ -3,7 +3,8 @@
     "nickname": "ml methods",
     "readme": "We test a slate of regression methods to see if anything can beat ... the mean of the training data.",
     "question": "1.0",
-    "data_split_seed": [0],
+    "data_split_seed": [0],    
+    "type_of_split": ["interventional", "simple"],
     "regression_method":[
         "mean", 
         "median", 
@@ -22,7 +23,6 @@
     "is_active": true,
     "facet_by": null,
     "color_by": "type_of_split",
-    "type_of_split": ["interventional", "simple"],
     "factor_varied": "regression_method",
     "baseline_condition": 0,
     "merge_replicates": true,

@@ -50,7 +50,7 @@ print(args)
 # For interactive use
 if args.experiment_name is None:
     args = Namespace(**{
-        "experiment_name": "1.3.3_2",
+        "experiment_name": "1.0_1",
         "amount_to_do": "missing_models",
         "save_trainset_predictions": True,
         "save_models": False,

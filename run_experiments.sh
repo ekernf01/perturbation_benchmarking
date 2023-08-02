@@ -1,6 +1,6 @@
 source "${HOME}/mambaforge/etc/profile.d/conda.sh"
 conda activate ggrn
-for experiment in  `ls -1 experiments` 
+for experiment in  `ls -1 experiments | grep 1.0_*` 
 do
     echo "Starting ${experiment}"
     echo "Monitor progress:
