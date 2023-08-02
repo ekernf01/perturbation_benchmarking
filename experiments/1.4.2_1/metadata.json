@@ -2,16 +2,23 @@
     "unique_id": "1.4.2_1",
     "nickname": "GEARS",
     "readme": "Related Q asks, what's the best way of using a given network? GEARS has an interesting take on this. Here we test it out.",
-    "refers_to": "1.0_1",
-    "eligible_regulators": ["all", "perturbed_genes"],
-    "facet_by": "eligible_regulators",
-    "predict_self" : true,
-    "merge_replicates": false,
+    "question": "1.4.2",
+    "is_active": true,
     "regression_method":[
         "median",
         "mean",
         "GEARS" 
-    ]
+    ],
+    "data_split_seed": [0],
+    "num_genes": 10000,
+    "facet_by": null,
+    "color_by": "type_of_split",
+    "type_of_split": ["interventional"],
+    "factor_varied": "regression_method",
+    "baseline_condition": 0,
+    "predict_self" : true,
+    "merge_replicates": false,
+    "perturbation_dataset": "nakatake"
 }
 
 

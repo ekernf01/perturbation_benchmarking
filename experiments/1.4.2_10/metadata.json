@@ -2,16 +2,7 @@
     "unique_id": "1.4.2_10",
     "nickname": "GEARS",
     "readme": "Test of GEARS on other datasets.",
-    "refers_to": "1.0_1",
-    "eligible_regulators": ["all", "perturbed_genes"],
-    "facet_by": "eligible_regulators",
-    "predict_self" : true,
-    "merge_replicates": false,
-    "regression_method":[
-        "median",
-        "mean",
-        "GEARS" 
-    ],
+    "refers_to": "1.4.2_1",
     "perturbation_dataset": "replogle3"
 }
 

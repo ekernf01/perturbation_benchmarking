@@ -2,17 +2,8 @@
     "unique_id": "1.4.2_6",
     "nickname": "GEARS",
     "readme": "Test of GEARS on their preferred demo datasets.",
-    "refers_to": "1.0_1",
-    "eligible_regulators": ["all", "perturbed_genes"],
-    "facet_by": "eligible_regulators",
-    "predict_self" : true,
-    "merge_replicates": false,
+    "refers_to": "1.4.2_1",
     "desired_heldout_fraction": 0.2, 
-    "regression_method":[
-        "median",
-        "mean",
-        "GEARS" 
-    ],
     "perturbation_dataset": "dixit"
 }
 
