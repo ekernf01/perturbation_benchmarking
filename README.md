@@ -75,7 +75,12 @@ It can be hard to understand how all our experiments relate to one another, soft
 Here is an abridged, annotated description of Experiment outputs.
 
 ```bash
-├── perturbations # Same as targets but stratified by perturbation instead
+├── experiments.csv # All combinations of values provided in the metadata. Would be better named "conditions.csv". 
+├── new_experiments.csv # This is generated and compared to any existing experiments.csv to prevent confusion upon editing metadata.
+├── genes_modeled.csv # The genes included in this experiment.
+├── mae.svg # Mean absolute prediction error for each test set observation
+├── evaluationPerPert.parquet # Table of evaluation metrics listed separately for each observation in the test data, readable by e.g. pandas.read_parquet()
+├── evaluationPerTarget.parquet # Table of evaluation metrics listed separately for each feature in the test data, readable by e.g. pandas.read_parquet()
 ├── targets 
 │   ├── predictability_vs_in-degree.svg # Display of MAE of groups of targets stratified by in-degree in our networks.
 │   ├── variety_in_predictions # Histogram meant to answer, "Are the predictions roughly constant?"
@@ -83,21 +88,16 @@ Here is an abridged, annotated description of Experiment outputs.
 │   ├── best # Scatterplots of predicted vs observed for the best-predicted targets.
 │   ├── random # Scatterplots of predicted vs observed for a few randomly chosen targets.
 │   └── worst # Scatterplots of predicted vs observed for the worst-predicted targets.
-├── experiments.csv # All combinations of values provided in the metadata. Would be better named "conditions.csv". 
+├── perturbations # Same as targets but stratified by perturbation instead
 ├── fitted_values # Predictions on training data ...
 │   ├── 0.h5ad # ... from row 0 of experiments.csv
 │   ├── 1.h5ad # ... from row 1 of experiments.csv
 │   ├── ...
-├── genes_modeled.csv # The genes included in this experiment.
-├── mae.svg # Mean absolute prediction error for each test set observation
-├── new_experiments.csv # This is generated and compared to any existing experiments.csv to prevent confusion upon editing metadata.
 ├── predictions # Predictions on test data 
 │   ├── 0.h5ad 
 │   ├── 1.h5ad
 │   ├── ...
-├── evaluationPerPert.parquet # Table of evaluation metrics listed separately for each observation in the test data, readable by e.g. pandas.read_parquet()
-├── evaluationPerTarget.parquet # Table of evaluation metrics listed separately for each feature in the test data, readable by e.g. pandas.read_parquet()
-└── trainset_performance # Same as parquet files above, but for train-set
+└── trainset_performance # Same parquet files and plots as above, but for train-set
     ├── evaluationPerPert.parquet
     ├── evaluationPerTarget.parquet
 ```
