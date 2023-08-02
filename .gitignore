@@ -19,8 +19,9 @@ finish_time.txt
 *__pycache__*
 *.pyc
 old_experiments/*
-experiments/*/outputs/*
-experiments/*/old_outputs/*
+experiments/*/outputs
+experiments/*/old_outputs
+experiments/*/outputs_old
 node_modules/*
 lightning_logs/*
 TODO.md
