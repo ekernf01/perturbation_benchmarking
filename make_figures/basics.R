@@ -5,10 +5,14 @@ library(arrow)
 library(magrittr)
 setwd("/home/ekernf01/Desktop/jhu/research/projects/perturbation_prediction/cell_type_knowledge_transfer/perturbation_benchmarking/make_figures/")
 
-collect_experiments = function(experiments){
+collect_experiments = function(experiments, stratify_by_pert = T){
   X <- list()
   for (experiment in experiments) {
-    filepath <- paste0("../experiments/", experiment, "/outputs/evaluationPerPert.parquet")
+    if (stratify_by_pert){
+      filepath <- paste0("../experiments/", experiment, "/outputs/evaluationPerPert.parquet")
+    } else {
+      filepath <- paste0("../experiments/", experiment, "/outputs/evaluationPerTarget.parquet")
+    }
     X[[experiment]] <- arrow::read_parquet(filepath)
     X[[experiment]]$question %<>% as.character
     X[[experiment]]$refers_to %<>% as.character
@@ -19,19 +23,23 @@ collect_experiments = function(experiments){
   return(X)
 }
 
+
 make_the_usual_labels_nice = function(X){
-  try({X$factor_varied %<>% factor(levels = c("regression_method", "network_datasets"))}, silent = T)
+  try({X$factor_varied %<>% factor(levels = c("matching_method", "regression_method", "network_datasets"))}, silent = T)
   try({X$perturbation_dataset %<>% gsub("_", " ", .) %>% sub(" ", "\n", .) %>% gsub("γ", "g" , .)}, silent = T)
   try({X$network_datasets %<>% gsub("0$", "", .)})
   X$x = ifelse(X$factor_varied=="regression_method", X$regression_method, X$network_datasets)
+  X$timescale_handling = paste0(X$matching_method, "_(", X$prediction_timescale, "-step)")
+  X$x = ifelse(X$factor_varied=="matching_method", X$timescale_handling, X$x)
   X$x %<>% gsub("_", " ", .)
-  the_usual_levels = sort(unique(X$x))
+  the_usual_levels = gtools::mixedsort(unique(X$x))
   X %<>% mutate(x = factor(x, levels = unique(c("empty", "dense", "median", "mean", the_usual_levels))))
   return(X)
 }
 main_experiments = c("1.0_1",     "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1.0_7",   "1.0_8",   "1.0_9", "1.0_10",
-                     # "1.2.2_1", "1.2.2_2", "1.2.2_3", "1.2.2_5", "1.2.2_6", "1.2.2_7", "1.2.2_8", "1.2.2_9", "1.2.2_10",
+                     "1.2.2_1", "1.2.2_2", "1.2.2_3", "1.2.2_5", "1.2.2_6", "1.2.2_7", "1.2.2_8", "1.2.2_9", "1.2.2_10",
                      "1.4.3_1", "1.4.3_2", "1.4.3_3", "1.4.3_5", "1.4.3_6", "1.4.3_7", "1.4.3_8", "1.4.3_9", "1.4.3_10")
+# Panel A: initial benchmarks
 {
   X = collect_experiments(main_experiments) 
   X %<>% make_the_usual_labels_nice
@@ -39,7 +47,6 @@ main_experiments = c("1.0_1",     "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
   X %<>%
     group_by(x, perturbation_dataset, factor_varied) %>%
     summarise(across(starts_with("mae"), mean))
-  X$factor_varied %<>% factor(levels = c("regression_method", "network_datasets"))
   ggplot(X) +
     geom_boxplot(aes(x = x, y = mae)) + 
     facet_grid(perturbation_dataset~factor_varied, scales = "free") + 
@@ -50,6 +57,7 @@ main_experiments = c("1.0_1",     "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
   ggsave('plots/fig_basics_a.pdf', width = 5, height = 8)
 }
 
+# Panel b: simulations
 {
   X = collect_experiments(c("1.9_0", "1.9_1", "1.9_2", "1.9_3", "1.9_4"))
   X %<>%
@@ -76,50 +84,66 @@ main_experiments = c("1.0_1",     "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
     theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) 
   ggsave('plots/fig_basics_simulation.pdf', width = 3.5, height = 6)
 }
+
+# Supplement: breakdown by target gene
 {
-  evaluationPerTarget = arrow::read_parquet("../experiments/1.0_1/outputs/evaluationPerTarget.parquet")
+  evaluationPerTarget = collect_experiments(main_experiments, stratify_by_pert = FALSE)
+  check_if_beats_baselines = function(mae, x){
+    if(any(x=="median") & any(x=="mean")){
+      return((round(mae, 4) < round(mae[x=="median"], 4)) & (round(mae, 4) < round(mae[x=="mean"], 4) ) )
+    } else {
+      return(NA)
+    }
+  }
   long_data <- evaluationPerTarget %>% 
+    subset(type_of_split == "interventional") %>%
     make_the_usual_labels_nice %>%
-    tidyr::gather(var_name, value, c("means", "variances", "variances_norm")) %>%
-    dplyr::select(regression_method, mae_benefit, property_of_gene = var_name, value) %>%
+    tidyr::gather(var_name, value, c("means", "variances", "variances_norm")) %>% 
+    dplyr::select(perturbation_dataset, factor_varied, x, mae, property_of_gene = var_name, value) %>%
     mutate(value = as.numeric(value)) %>%
     na.omit() %>%
-    group_by(property_of_gene, regression_method) %>%
-    mutate(value_binned = cut(rank(value), breaks = 5)) %>%
-    group_by(property_of_gene, regression_method, value_binned) %>%
-    summarise(value = median(value), mae_benefit = median(mae_benefit)) %>%
+    group_by(property_of_gene, factor_varied, x, perturbation_dataset) %>%
+    mutate(quintile = as.integer(cut(rank(value), breaks = 5))) %>%
+    group_by(property_of_gene, factor_varied, x, perturbation_dataset, quintile) %>%
+    summarise(value = median(value), mae = mean(mae)) %>%
     ungroup() %>%
-    select(-value_binned) 
+    group_by(perturbation_dataset, property_of_gene, quintile) %>%
+    dplyr::mutate(beats_baselines = check_if_beats_baselines(mae, x)) 
   
-  ggplot(long_data, aes(x = value, y = mae_benefit, color = regression_method)) +
-    geom_point() +
-    geom_line() +
-    facet_wrap(~ property_of_gene, ncol = 5, scales = "free_x") 
+  ggplot(long_data, aes(x = quintile, fill = beats_baselines, y = x)) +
+    geom_tile() +
+    scale_fill_manual(values = c("TRUE" = "red", "FALSE" = "black")) + 
+    facet_grid(factor_varied ~ perturbation_dataset + property_of_gene , scales = "free_y") 
   ggsave('plots/fig_basics_stratify_targets.pdf', width = 10, height = 2)
 }
-
+# Breakdown by perturbed gene
 {
-  evaluationPerTarget = arrow::read_parquet("../experiments/1.0_1/outputs/evaluationPerPert.parquet")
-  long_data <- evaluationPerTarget %>% 
+  evaluationPerTarget = collect_experiments(main_experiments, stratify_by_pert = TRUE)
+  long_data <- evaluationPerTarget %>%
+    subset(type_of_split == "interventional") %>%
     make_the_usual_labels_nice %>%
-    tidyr::gather(var_name, value, c("logFC", "logFCNorm2", "pearsonCorr", "spearmanCorr")) %>%
-    dplyr::select(regression_method, mae_benefit, property_of_gene = var_name, value) %>%
+    tidyr::gather(var_name, value, c("logFC", "logFCNorm2", "pearsonCorr", "spearmanCorr")) %>% 
+    dplyr::select(perturbation_dataset, factor_varied, x, mae, property_of_gene = var_name, value) %>%
     mutate(value = as.numeric(value)) %>%
     na.omit() %>%
-    group_by(property_of_gene, regression_method) %>%
-    mutate(value_binned = cut(rank(value), breaks = 5)) %>%
-    group_by(property_of_gene, regression_method, value_binned) %>%
-    summarise(value = median(value), mae_benefit = median(mae_benefit)) %>%
+    group_by(property_of_gene, factor_varied, x, perturbation_dataset) %>%
+    mutate(quintile = as.integer(cut(rank(value), breaks = 5))) %>%
+    group_by(property_of_gene, factor_varied, x, perturbation_dataset, quintile) %>%
+    summarise(value = median(value), mae = mean(mae)) %>%
     ungroup() %>%
-    select(-value_binned)
+    group_by(perturbation_dataset, property_of_gene, quintile) %>%
+    dplyr::mutate(beats_baselines = check_if_beats_baselines(mae, x)) 
   
-  ggplot(long_data, aes(x = value, y = mae_benefit, color = regression_method)) +
-    geom_point() +
-    geom_line() +
-    facet_wrap(~ property_of_gene, ncol = 5, scales = "free_x") 
+  ggplot(long_data, aes(x = quintile, fill = beats_baselines, y = x)) +
+    geom_tile() +
+    scale_fill_manual(values = c("TRUE" = "red", "FALSE" = "black")) + 
+    facet_grid(factor_varied ~ perturbation_dataset + property_of_gene, scales = "free_y") 
   ggsave('plots/fig_basics_stratify_perts.pdf', width = 10, height = 2)
 }
 
+
+
+# Supplement: additional performance metrics 
 {
   X = collect_experiments(main_experiments) %>% make_the_usual_labels_nice
   X %<>% subset(x!="QuantileRegressor")
@@ -139,7 +163,7 @@ main_experiments = c("1.0_1",     "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
   }
   # These metrics are on totally different scales
   X %<>% 
-    subset(x != "regression_metric") %>%
+    subset(x != "QuantileRegressor") %>%
     group_by(metric, perturbation_dataset) %>%
     mutate(value = value*ifelse(metric %in% metrics_where_bigger_is_better, 1, -1)) %>%
     mutate(metric = paste(metric, ifelse(metric %in% metrics_where_bigger_is_better, "", "(inverted)"))) %>%

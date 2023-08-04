@@ -20,7 +20,12 @@ collect_experiments = function(experiments){
   return(X)
 }
 
-X = collect_experiments(c("1.4.2_1","1.4.2_2","1.4.2_3","1.4.2_5","1.4.2_6","1.4.2_7"))
+X = collect_experiments(c("1.4.2_1",
+                          "1.4.2_2",
+                          "1.4.2_3",
+                          "1.4.2_5",
+                          "1.4.2_6",
+                          "1.4.2_7"))
 X$regression_method %<>% gsub("0$", "", .)
 the_usual_levels = unique(X$regression_method)
 X$regression_method %<>% factor(levels = unique(c("empty", "dense", "median", "mean", "celloracle human", the_usual_levels)))
