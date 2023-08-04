@@ -50,7 +50,7 @@ print(args)
 # For interactive use
 if args.experiment_name is None:
     args = Namespace(**{
-        "experiment_name": "1.0_1",
+        "experiment_name": "1.4.2_2",
         "amount_to_do": "missing_models",
         "save_trainset_predictions": True,
         "save_models": False,
@@ -217,7 +217,7 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
             heldout = perturbed_expression_data_train,
             predictions = fitted_values,
             baseline = {
-                i: perturbed_expression_data_train[i][perturbed_expression_data_train[i].obs["is_control"], :] 
+                i: perturbed_expression_data_train[i][perturbed_expression_data_train[i].obs["is_control"].astype(bool), :] 
                 for i in perturbed_expression_data_train.keys()
             },
             experiments = experiments,
