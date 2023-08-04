@@ -30,8 +30,7 @@ parser = argparse.ArgumentParser("experimenter")
 parser.add_argument("--experiment_name", help="Unique id for the experiment.", type=str)
 parser.add_argument("--save_models",     help="If true, save model objects.", default = False, action = "store_true")
 parser.add_argument("--save_trainset_predictions", help="If true, make & save predictions of training data.", default = False, action = "store_true")
-parser.add_argument('--skip_bad_runs', action='store_true', help="If true, keep running when some runs hit errors.")
-parser.add_argument('--no_skip_bad_runs', dest='skip_bad_runs', action='store_false')
+parser.add_argument('--no_skip_bad_runs', dest='skip_bad_runs', action='store_false', help="Unless this flag is used, keep running when some runs hit errors.")
 parser.set_defaults(feature=True)
 
 parser.add_argument(
@@ -53,7 +52,7 @@ print(args)
 # For interactive use
 if args.experiment_name is None:
     args = Namespace(**{
-        "experiment_name": "1.4.2_1",
+        "experiment_name": "1.4.2_2",
         "amount_to_do": "missing_models",
         "save_trainset_predictions": True,
         "save_models": False,
