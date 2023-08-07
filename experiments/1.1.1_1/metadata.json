@@ -1,20 +1,17 @@
 {
     "unique_id": "1.1.1_1",
-    "nickname": "pruning_nakatake",
-    "readme": "Some models use sparse network structures and some dense. Though the true causal structures are expected to be sparse, some preliminary results found that restrictive sparse structures (pre-specified by the user) are not competitive in terms of predicting held-out perturbations. This experiment compares denser and sparse models in terms of heldout performance.",
+    "nickname": "hyperparam_sweep",
+    "readme": "This is a simple sweep over the regularization parameter for ridge regression.",
     "question": "1.1.1",
     "is_active": true,
-    "factor_varied": "pruning_parameter",
-    "pruning_parameter": [0, 2E1, 2E2, 2E3, 2E4, 2E5, 2E6],
-    "pruning_strategy": "prune_and_refit", 
-    "network_prior": "ignore",
+    "factor_varied": "alpha",
+    "regression_method": "LASSO",
+    "kwargs_to_expand": ["alpha"],
+    "kwargs":{
+        "alpha": [0, 0.0000001, 0.000001, 0.00001, 0.0001, 0.001, 0.01, 0.01, 0.1, 1, 10, 100, 1000]
+    },
     "facet_by": null,
     "color_by": null,
-    "default_level": null,
     "perturbation_dataset": "nakatake",
-    "eligible_regulators": "human_tfs",
-    "network_datasets": {
-        "dense":{}
-    }
+    "eligible_regulators": "human_tfs"
 }
-
