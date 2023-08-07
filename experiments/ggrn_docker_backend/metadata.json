@@ -8,7 +8,11 @@
     "color_by": null,
     "facet_by": null,
     "perturbation_dataset": "nakatake",
+    "kwargs": {
+        "my_sweepy_hyperparameter": [0, 1],
+        "my_constant_hyperparameter": 0
+    },
+    "kwargs_to_expand": ["my_sweepy_hyperparameter"],
     "regression_method":"docker____ekernf01/ggrn_docker_backend" 
-    
 }
 
