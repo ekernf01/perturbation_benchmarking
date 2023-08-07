@@ -4,12 +4,12 @@
     "readme": "Related Q asks, what's the best way of using a given network? GEARS has an interesting take on this. Here we test it out.",
     "question": "1.4.2",
     "is_active": true,
+    "data_split_seed": [0, 1, 2],
     "regression_method":[
         "median",
         "mean",
         "GEARS" 
     ],
-    "data_split_seed": [0, 1, 2],
     "num_genes": 10000,
     "facet_by": null,
     "color_by": "data_split_seed",
