@@ -9,11 +9,10 @@
         "mean",
         "GEARS" 
     ],
-    "data_split_seed": [0],
+    "data_split_seed": [0, 1, 2],
     "num_genes": 10000,
     "facet_by": null,
-    "color_by": "type_of_split",
-    "type_of_split": ["interventional"],
+    "color_by": "data_split_seed",
     "factor_varied": "regression_method",
     "baseline_condition": 0,
     "predict_self" : true,
