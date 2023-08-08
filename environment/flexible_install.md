@@ -14,7 +14,8 @@ wget https://zenodo.org/record/8071809/files/perturbation_data.zip && unzip pert
 wget https://zenodo.org/record/8071809/files/network_collection.zip && unzip network_collection.zip &
 
 # Get Python packages
-mamba env create --name ggrn --file environment/conda_inputs.yaml
+git clone https://github.com/ekernf01/perturbation_benchmarking
+mamba env create --name ggrn --file perturbation_benchmarking/environment/conda_inputs.yaml
 conda activate ggrn
 pip install vl-convert-python
 # Avoid interfering with gimmemotifs 0.17 or with the PyTorch install by using --no-deps
