@@ -22,6 +22,7 @@ To reproduce our results, you'll need to install our code, download our data to 
 - Install options:
     - Flexible OS (not tested): see `enviroment/flexible_install.md`. 
     - Exact reproduction (requires Ubuntu 20.04): use `environment/set_up_environment.sh`.
+        - The repo is under active development and may not be entirely stable or reproducible. A list of commit hashes used for version one of our preprint can be found in `environment`. 
 - Our data are on Zenodo at DOI `10.5281/zenodo.8071809`. The install script will try to put the data where our code expects it.
 - Experiments can be run via `source run_experiments.sh &`. This takes a while. 
 - Figures are produced using the R scripts in `make_figures`. 
