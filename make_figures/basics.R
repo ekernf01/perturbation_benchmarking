@@ -43,7 +43,8 @@ main_experiments = c("1.0_1",     "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
 {
   X = collect_experiments(main_experiments) 
   X %<>% make_the_usual_labels_nice
-  X %<>% subset(x!="QuantileRegressor")
+  X %<>% subset(x!="QuantileRegressor") # We never got quantile regression to run fast enough :(
+  X %<>% subset(type_of_split=="interventional") 
   X %<>%
     group_by(x, perturbation_dataset, factor_varied) %>%
     summarise(across(starts_with("mae"), mean))
@@ -54,7 +55,26 @@ main_experiments = c("1.0_1",     "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
     theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) + 
     scale_y_continuous(labels = scales::label_number_si()) +
     geom_hline(data = subset(X, x %in% c("mean", "median", "empty", "dense")), aes(yintercept=mae, color = x)) 
-  ggsave('plots/fig_basics_a.pdf', width = 5, height = 8)
+  ggsave('plots/fig_basics_a.pdf', width = 6, height = 10)
+}
+
+
+# Some sort of supplement: simple splits 
+{
+  X = collect_experiments(main_experiments) 
+  X %<>% make_the_usual_labels_nice
+  X %<>% subset(x!="QuantileRegressor") # We never got quantile regression to run fast enough :(
+  X %<>% subset(type_of_split=="simple") 
+  X %<>%
+    group_by(x, perturbation_dataset, factor_varied) %>%
+    summarise(across(starts_with("mae"), mean))
+  ggplot(X) +
+    geom_boxplot(aes(x = x, y = mae)) + 
+    facet_grid(perturbation_dataset~factor_varied, scales = "free") + 
+    labs(x = "", y = "Mean absolute error") +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) + 
+    scale_y_continuous(labels = scales::label_number_si()) +
+    geom_hline(data = subset(X, x %in% c("mean", "median", "empty", "dense")), aes(yintercept=mae, color = x)) 
 }
 
 # Panel b: simulations
@@ -114,7 +134,7 @@ main_experiments = c("1.0_1",     "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
     geom_tile() +
     scale_fill_manual(values = c("TRUE" = "red", "FALSE" = "black")) + 
     facet_grid(factor_varied ~ perturbation_dataset + property_of_gene , scales = "free_y") 
-  ggsave('plots/fig_basics_stratify_targets.pdf', width = 10, height = 2)
+  ggsave('plots/fig_basics_stratify_targets.pdf', width = 20, height = 8)
 }
 # Breakdown by perturbed gene
 {

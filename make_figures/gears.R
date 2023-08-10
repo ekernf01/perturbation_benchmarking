@@ -20,12 +20,15 @@ collect_experiments = function(experiments){
   return(X)
 }
 
-X = collect_experiments(c("1.4.2_1",
+X = collect_experiments(c(
+                          "1.4.2_1",
                           "1.4.2_2",
                           "1.4.2_3",
-                          "1.4.2_5",
+                          # "1.4.2_5",
                           "1.4.2_6",
-                          "1.4.2_7"))
+                          "1.4.2_7"
+                          )
+                          )
 X$regression_method %<>% gsub("0$", "", .)
 the_usual_levels = unique(X$regression_method)
 X$regression_method %<>% factor(levels = unique(c("empty", "dense", "median", "mean", "celloracle human", the_usual_levels)))
@@ -39,11 +42,9 @@ X$desired_heldout_fraction %<>%
 for(metric in c("mae")){
   ggplot(X) + 
     geom_point(aes_string(x = "regression_method", 
-                          y = metric,
-                          color='eligible_regulators'), position = position_dodge(width=0.3)) + 
+                          y = metric), position = position_dodge(width=0.3)) + 
     labs(x='', 
-         y = "Mean absolute error",
-         color='Eligible regulators') +
+         y = "Mean absolute error") +
     facet_grid(desired_heldout_fraction~perturbation_dataset) + 
     theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) 
 }
