@@ -13,7 +13,7 @@ python do_one_experiment.py --experiment_name ggrn_docker_backend --amount_to_do
     > experiments/ggrn_docker_backend/stdout.txt 2> experiments/ggrn_docker_backend/err.txt
 ```
 
-Results are saved to `experiments/ggrn_docker_backend/outputs`. Let us know and we may want to feature your method in our evaluations!
+Results are saved to `experiments/ggrn_docker_backend/outputs`. If it works, or doesn't work, please do get in touch by email or file a Github issue. We will be happy to hear from you.
 
 ### Install and/or reproduce results
 
@@ -118,7 +118,7 @@ With apologies, many metadata keys have idiosyncratic formatting and meaning.
 - `is_active` must be `true` or the experiment won't run. 
 - `skip_bad_runs`, if `true`, will allow experiments to continue if one condition encounters an error. Set this to `false` for easier debugging.
 - `refers_to` points to another Experiment. If A refers to B, then all key/value pairs are copied from B's metadata unless explicitly provided in A's metadata. You may not refer to an experiment that already refers to something. You may not refer to multiple experiments.
-- `kwargs` is a dict of keyword args passed on to GEARS, or DCD-FG, or any method [wrapped via Docker](https://github.com/ekernf01/ggrn_docker_backend).
+- `kwargs` is a dict of keyword args passed on to GEARS, or DCD-FG, or any method [wrapped via Docker](https://github.com/ekernf01/ggrn_docker_backend). If you want to do a hyperparameter grid search, provide a list instead of a scalar, and use `kwargs_to_expand` to indicate that each element should be passed to your method separately.
 - `baseline_condition` is a number, most often 0. This experimental condition, which corresponds to the same-numbered h5ad file in the `predictions` output and the same-numbered row in the `experiments.csv` output, is used as a baseline for computing performance improvement over baseline.
 - `network_datasets` describes a GRN using the same names as our network collection. The behavior is complicated because the network collection separates out tissue-specific subnetworks. The value is a dict where keys are network sources and values are (sub-)dicts controlling specific behaviors.
     - To use certain subnetworks, set `subnets` to a list naming them. To use all, set subnets to all (default).
