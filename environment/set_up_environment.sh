@@ -22,7 +22,6 @@ conda activate ggrn
 pip install vl-convert-python
 # Avoid interfering with gimmemotifs 0.17 or with the PyTorch install by using --no-deps
 # The deps should be taken care of by the above.
-mamba install 'pandas>=1.2' --no-deps
 pip install cell-gears==0.0.4  --no-deps
 pip install celloracle==0.12.0 --no-deps
 pip install prescient==0.1.0   --no-deps 

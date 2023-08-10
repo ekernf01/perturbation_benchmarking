@@ -7,6 +7,7 @@ channels:
   - defaults
   - lingfeiwang
 dependencies:
+  - pandas[version'>=2.0']
   - python-duckdb
   - pytorch-lightning
   - scipy
@@ -41,6 +42,7 @@ dependencies:
   - rpy2
   - anndata2ri
   - deprecated
+  - datasets
 run_constrained:
   - gseapy
   - dictys
