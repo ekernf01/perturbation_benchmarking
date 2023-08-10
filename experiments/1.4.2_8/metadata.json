@@ -2,8 +2,9 @@
     "unique_id": "1.4.2_8",
     "nickname": "GEARS",
     "readme": "Test of GEARS on other datasets.",
-    "refers_to": "1.4.2_1",
-    "perturbation_dataset": "replogle"
+    "refers_to": "1.4.2_1",    
+    "desired_heldout_fraction": 0.2, 
+    "perturbation_dataset": "norman"
 }
 
 
