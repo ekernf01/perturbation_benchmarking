@@ -13,7 +13,7 @@ python do_one_experiment.py --experiment_name ggrn_docker_backend --amount_to_do
     > experiments/ggrn_docker_backend/stdout.txt 2> experiments/ggrn_docker_backend/err.txt
 ```
 
-Results are saved to `experiments/ggrn_docker_backend/outputs`. If it works, or doesn't work, please do get in touch by email or file a Github issue. We will be happy to hear from you.
+Results are saved to `experiments/ggrn_docker_backend/outputs`. If it works, or doesn't work, please do get in touch by email or file a Github issue. We will be happy to hear from you!
 
 ### Install and/or reproduce results
 
@@ -24,7 +24,7 @@ To reproduce our results, you'll need to install our code, download our data to 
     - Exact reproduction (requires Ubuntu 20.04): use `environment/set_up_environment.sh`.
         - The repo is under active development and may not be entirely stable or may not exactly reproduce our preprint. A list of commit hashes used for version one of our preprint can be found in `environment`. 
 - Our data are on Zenodo at DOI `10.5281/zenodo.8071809`. The install script will try to put the data where our code expects it.
-- Experiments can be run via `source run_experiments.sh &`. This takes a while. 
+- Experiments can be run via `source run_experiments.sh &`. This takes a long time. 
 - Figures are produced using the R scripts in `make_figures`. 
 
 ```bash

@@ -52,7 +52,7 @@ print(args)
 # For interactive use
 if args.experiment_name is None:
     args = Namespace(**{
-        "experiment_name": "1.4.2_2",
+        "experiment_name": "1.4.2_4",
         "amount_to_do": "missing_models",
         "save_trainset_predictions": True,
         "save_models": False,
@@ -107,6 +107,8 @@ for i in experiments.index:
             except FileNotFoundError:
                 pass
             try:
+                print(f"Fitting model for condition {i}")
+                print(experiments.loc[i,:].T)
                 grn = experimenter.do_one_run(
                     experiments = experiments, 
                     i = i,
@@ -142,10 +144,10 @@ for i in experiments.index:
                 [
                     (r[1][0], r[1][1]) 
                     for r in perturbed_expression_data_heldout[i].obs[["perturbation", "expression_level_after_perturbation"]].iterrows()
-                ], 
+                ],
                 starting_expression = starting_expression,
                 control_subtype = experiments.loc[i, "control_subtype"]
-            )   
+            )
             predictions.obs.index = perturbed_expression_data_heldout[i].obs.index.copy()
             # Sometimes AnnData has trouble saving pandas bool columns and sets, and they aren't needed here anyway.
             try:

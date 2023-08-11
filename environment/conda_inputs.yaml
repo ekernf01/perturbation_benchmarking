@@ -43,10 +43,10 @@ dependencies:
   - anndata2ri
   - deprecated
   - datasets
-run_constrained:
   - gseapy
   - dictys
   - velocyto.py
   - pyg
   - tensorboard[version'>=2.4,<2.5']
   - gimmemotifs[version'==0.17.1']
+  - transformers
