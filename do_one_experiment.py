@@ -133,11 +133,11 @@ for i in experiments.index:
             # Make predictions on test and (maybe) train set
             print("Generating predictions...", flush = True)
             if experiments.loc[i, "starting_expression"] == "control":
-                starting_expression       = None
-                starting_expression_train = None
+                predictions       = None
+                predictions_train = None
             elif experiments.loc[i, "starting_expression"] == "heldout":
-                starting_expression       = perturbed_expression_data_heldout[i].copy()
-                starting_expression_train = perturbed_expression_data_train[i].copy()
+                predictions       = perturbed_expression_data_heldout[i].copy()
+                predictions_train = predictions_train[i].copy()
             else:
                 raise ValueError(f"Unexpected value of 'starting_expression' in metadata: { experiments.loc[i, 'starting_expression'] }")
             predictions   = grn.predict(
@@ -145,7 +145,7 @@ for i in experiments.index:
                     (r[1][0], r[1][1]) 
                     for r in perturbed_expression_data_heldout[i].obs[["perturbation", "expression_level_after_perturbation"]].iterrows()
                 ],
-                starting_expression = starting_expression,
+                predictions = predictions,
                 control_subtype = experiments.loc[i, "control_subtype"]
             )
             predictions.obs.index = perturbed_expression_data_heldout[i].obs.index.copy()
@@ -164,7 +164,7 @@ for i in experiments.index:
                         (r[1][0], r[1][1]) 
                         for r in perturbed_expression_data_train[i].obs[["perturbation", "expression_level_after_perturbation"]].iterrows()
                     ], 
-                    starting_expression = starting_expression_train
+                    predictions = predictions_train
                 )
                 fitted_values.obs.index = perturbed_expression_data_train[i].obs.index.copy()
                 # Sometimes AnnData has trouble saving pandas bool columns, and they aren't needed here anyway.
