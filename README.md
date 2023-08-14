@@ -76,8 +76,8 @@ It can be hard to understand how all our experiments relate to one another, soft
 Here is an abridged, annotated description of Experiment outputs.
 
 ```bash
-├── experiments.csv # All combinations of values provided in the metadata. Would be better named "conditions.csv". 
-├── new_experiments.csv # This is generated and compared to any existing experiments.csv to prevent confusion upon editing metadata.
+├── conditions.csv # All combinations of values provided in the metadata.  
+├── new_conditions.csv # This is generated and compared to any existing conditions.csv to prevent confusion upon editing metadata.
 ├── genes_modeled.csv # The genes included in this experiment.
 ├── mae.svg # Mean absolute prediction error for each test set observation
 ├── evaluationPerPert.parquet # Table of evaluation metrics listed separately for each observation in the test data, readable by e.g. pandas.read_parquet()
@@ -91,8 +91,8 @@ Here is an abridged, annotated description of Experiment outputs.
 │   └── worst # Scatterplots of predicted vs observed for the worst-predicted targets.
 ├── perturbations # Same as targets but stratified by perturbation instead
 ├── fitted_values # Predictions on training data ...
-│   ├── 0.h5ad # ... from row 0 of experiments.csv
-│   ├── 1.h5ad # ... from row 1 of experiments.csv
+│   ├── 0.h5ad # ... from row 0 of conditions.csv
+│   ├── 1.h5ad # ... from row 1 of conditions.csv
 │   ├── ...
 ├── predictions # Predictions on test data 
 │   ├── 0.h5ad 
@@ -116,10 +116,10 @@ With apologies, many metadata keys have idiosyncratic formatting and meaning.
 - `unique_id` must match the folder the Experiment is in.
 - `question` refers to `guiding_questions.txt` in this repo. 
 - `is_active` must be `true` or the experiment won't run. 
-- `skip_bad_runs`, if `true`, will allow experiments to continue if one condition encounters an error. Set this to `false` for easier debugging.
+- `skip_bad_runs`, if `true`, will allow an Experiment to continue if one condition encounters an error. Set this to `false` for easier debugging.
 - `refers_to` points to another Experiment. If A refers to B, then all key/value pairs are copied from B's metadata unless explicitly provided in A's metadata. You may not refer to an experiment that already refers to something. You may not refer to multiple experiments.
 - `kwargs` is a dict of keyword args passed on to GEARS, or DCD-FG, or any method [wrapped via Docker](https://github.com/ekernf01/ggrn_docker_backend). If you want to do a hyperparameter grid search, provide a list instead of a scalar, and use `kwargs_to_expand` to indicate that each element should be passed to your method separately.
-- `baseline_condition` is a number, most often 0. This experimental condition, which corresponds to the same-numbered h5ad file in the `predictions` output and the same-numbered row in the `experiments.csv` output, is used as a baseline for computing performance improvement over baseline.
+- `baseline_condition` is a number, most often 0. This experimental condition, which corresponds to the same-numbered h5ad file in the `predictions` output and the same-numbered row in the `conditions.csv` output, is used as a baseline for computing performance improvement over baseline.
 - `network_datasets` describes a GRN using the same names as our network collection. The behavior is complicated because the network collection separates out tissue-specific subnetworks. The value is a dict where keys are network sources and values are (sub-)dicts controlling specific behaviors.
     - To use certain subnetworks, set `subnets` to a list naming them. To use all, set subnets to all (default).
     - To take the union of the subnetworks, set `do_aggregate_subnets` to `true`. To keep subnetworks separate, set `do_aggregate_subnets` to `false` (default).
