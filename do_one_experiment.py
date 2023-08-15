@@ -58,7 +58,7 @@ if args.experiment_name is None:
     })
 # Additional bookkeeping
 print("Running experiment", flush = True)
-outputs = os.path.join("conditions", args.experiment_name, "outputs")
+outputs = os.path.join("experiments", args.experiment_name, "outputs")
 os.makedirs(outputs, exist_ok=True)
 metadata = experimenter.validate_metadata(experiment_name=args.experiment_name)
 print("Starting at " + str(datetime.datetime.now()), flush = True)
