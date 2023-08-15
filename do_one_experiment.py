@@ -69,13 +69,14 @@ perturbed_expression_data, networks, conditions = experimenter.set_up_data_netwo
     amount_to_do = args.amount_to_do, 
     outputs = outputs,
 )
-def get_current_data_split(i):
+def get_current_data_split(i, verbose = False):
     return experimenter.splitDataWrapper(
         experimenter.filter_genes(perturbed_expression_data, num_genes = conditions.loc[i, "num_genes"], outputs = outputs),
         networks = networks, 
         desired_heldout_fraction = conditions.loc[i, "desired_heldout_fraction"],  
         type_of_split            = conditions.loc[i, "type_of_split"],
         data_split_seed          = conditions.loc[i, "data_split_seed"],
+        verbose = verbose,
     )
 
 # Begin conditions
@@ -85,7 +86,7 @@ for i in conditions.index:
     models      = os.path.join( outputs, "models",        str(i) )
     h5ad        = os.path.join( outputs, "predictions",   str(i) + ".h5ad" )
     h5ad_fitted = os.path.join( outputs, "fitted_values", str(i) + ".h5ad" )
-    perturbed_expression_data_train_i, perturbed_expression_data_heldout_i = get_current_data_split(i)
+    perturbed_expression_data_train_i, perturbed_expression_data_heldout_i = get_current_data_split(i, verbose = True)
     if args.amount_to_do in {"models", "missing_models"}:
         # Fit models!!
         if \
