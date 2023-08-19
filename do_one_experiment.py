@@ -50,7 +50,7 @@ print(args)
 # Default args to this script for interactive use
 if args.experiment_name is None:
     args = Namespace(**{
-        "experiment_name": "1.4.2_5",
+        "experiment_name": "1.0_0",
         "amount_to_do": "missing_models",
         "save_trainset_predictions": True,
         "save_models": False,
@@ -139,7 +139,7 @@ for i in conditions.index:
                 ],
                 predictions = predictions,
                 control_subtype = conditions.loc[i, "control_subtype"], 
-                feature_extraction_requires_raw_data = (conditions[i, "feature_extraction"] == "geneformer"),
+                feature_extraction_requires_raw_data = (grn.feature_extraction == "geneformer"),
             )
             predictions.obs.index = perturbed_expression_data_heldout_i.obs.index.copy()
             # Sometimes AnnData has trouble saving pandas bool columns and sets, and they aren't needed here anyway.
@@ -160,7 +160,7 @@ for i in conditions.index:
                         for r in perturbed_expression_data_train_i.obs[["perturbation", "expression_level_after_perturbation"]].iterrows()
                     ], 
                     predictions = predictions_train, 
-                    feature_extraction_requires_raw_data = (conditions[i, "feature_extraction"] == "geneformer"),
+                    feature_extraction_requires_raw_data = (grn.feature_extraction == "geneformer"),
                 )
                 fitted_values.obs.index = perturbed_expression_data_train_i.obs.index.copy()
                 # Sometimes AnnData has trouble saving pandas bool columns, and they aren't needed here anyway.
