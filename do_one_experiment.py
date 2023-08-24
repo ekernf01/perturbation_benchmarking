@@ -14,22 +14,15 @@ import load_perturbations
 import load_networks
 import ggrn.api as ggrn
 
-# Access our data collections
-load_networks.set_grn_location(
-    '../network_collection/networks'
-)
-load_perturbations.set_data_path(
-    '../perturbation_data/perturbations'
-)
-DEFAULT_HUMAN_TFs = pd.read_csv("../accessory_data/humanTFs.csv")
-DEFAULT_HUMAN_TFs = DEFAULT_HUMAN_TFs.loc[DEFAULT_HUMAN_TFs["Is TF?"]=="Yes", "HGNC symbol"]
-
 # User input: name of experiment and whether to fully rerun or just remake plots. 
 parser = argparse.ArgumentParser("experimenter")
 parser.add_argument("--experiment_name", help="Unique id for the experiment.", type=str)
 parser.add_argument("--save_models",     help="If true, save model objects.", default = False, action = "store_true")
 parser.add_argument("--save_trainset_predictions", help="If true, make & save predictions of training data.", default = False, action = "store_true")
 parser.add_argument('--no_skip_bad_runs', dest='skip_bad_runs', action='store_false', help="Unless this flag is used, keep running when some runs hit errors.")
+parser.add_argument('--networks', type=str, default='../network_collection/networks', help="Location of our network collection on your hard drive")
+parser.add_argument('--data', type=str, default='../perturbation_data/perturbations', help="Location of our perturbation data on your hard drive")
+parser.add_argument('--tf', type=str, default = "../accessory_data/humanTFs.csv", help="Location of our list of TFs on your hard drive")
 parser.set_defaults(feature=True)
 parser.add_argument(
     "--amount_to_do",
@@ -47,6 +40,20 @@ parser.add_argument(
 args = parser.parse_args()
 print("args to experimenter.py:", flush = True)
 print(args)
+
+# Access our data collections
+load_networks.set_grn_location(
+    args.networks
+)
+load_perturbations.set_data_path(
+    args.data
+)
+try:
+    DEFAULT_HUMAN_TFs = pd.read_csv(args.tf_list)
+    DEFAULT_HUMAN_TFs = DEFAULT_HUMAN_TFs.loc[DEFAULT_HUMAN_TFs["Is TF?"]=="Yes", "HGNC symbol"]
+except Exception as e:
+    raise(f"TF list given in --tf was not found or was not in the right format. The specific error is: {repr(e)}")
+
 # Default args to this script for interactive use
 if args.experiment_name is None:
     args = Namespace(**{
