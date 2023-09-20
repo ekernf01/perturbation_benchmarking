@@ -18,7 +18,7 @@ git clone https://github.com/ekernf01/perturbation_benchmarking
 mamba env create --name ggrn --file perturbation_benchmarking/environment/conda_inputs.yaml
 conda activate ggrn
 pip install vl-convert-python
-# Avoid interfering with gimmemotifs 0.17 or with the PyTorch install by using --no-deps
+# Avoid interfering with existing installs by using --no-deps
 # The deps for all this should be taken care of by the above.
 mamba install 'pandas>=1.2' --no-deps
 pip install cell-gears==0.0.4  --no-deps
