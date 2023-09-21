@@ -17,29 +17,7 @@ Results are saved to `experiments/ggrn_docker_backend/outputs`. If it works, or 
 
 ### Install and/or reproduce results
 
-To reproduce our results, you'll need to install our code, download our data to the expected relative path, run our Experiments, and finally re-create the figures. 
-
-- Install options:
-    - Flexible OS (not tested): see `enviroment/flexible_install.md`. 
-    - Exact reproduction (requires Ubuntu 20.04): use `environment/set_up_environment.sh`.
-        - The repo is under active development and may not be entirely stable or may not exactly reproduce our preprint. A list of commit hashes used for version one of our preprint can be found in `environment`. 
-- Our data are on Zenodo at DOI `10.5281/zenodo.8071809`. The install script will try to put the data where our code expects it.
-- Experiments can be run via `source run_experiments.sh &`. This takes a long time. 
-- Figures are produced using the R scripts in `make_figures`. 
-
-```bash
-git clone https://github.com/ekernf01/perturbation_benchmarking
-source environment/set_up_environment.sh
-cd perturbation_benchmarking
-source run_experiments.sh &  #This could take a couple weeks.
-Rscript make_figures/*.R
-```
-
-### Toolchain and resource requirements
-
-We use Conda + Mamba to manage most dependencies. We offer either a flexible install or an exact install of our environment. Each option has a CPU version and a GPU version, though the GPU version is not well-tested. Certain models nominally require GPU's, but we have been able to run most experiments using a CPU, sometimes by making minimal changes to Pytorch code. See the [GGRN repo](https://github.com/ekernf01/ggrn) for details on GPU requirements of specific methods. 
-
-50GB of disk space and 64GB of RAM is enough resources to run most experiments. Certain tree-based models require more RAM. The more benchmarks you run, the more predictions are saved and the more disk space is occupied. To re-run all experiments, we would recommend 250GB disk space to be safe. 
+See `environment/install.md`.
 
 ### Related infrastructure
 
@@ -52,14 +30,14 @@ This project is tightly coupled with our collections of data, our GGRN package f
 - Our [perturbation benchmarking package](https://github.com/ekernf01/perturbation_benchmarking_package) helps conduct the `Experiment`s that are specified in this repo.
 - Certain additional experiments are implemented in [our fork of DCD-FG](https://github.com/ekernf01/dcdfg).
 
-### Experiments
+### Usage
 
 The benchmarks in this project are composed of small, structured folders called Experiments. Code and metadata supporting each Experiment resides in a folder in `experiments`, and an individual Experiment can be run by calling `do_one_experiment.py`. Example:
 
 ```bash
 python do_one_experiment.py --help
-python do_one_experiment.py --experiment_name 1.0_1 --amount_to_do missing_models --save_trainset_predictions \
-    > experiments/1.0_1/stdout.txt 2> experiments/1.0_1/err.txt
+python do_one_experiment.py --experiment_name 1.0_0 --amount_to_do missing_models --save_trainset_predictions \
+    > experiments/1.0_0/stdout.txt 2> experiments/1.0_0/err.txt
 ```
 
 The most important parts of each Experiment are:
