@@ -49,7 +49,7 @@ load_perturbations.set_data_path(
     args.data
 )
 try:
-    DEFAULT_HUMAN_TFs = pd.read_csv(args.tf_list)
+    DEFAULT_HUMAN_TFs = pd.read_csv(args.tf)
     DEFAULT_HUMAN_TFs = DEFAULT_HUMAN_TFs.loc[DEFAULT_HUMAN_TFs["Is TF?"]=="Yes", "HGNC symbol"]
 except Exception as e:
     raise(f"TF list given in --tf was not found or was not in the right format. The specific error is: {repr(e)}")
