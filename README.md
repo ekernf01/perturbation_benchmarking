@@ -32,10 +32,10 @@ This project is tightly coupled with our collections of data, our GGRN package f
 
 ### Usage
 
-The benchmarks in this project are composed of small, structured folders called Experiments. Code and metadata supporting each Experiment resides in a folder in `experiments`, and an individual Experiment can be run by calling `do_one_experiment.py`. Example:
+The benchmarks in this project are composed of small, structured folders called Experiments. Metadata fully describing each Experiment lives in a folder in `experiments`, and an individual Experiment can be run by calling `do_one_experiment.py`. For example, to run the experiment specified by `experiments/1.0_0/metadata.json`:
 
 ```bash
-python do_one_experiment.py --help
+conda activate ggrn
 python do_one_experiment.py --experiment_name 1.0_0 --amount_to_do missing_models --save_trainset_predictions \
     > experiments/1.0_0/stdout.txt 2> experiments/1.0_0/err.txt
 ```
@@ -51,7 +51,7 @@ It can be hard to understand how all our experiments relate to one another, soft
 
 #### Outputs
 
-Here is an abridged, annotated description of Experiment outputs.
+Here is an annotated layout of Experiment outputs.
 
 ```bash
 ├── conditions.csv # All combinations of values provided in the metadata.  
