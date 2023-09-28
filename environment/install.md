@@ -10,11 +10,15 @@ Certain models nominally require GPU's, but we have been able to run most experi
 
 ### Flexible install
 
-In case of different operating systems, exact conda environment reproduction is infeasible. However, you may be able to carry out some of our experiments, or your own new experiments, even without all dependencies. Follow the minimal installation instructions below. 
+In case of different operating systems, exact conda environment reproduction is infeasible. However, you may be able to carry out some of our experiments, or your own new experiments, even without all dependencies. Follow the minimal installation instructions below. Some notes:
 
-This code requires mamba to be installed already. Install mamba using the [official instructions](https://mamba.readthedocs.io/en/latest/installation.html).
+- This code requires mamba to be installed already. Install mamba using the [official instructions](https://mamba.readthedocs.io/en/latest/installation.html).
+- This install code uses bash. On a Mac, the default shell is zsh, and you may need to run a bash shell (just type `bash`) for everything to work. On Windows, we are only beginning to test these instructions. 
+- If the data download doesn't work with `curl`, you can easily rephrase it to use `wget` instead.
 
 ```bash
+mkdir expression_forecasting_benchmarks
+cd expression_forecasting_benchmarks
 # Get data collections from Zenodo 
 # accessory data, e.g. pLI and list of TF names
 curl https://zenodo.org/record/8071809/files/accessory_data.zip -O -s  && unzip accessory_data.zip > accessory_data.log &
@@ -35,7 +39,7 @@ do
 done
 ```
 
-You can test your installation by running this from inside the `perturbation_benchmarking` folder. 
+You can test your installation by running this from inside the `perturbation_benchmarking` folder, which should be nested inside the `expression_forecasting_benchmarks` folder that got created up front. 
 
 ```bash
 conda activate ggrn
@@ -52,7 +56,7 @@ git clone https://github.com/ekernf01/perturbation_benchmarking
 source environment/set_up_environment.sh
 cd perturbation_benchmarking
 source run_experiments.sh &  #This could take a couple weeks.
-Rscript make_figures/*.R
+Rscript make_figures/*.R 
 ```
 
 Explanation:
@@ -60,6 +64,6 @@ Explanation:
 - Run  `environment/set_up_environment.sh` to install the Conda environment and download the data.
     - The repo is under active development and may not be entirely stable or may not exactly reproduce our preprint. A list of commit hashes used for version one of our preprint can be found in the `environment` folder. 
 - Experiments can be run via `source run_experiments.sh &`. This takes a long time. You can also run individual experiments via `do_one_experiment.py`.  
-- Once the experiments are done, figures can be produced using the R scripts in `make_figures`. 
+- Once the experiments are done, figures can be produced using the R scripts in `make_figures`. This requires some common basic R packages like ggplot2 that are not included in our environment setup -- let us know if you have trouble installing them.
 
 
