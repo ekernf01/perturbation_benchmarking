@@ -13,7 +13,7 @@ Certain models nominally require GPU's, but we have been able to run most experi
 In case of different operating systems, exact conda environment reproduction is infeasible. However, you may be able to carry out some of our experiments, or your own new experiments, even without all dependencies. Follow the minimal installation instructions below. Some notes:
 
 - This code requires mamba to be installed already. Install mamba using the [official instructions](https://mamba.readthedocs.io/en/latest/installation.html).
-- This install code uses bash. On a Mac, the default shell is zsh, and you may need to run a bash shell (just type `bash`) for everything to work. On Windows, we are only beginning to test these instructions. 
+- This install code uses bash. On a Mac, the default shell is zsh, and you may need to run a bash shell (just type `bash`) for everything to work. On Windows, we are only beginning to test these instructions. Some of the major differences: bash commands must be adapted if used via PowerShell, and conda configuration may work differently. It is easy to think you have activated a conda environment, but if you have not configured the shell to alias `activate` to `activate.bat`, activation will not work.
 - If the data download doesn't work with `curl`, you can easily rephrase it to use `wget` instead.
 
 ```bash
