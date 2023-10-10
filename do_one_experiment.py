@@ -2,10 +2,10 @@ import os
 import numpy as np
 import pandas as pd
 import scanpy as sc
-import gc
 import argparse
 from argparse import Namespace
 import datetime
+import gc 
 
 # Access our code
 import perturbation_benchmarking_package.evaluator as evaluator
@@ -18,7 +18,7 @@ import ggrn.api as ggrn
 parser = argparse.ArgumentParser("experimenter")
 parser.add_argument("--experiment_name", help="Unique id for the experiment.", type=str)
 parser.add_argument("--save_models",     help="If true, save model objects.", default = False, action = "store_true")
-parser.add_argument("--save_trainset_predictions", help="If true, make & save predictions of training data.", default = False, action = "store_true")
+parser.add_argument("--save_trainset_predictions", help="If provided, make & save predictions of training data.", default = False, action = "store_true")
 parser.add_argument('--no_skip_bad_runs', dest='skip_bad_runs', action='store_false', help="Unless this flag is used, keep running when some runs hit errors.")
 parser.add_argument('--networks', type=str, default='../network_collection/networks', help="Location of our network collection on your hard drive")
 parser.add_argument('--data', type=str, default='../perturbation_data/perturbations', help="Location of our perturbation data on your hard drive")
@@ -59,7 +59,7 @@ if args.experiment_name is None:
     args = Namespace(**{
         "experiment_name": "1.0_0",
         "amount_to_do": "missing_models",
-        "save_trainset_predictions": True,
+        "save_trainset_predictions": False,
         "save_models": False,
         "skip_bad_runs": False,
     })
@@ -93,8 +93,8 @@ for i in conditions.index:
     models      = os.path.join( outputs, "models",        str(i) )
     h5ad        = os.path.join( outputs, "predictions",   str(i) + ".h5ad" )
     h5ad_fitted = os.path.join( outputs, "fitted_values", str(i) + ".h5ad" )
-    perturbed_expression_data_train_i, perturbed_expression_data_heldout_i = get_current_data_split(i, verbose = True)
     if args.amount_to_do in {"models", "missing_models"}:
+        perturbed_expression_data_train_i, perturbed_expression_data_heldout_i = get_current_data_split(i, verbose = True)
         # Fit models!!
         if \
             (args.amount_to_do in {"models"}) or \
@@ -184,7 +184,9 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
         fitted_values = {i:sc.read_h5ad( os.path.join(outputs, "fitted_values", str(i) + ".h5ad" ), backed='r' ) for i in conditions.index}
     except FileNotFoundError:
         fitted_values = None
+    print("Checking sizes", flush = True)
     for i in conditions.index:
+        print(i, flush=True)
         perturbed_expression_data_train_i, perturbed_expression_data_heldout_i = get_current_data_split(i)
         try:
             assert predictions[i].shape[0]==perturbed_expression_data_heldout_i.shape[0]
@@ -195,7 +197,10 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
         assert all(
                     np.sort(predictions[i].obs_names) == np.sort(perturbed_expression_data_heldout_i.obs_names)
                 ), f"For condition {i}, set of observations is different between observed and predicted."        
-
+        del perturbed_expression_data_train_i
+        del perturbed_expression_data_heldout_i
+        gc.collect()
+    
     print("(Re)doing evaluations")
     evaluationPerPert, evaluationPerTarget = evaluator.evaluateCausalModel(
         get_current_data_split = get_current_data_split, 
