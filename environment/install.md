@@ -53,7 +53,7 @@ To reproduce our results, you need a clean Ubuntu 20.04 box. We recommend using 
 
 ```bash
 git clone https://github.com/ekernf01/perturbation_benchmarking
-source environment/set_up_environment.sh
+source environment/install.sh
 cd perturbation_benchmarking
 source run_experiments.sh &  #This could take a couple weeks.
 Rscript make_figures/*.R 
@@ -61,7 +61,7 @@ Rscript make_figures/*.R
 
 Explanation:
 
-- Run  `environment/set_up_environment.sh` to install the Conda environment and download the data.
+- Run  `environment/install.sh` to install the Conda environment and download the data.
     - The repo is under active development and may not be entirely stable or may not exactly reproduce our preprint. A list of commit hashes used for version one of our preprint can be found in the `environment` folder. 
 - Experiments can be run via `source run_experiments.sh &`. This takes a long time. You can also run individual experiments via `do_one_experiment.py`.  
 - Once the experiments are done, figures can be produced using the R scripts in `make_figures`. This requires some common basic R packages like ggplot2 that are not included in our environment setup -- let us know if you have trouble installing them.

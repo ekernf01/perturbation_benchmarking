@@ -21,8 +21,8 @@ mamba create --name ggrn --file environment/conda_list_explicit.txt
 conda activate ggrn
 pip install vl-convert-python
 # Avoid interfering with gimmemotifs 0.17 or with the PyTorch install by using --no-deps
-# The deps should be taken care of by the above.
-pip install cell-gears==0.0.4  --no-deps
+# The deps should be taken care of by the above. 
+pip install git+https://github.com/snap-stanford/GEARS@e49e3a8 --no-deps
 pip install celloracle==0.12.0 --no-deps
 pip install prescient==0.1.0   --no-deps 
 pip install geomloss==0.2.3    --no-deps 
