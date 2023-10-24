@@ -3,7 +3,7 @@
     "nickname": "data split",
     "readme": "This is intended to test whether the problem actually gets harder when we split the data 'unevenly', with no common perturbations between train and test data.",
     "question": "1.8.4",
-    "is_active": true,
+    "is_active": false,
     "facet_by": "type_of_split",
     "color_by": "data_split_seed",
     "factor_varied": "regression_method",
@@ -13,7 +13,6 @@
     "num_genes": 10000,
     "eligible_regulators": "human_tfs",
     "merge_replicates": false,
-    "default_level": "mean",
     "perturbation_dataset": "nakatake",
     "network_datasets": {
         "dense":{}

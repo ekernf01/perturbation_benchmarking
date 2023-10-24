@@ -7,7 +7,7 @@
     "factor_varied": "network_datasets",
     "data_split_seed": [0],
     "color_by": "type_of_split",
-    "type_of_split": ["interventional", "simple"],
+    "type_of_split": ["interventional"],
     "facet_by": null,
     "merge_replicates": true,
     "regression_method": "RidgeCV",
