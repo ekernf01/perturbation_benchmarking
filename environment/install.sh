@@ -22,7 +22,7 @@ conda activate ggrn
 pip install vl-convert-python
 # Avoid interfering with gimmemotifs 0.17 or with the PyTorch install by using --no-deps
 # The deps should be taken care of by the above. 
-pip install git+https://github.com/snap-stanford/GEARS@e49e3a8 --no-deps
+pip install git+https://github.com/snap-stanford/GEARS@bb44b87 --no-deps
 pip install celloracle==0.12.0 --no-deps
 pip install prescient==0.1.0   --no-deps 
 pip install geomloss==0.2.3    --no-deps 
@@ -30,6 +30,7 @@ pip install git+https://huggingface.co/ctheodoris/Geneformer@50e921d --no-deps
 pip install git+https://github.com/bowang-lab/scFormer@2df344a --no-deps
 pip install 'scib>=1.0.3' --no-deps
 pip install biomart --no-deps
+pip install ray[tune]
 
 # Install our packages
 cd ..
