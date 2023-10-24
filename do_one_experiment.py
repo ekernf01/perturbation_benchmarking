@@ -76,6 +76,8 @@ perturbed_expression_data, networks, conditions = experimenter.set_up_data_netwo
     amount_to_do = args.amount_to_do, 
     outputs = outputs,
 )
+
+# Split the data
 def get_current_data_split(i, verbose = False):
     return experimenter.splitDataWrapper(
         experimenter.filter_genes(perturbed_expression_data, num_genes = conditions.loc[i, "num_genes"], outputs = outputs),
@@ -188,6 +190,7 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
     for i in conditions.index:
         print(i, flush=True)
         perturbed_expression_data_train_i, perturbed_expression_data_heldout_i = get_current_data_split(i)
+        classifier = experimenter.train_classifier(perturbed_expression_data_train_i)
         try:
             assert predictions[i].shape[0]==perturbed_expression_data_heldout_i.shape[0]
         except AssertionError:
@@ -208,7 +211,7 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
         is_test_set = True,
         conditions = conditions,
         outputs = outputs,
-        classifier = None,
+        classifier = classifier,
         do_scatterplots = False,
     )
     evaluationPerPert.to_parquet(   os.path.join(outputs, "evaluationPerPert.parquet"))
@@ -221,7 +224,7 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
             is_test_set = False,
             conditions = conditions,
             outputs = os.path.join(outputs, "trainset_performance"),
-            classifier = None,
+            classifier = classifier,
             do_scatterplots = False,
         )
         os.makedirs(os.path.join(outputs, "trainset_performance"), exist_ok=True)
