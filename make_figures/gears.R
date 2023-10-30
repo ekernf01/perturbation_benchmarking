@@ -21,33 +21,37 @@ collect_experiments = function(experiments){
 }
 
 X = collect_experiments(c(
-                          "1.4.2_1",
-                          "1.4.2_2",
-                          "1.4.2_3",
-                          # "1.4.2_5",
-                          "1.4.2_6",
-                          "1.4.2_7"
-                          )
-                          )
+  "1.4.2_1",
+  "1.4.2_2",
+  "1.4.2_3",
+  "1.4.2_4",
+  "1.4.2_5",
+  "1.4.2_6",
+  "1.4.2_7",
+  "1.4.2_8"
+)
+)
 X$regression_method %<>% gsub("0$", "", .)
 the_usual_levels = unique(X$regression_method)
 X$regression_method %<>% factor(levels = unique(c("empty", "dense", "median", "mean", "celloracle human", the_usual_levels)))
 
 X %<>%
-  group_by(regression_method, eligible_regulators, perturbation_dataset, desired_heldout_fraction) %>%
-  summarise(across(starts_with("mae"), mean))
+  group_by(regression_method, eligible_regulators, perturbation_dataset, desired_heldout_fraction, data_split_seed) %>%
+  summarise(across(c("mae", "mse_top_20"), mean))
 X$desired_heldout_fraction %<>% 
   multiply_by(100) %>%
   paste0("Held-out : ", ., "%")
-for(metric in c("mae")){
+X$data_split_seed %<>% as.character()
+for(metric in c("mae", "mse_top_20")){
   ggplot(X) + 
     geom_point(aes_string(x = "regression_method", 
-                          y = metric), position = position_dodge(width=0.3)) + 
+                          y = metric, 
+                          color = "data_split_seed"), position = position_dodge(width=0.3)) + 
     labs(x='', 
-         y = "Mean absolute error") +
+         y = metric) +
     facet_grid(desired_heldout_fraction~perturbation_dataset) + 
     theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) 
+  ggsave(paste0('plots/fig_gears_', metric, '.pdf'), width = 8, height = 3)
 }
-ggsave(paste0('plots/fig_gears_', metric, '.pdf'), width = 8, height = 3)
 
 

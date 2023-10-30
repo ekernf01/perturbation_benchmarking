@@ -5,6 +5,14 @@ library(arrow)
 library(magrittr)
 setwd("/home/ekernf01/Desktop/jhu/research/projects/perturbation_prediction/cell_type_knowledge_transfer/perturbation_benchmarking/make_figures/")
 
+unit_scale = function(x){
+  x = x - min(x)
+  if(max(x)>0){
+    x = x / max(x)
+  }
+  return(x)
+}
+
 collect_experiments = function(experiments, stratify_by_pert = T){
   X <- list()
   for (experiment in experiments) {
@@ -36,6 +44,7 @@ make_the_usual_labels_nice = function(X){
   X %<>% mutate(x = factor(x, levels = unique(c("empty", "dense", "median", "mean", the_usual_levels))))
   return(X)
 }
+
 main_experiments = c("1.0_1",     "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1.0_7",   "1.0_8",   "1.0_9", "1.0_10",
                      "1.2.2_1", "1.2.2_2", "1.2.2_3", "1.2.2_5", "1.2.2_6", "1.2.2_7", "1.2.2_8", "1.2.2_9", "1.2.2_10",
                      "1.4.3_1", "1.4.3_2", "1.4.3_3", "1.4.3_5", "1.4.3_6", "1.4.3_7", "1.4.3_8", "1.4.3_9", "1.4.3_10")
@@ -56,25 +65,6 @@ main_experiments = c("1.0_1",     "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
     scale_y_continuous(labels = scales::label_number_si()) +
     geom_hline(data = subset(X, x %in% c("mean", "median", "empty", "dense")), aes(yintercept=mae, color = x)) 
   ggsave('plots/fig_basics_a.pdf', width = 6, height = 10)
-}
-
-
-# Some sort of supplement: simple splits 
-{
-  X = collect_experiments(main_experiments) 
-  X %<>% make_the_usual_labels_nice
-  X %<>% subset(x!="QuantileRegressor") # We never got quantile regression to run fast enough :(
-  X %<>% subset(type_of_split=="simple") 
-  X %<>%
-    group_by(x, perturbation_dataset, factor_varied) %>%
-    summarise(across(starts_with("mae"), mean))
-  ggplot(X) +
-    geom_boxplot(aes(x = x, y = mae)) + 
-    facet_grid(perturbation_dataset~factor_varied, scales = "free") + 
-    labs(x = "", y = "Mean absolute error") +
-    theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) + 
-    scale_y_continuous(labels = scales::label_number_si()) +
-    geom_hline(data = subset(X, x %in% c("mean", "median", "empty", "dense")), aes(yintercept=mae, color = x)) 
 }
 
 # Panel b: simulations
@@ -174,13 +164,6 @@ main_experiments = c("1.0_1",     "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
     group_by(x, perturbation_dataset, factor_varied) %>%
     summarise(across(metrics, mean))
   X %<>% tidyr::pivot_longer(cols = all_of(metrics), names_to = "metric")
-  unit_scale = function(x){
-    x = x - min(x)
-    if(max(x)>0){
-      x = x / max(x)
-    }
-    return(x)
-  }
   # These metrics are on totally different scales
   X %<>% 
     subset(x != "QuantileRegressor") %>%
@@ -197,3 +180,33 @@ main_experiments = c("1.0_1",     "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
     theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) 
   ggsave('plots/fig_basics_metrics.pdf', width = 6, height = 8)
 }
+
+# Supplement: testing different data splits
+{
+  X = collect_experiments("1.8.4_0") 
+  X %<>% make_the_usual_labels_nice
+  metrics = c("spearman", "mse_top_20", "mse_top_100", "mse_top_200",
+              "mse", "mae", "proportion_correct_direction")
+  metrics_where_bigger_is_better = c("spearman", "proportion_correct_direction")
+  X %<>%
+    group_by(x, type_of_split, data_split_seed, regression_method) %>%
+    summarise(across(metrics, mean))
+  X %<>% tidyr::pivot_longer(cols = all_of(metrics), names_to = "metric")
+  X %<>% 
+    group_by(metric, type_of_split, data_split_seed) %>%
+    mutate(value = value*ifelse(metric %in% metrics_where_bigger_is_better, 1, -1)) %>%
+    mutate(metric = paste(metric, ifelse(metric %in% metrics_where_bigger_is_better, "", "(inverted)"))) %>%
+    mutate(scaled_value = unit_scale(value), is_best = scaled_value==1)
+  ggplot(X) + 
+    ggtitle("Data splitting strategies") +
+    geom_tile(aes(y = metric,
+                  fill = scaled_value,
+                  x = regression_method
+                  )) + 
+    labs(fill = "Scaled metric\n(higher is better)") + 
+    geom_point(data = subset(X, is_best), aes(x = regression_method, y = metric, color = is_best)) + 
+    scale_color_manual(values = c("red")) +
+    facet_wrap(paste0("seed=", data_split_seed)~type_of_split) 
+  ggsave('plots/fig_data_splitting.pdf', width = 8, height = 8)
+}
+
