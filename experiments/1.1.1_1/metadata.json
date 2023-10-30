@@ -1,7 +1,7 @@
 {
     "unique_id": "1.1.1_1",
     "nickname": "hyperparam_sweep",
-    "readme": "This is a simple sweep over the regularization parameter for ridge regression.",
+    "readme": "This is a simple sweep over the regularization parameter for LASSO regression.",
     "question": "1.1.1",
     "is_active": true,
     "factor_varied": "alpha",

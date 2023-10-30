@@ -1,0 +1,10 @@
+{
+    "unique_id": "1.4.2_11",
+    "nickname": "GEARS",
+    "readme": "Test of GEARS on other datasets.",
+    "refers_to": "1.4.2_1",    
+    "type_of_split": "genetic_interaction",
+    "perturbation_dataset": "norman"
+}
+
+
