@@ -53,4 +53,4 @@ dependencies:
   - transformers
   - accelerate
   - hyperopt
-  - ray-tune==2.6.2
+  - grpcio[version'<=1.49']
