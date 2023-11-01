@@ -30,7 +30,6 @@ pip install git+https://huggingface.co/ctheodoris/Geneformer@50e921d --no-deps
 pip install git+https://github.com/bowang-lab/scFormer@2df344a --no-deps
 pip install 'scib>=1.0.3' --no-deps
 pip install biomart --no-deps
-pip install ray[tune]
 
 # Install our packages
 cd ..

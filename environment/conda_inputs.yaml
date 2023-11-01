@@ -52,3 +52,4 @@ dependencies:
   - transformers
   - accelerate
   - hyperopt
+  - ray-tune==2.6.2
