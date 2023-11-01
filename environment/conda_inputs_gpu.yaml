@@ -52,3 +52,4 @@ dependencies:
   - gimmemotifs[version'==0.17.1']
   - transformers
   - accelerate
+  - hyperopt
