@@ -54,3 +54,4 @@ dependencies:
   - accelerate
   - hyperopt
   - grpcio[version'<=1.49']
+  - memray
