@@ -132,9 +132,9 @@ for i in conditions.index:
                         human_tfs = DEFAULT_HUMAN_TFs,
                     )
                 train_time = time.time() - start_time
-                peak_ram = subprocess.run(["memray", "stats", train_mem_file], capture_output=True, text=True).stdout
-                peak_ram = peak_ram.split("\n")[5].removesuffix("GB").strip()
-                pd.DataFrame({"walltime (seconds)":train_time, "peak RAM (GB)": peak_ram}, index = [i]).to_csv(train_time_file)
+                peak_ram = subprocess.run(["memray", "summary", train_mem_file], capture_output=True, text=True).stdout
+                peak_ram = peak_ram.split("\n")[5].split("│")[2].strip()
+                pd.DataFrame({"walltime (seconds)":train_time, "peak RAM": peak_ram}, index = [i]).to_csv(train_time_file)
             except Exception as e: 
                 if args.skip_bad_runs:
                     print(f"Caught exception {repr(e)} on experiment {i}; skipping.")
