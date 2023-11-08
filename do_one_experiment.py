@@ -6,6 +6,9 @@ import argparse
 from argparse import Namespace
 import datetime
 import gc 
+import time 
+import memray
+import subprocess
 
 # Access our code
 import perturbation_benchmarking_package.evaluator as evaluator
@@ -58,7 +61,7 @@ except Exception as e:
 if args.experiment_name is None:
     args = Namespace(**{
         "experiment_name": "1.0_0",
-        "amount_to_do": "missing_models",
+        "amount_to_do": "models",
         "save_trainset_predictions": False,
         "save_models": False,
         "skip_bad_runs": False,
@@ -89,12 +92,16 @@ def get_current_data_split(i, verbose = False):
     )
 
 # Begin conditions
-os.makedirs(os.path.join( outputs, "predictions"   ), exist_ok=True) 
-os.makedirs(os.path.join( outputs, "fitted_values" ), exist_ok=True) 
+os.makedirs(os.path.join( outputs, "predictions"   ),   exist_ok=True) 
+os.makedirs(os.path.join( outputs, "fitted_values" ),   exist_ok=True) 
+os.makedirs(os.path.join( outputs, "train_walltimes" ), exist_ok=True) 
+os.makedirs(os.path.join( outputs, "train_memory_requirements" ),    exist_ok=True) 
 for i in conditions.index:
-    models      = os.path.join( outputs, "models",        str(i) )
-    h5ad        = os.path.join( outputs, "predictions",   str(i) + ".h5ad" )
-    h5ad_fitted = os.path.join( outputs, "fitted_values", str(i) + ".h5ad" )
+    models          = os.path.join( outputs, "models",        str(i) )
+    h5ad            = os.path.join( outputs, "predictions",   str(i) + ".h5ad" )
+    h5ad_fitted     = os.path.join( outputs, "fitted_values", str(i) + ".h5ad" )
+    train_time_file = os.path.join( outputs, "train_walltimes", f"{i}.csv")
+    train_mem_file = os.path.join( outputs, "train_memory_requirements", f"{i}.bin")
     if args.amount_to_do in {"models", "missing_models"}:
         perturbed_expression_data_train_i, perturbed_expression_data_heldout_i = get_current_data_split(i, verbose = True)
         # Fit models!!
@@ -106,18 +113,28 @@ for i in conditions.index:
             except FileNotFoundError:
                 pass
             try:
-                print(f"Fitting model for condition {i}")
+                print(f"Fitting model for condition {i} at " + str(datetime.datetime.now()), flush = True)
                 print(conditions.loc[i,:].T)
-                grn = experimenter.do_one_run(
-                    conditions = conditions, 
-                    i = i,
-                    train_data = perturbed_expression_data_train_i, 
-                    test_data  = perturbed_expression_data_heldout_i,
-                    networks = networks, 
-                    outputs = outputs,
-                    metadata = metadata,
-                    human_tfs = DEFAULT_HUMAN_TFs,
-                )
+                start_time = time.time()
+                try:
+                    os.unlink(train_mem_file)
+                except FileNotFoundError:
+                    pass
+                with memray.Tracker(train_mem_file, follow_fork = True): 
+                    grn = experimenter.do_one_run(
+                        conditions = conditions, 
+                        i = i,
+                        train_data = perturbed_expression_data_train_i, 
+                        test_data  = perturbed_expression_data_heldout_i,
+                        networks = networks, 
+                        outputs = outputs,
+                        metadata = metadata,
+                        human_tfs = DEFAULT_HUMAN_TFs,
+                    )
+                train_time = time.time() - start_time
+                peak_ram = subprocess.run(["memray", "stats", train_mem_file], capture_output=True, text=True).stdout
+                peak_ram = peak_ram.split("\n")[5].removesuffix("GB").strip()
+                pd.DataFrame({"walltime (seconds)":train_time, "peak RAM (GB)": peak_ram}, index = [i]).to_csv(train_time_file)
             except Exception as e: 
                 if args.skip_bad_runs:
                     print(f"Caught exception {repr(e)} on experiment {i}; skipping.")
@@ -186,9 +203,9 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
         fitted_values = {i:sc.read_h5ad( os.path.join(outputs, "fitted_values", str(i) + ".h5ad" ), backed='r' ) for i in conditions.index}
     except FileNotFoundError:
         fitted_values = None
-    print("Checking sizes", flush = True)
+    print("Checking sizes: ", flush = True)
     for i in conditions.index:
-        print(i, flush=True)
+        print(f"- {i}", flush=True)
         perturbed_expression_data_train_i, perturbed_expression_data_heldout_i = get_current_data_split(i)
         classifier = experimenter.train_classifier(perturbed_expression_data_train_i)
         try:
