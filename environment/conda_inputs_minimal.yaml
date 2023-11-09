@@ -35,3 +35,4 @@ dependencies:
   - rpy2
   - anndata2ri
   - deprecated
+  - memray
