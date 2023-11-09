@@ -61,7 +61,7 @@ except Exception as e:
 if args.experiment_name is None:
     args = Namespace(**{
         "experiment_name": "1.0_0",
-        "amount_to_do": "models",
+        "amount_to_do": "missing_models",
         "save_trainset_predictions": False,
         "save_models": False,
         "skip_bad_runs": False,
@@ -94,13 +94,13 @@ def get_current_data_split(i, verbose = False):
 # Begin conditions
 os.makedirs(os.path.join( outputs, "predictions"   ),   exist_ok=True) 
 os.makedirs(os.path.join( outputs, "fitted_values" ),   exist_ok=True) 
-os.makedirs(os.path.join( outputs, "train_walltimes" ), exist_ok=True) 
+os.makedirs(os.path.join( outputs, "train_resources" ), exist_ok=True) 
 os.makedirs(os.path.join( outputs, "train_memory_requirements" ),    exist_ok=True) 
 for i in conditions.index:
     models          = os.path.join( outputs, "models",        str(i) )
     h5ad            = os.path.join( outputs, "predictions",   str(i) + ".h5ad" )
     h5ad_fitted     = os.path.join( outputs, "fitted_values", str(i) + ".h5ad" )
-    train_time_file = os.path.join( outputs, "train_walltimes", f"{i}.csv")
+    train_time_file = os.path.join( outputs, "train_resources", f"{i}.csv")
     train_mem_file = os.path.join( outputs, "train_memory_requirements", f"{i}.bin")
     if args.amount_to_do in {"models", "missing_models"}:
         perturbed_expression_data_train_i, perturbed_expression_data_heldout_i = get_current_data_split(i, verbose = True)
