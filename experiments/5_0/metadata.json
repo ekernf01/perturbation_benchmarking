@@ -1,0 +1,36 @@
+{
+    "unique_id": "5_0",
+    "nickname": "scaling",
+    "readme": "How do different methods scale in practice?",
+    "question": "1.0",
+    "is_active": true,
+    "data_split_seed": [0],    
+    "type_of_split": ["interventional"],
+    "regression_method":[
+        "mean", 
+        "median", 
+        "GradientBoostingRegressor",
+        "ExtraTreesRegressor",
+        "KernelRidge",
+        "RidgeCV", 
+        "RidgeCVExtraPenalty",
+        "LassoCV",
+        "ElasticNetCV",
+        "OrthogonalMatchingPursuitCV",
+        "BayesianRidge",
+        "DCDFG-spectral_radius-linearlr-False",   
+        "DCDFG-spectral_radius-mlplr-False", 
+        "GEARS"
+    ],
+    "num_genes": [500, 1000],
+    "eligible_regulators": "all",
+    "facet_by": null,
+    "color_by": "num_genes",
+    "factor_varied": "regression_method",
+    "merge_replicates": true,
+    "perturbation_dataset": "nakatake",
+    "network_datasets": {
+        "dense":{}
+    }
+}
+
