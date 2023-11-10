@@ -6,9 +6,9 @@ library(magrittr)
 setwd("/home/ekernf01/Desktop/jhu/research/projects/perturbation_prediction/cell_type_knowledge_transfer/perturbation_benchmarking/make_figures/")
 
 unit_scale = function(x){
-  x = x - min(x)
-  if(max(x)>0){
-    x = x / max(x)
+  x = x - min(x, na.rm = T)
+  if(max(x, na.rm = T)>0){
+    x = x / max(x, na.rm = T)
   }
   return(x)
 }
@@ -25,7 +25,8 @@ collect_experiments = function(experiments, stratify_by_pert = T){
     X[[experiment]]$question %<>% as.character
     X[[experiment]]$refers_to %<>% as.character
     X[[experiment]]$color_by %<>% as.character
-    
+    X[[experiment]][["__index_level_0__"]] = NULL
+    X[[experiment]][["__index_level_1__"]] = NULL
   }
   X <- bind_rows(X)
   return(X)
@@ -45,7 +46,7 @@ make_the_usual_labels_nice = function(X){
   return(X)
 }
 
-main_experiments = c("1.0_1",     "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1.0_7",   "1.0_8",   "1.0_9", "1.0_10",
+main_experiments = c("1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1.0_7",   "1.0_8",   "1.0_9",   "1.0_10",
                      "1.2.2_1", "1.2.2_2", "1.2.2_3", "1.2.2_5", "1.2.2_6", "1.2.2_7", "1.2.2_8", "1.2.2_9", "1.2.2_10",
                      "1.4.3_1", "1.4.3_2", "1.4.3_3", "1.4.3_5", "1.4.3_6", "1.4.3_7", "1.4.3_8", "1.4.3_9", "1.4.3_10")
 # Panel A: initial benchmarks
@@ -65,6 +66,25 @@ main_experiments = c("1.0_1",     "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
     scale_y_continuous(labels = scales::label_number_si()) +
     geom_hline(data = subset(X, x %in% c("mean", "median", "empty", "dense")), aes(yintercept=mae, color = x)) 
   ggsave('plots/fig_basics_a.pdf', width = 6, height = 10)
+}
+
+# Same figure for cell type prediction
+{
+  X = collect_experiments(main_experiments) 
+  X %<>% make_the_usual_labels_nice
+  X %<>% subset(x!="QuantileRegressor") # We never got quantile regression to run fast enough :(
+  X %<>% subset(type_of_split=="interventional") 
+  X %<>%
+    group_by(x, perturbation_dataset, factor_varied) %>%
+    summarise(across(starts_with("cell"), mean))
+  ggplot(X) +
+    geom_boxplot(aes(x = x, y = cell_type_correct)) + 
+    facet_grid(perturbation_dataset~factor_varied, scales = "free") + 
+    labs(x = "", y = "Cell type accuracy") +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) + 
+    scale_y_continuous(labels = scales::label_number_si()) + 
+    geom_hline(data = subset(X, x %in% c("mean", "median", "empty", "dense")), aes(yintercept=cell_type_correct, color = x))
+  ggsave('plots/fig_basics_a_ct.pdf', width = 6, height = 10)
 }
 
 # Panel b: simulations
@@ -96,20 +116,30 @@ main_experiments = c("1.0_1",     "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
 }
 
 # Supplement: breakdown by target gene
+check_if_beats_baselines = function(mae, x){
+  if(any(x=="median") & any(x=="mean")){
+    return((round(mae, 4) < round(mae[x=="median"], 4)) & (round(mae, 4) < round(mae[x=="mean"], 4) ) )
+  } else {
+    return(NA)
+  }
+}
+check_mae_reduction = function(mae, x){
+  mae_reduction = (pmin(mae[x=="median"], mae[x=="mean"]) - mae) / pmin(mae[x=="median"], mae[x=="mean"])
+}
 {
   evaluationPerTarget = collect_experiments(main_experiments, stratify_by_pert = FALSE)
-  check_if_beats_baselines = function(mae, x){
-    if(any(x=="median") & any(x=="mean")){
-      return((round(mae, 4) < round(mae[x=="median"], 4)) & (round(mae, 4) < round(mae[x=="mean"], 4) ) )
-    } else {
-      return(NA)
-    }
-  }
   long_data <- evaluationPerTarget %>% 
     subset(type_of_split == "interventional") %>%
-    make_the_usual_labels_nice %>%
-    tidyr::gather(var_name, value, c("means", "variances", "variances_norm")) %>% 
-    dplyr::select(perturbation_dataset, factor_varied, x, mae, property_of_gene = var_name, value) %>%
+    make_the_usual_labels_nice %>% 
+    magrittr::extract(c("mae", "factor_varied", "x", "perturbation_dataset", "means", "variances", "variances_norm", 
+              grep("degree", colnames(evaluationPerTarget), value = T),
+              "n_exons", "pLI")) %>%
+    tidyr::pivot_longer(
+      cols = !(mae | factor_varied | x | perturbation_dataset),
+      names_to = "property_of_gene", 
+      values_to = "value"
+    ) %>% 
+    dplyr::select(perturbation_dataset, factor_varied, x, mae, property_of_gene, value) %>%
     mutate(value = as.numeric(value)) %>%
     na.omit() %>%
     group_by(property_of_gene, factor_varied, x, perturbation_dataset) %>%
@@ -118,22 +148,29 @@ main_experiments = c("1.0_1",     "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
     summarise(value = median(value), mae = mean(mae)) %>%
     ungroup() %>%
     group_by(perturbation_dataset, property_of_gene, quintile) %>%
-    dplyr::mutate(beats_baselines = check_if_beats_baselines(mae, x)) 
+    dplyr::mutate(
+      beats_baselines = check_if_beats_baselines(mae, x), 
+        mae_relative_reduction = check_mae_reduction(mae, x), 
+    ) %>% 
+    subset(beats_baselines) %>% 
+    arrange(-mae_relative_reduction)
+  long_data %>% write.csv("plots/fig_basics_stratify_targets.csv")
   
-  ggplot(long_data, aes(x = quintile, fill = beats_baselines, y = x)) +
-    geom_tile() +
-    scale_fill_manual(values = c("TRUE" = "red", "FALSE" = "black")) + 
-    facet_grid(factor_varied ~ perturbation_dataset + property_of_gene , scales = "free_y") 
-  ggsave('plots/fig_basics_stratify_targets.pdf', width = 20, height = 8)
-}
-# Breakdown by perturbed gene
-{
-  evaluationPerTarget = collect_experiments(main_experiments, stratify_by_pert = TRUE)
-  long_data <- evaluationPerTarget %>%
+  # Breakdown by perturbed gene
+  evaluationPerPert = collect_experiments(main_experiments, stratify_by_pert = T)
+  long_data <- evaluationPerPert %>% 
     subset(type_of_split == "interventional") %>%
-    make_the_usual_labels_nice %>%
-    tidyr::gather(var_name, value, c("logFC", "logFCNorm2", "pearsonCorr", "spearmanCorr")) %>% 
-    dplyr::select(perturbation_dataset, factor_varied, x, mae, property_of_gene = var_name, value) %>%
+    make_the_usual_labels_nice %>% 
+    magrittr::extract(c("mae", "factor_varied", "x", "perturbation_dataset",
+                        "logFC", "logFCNorm2", "pearsonCorr", "spearmanCorr",
+                        grep("degree", colnames(evaluationPerTarget), value = T),
+                        "n_exons", "pLI")) %>%
+    tidyr::pivot_longer(
+      cols = !(mae | factor_varied | x | perturbation_dataset),
+      names_to = "property_of_gene", 
+      values_to = "value"
+    ) %>% 
+    dplyr::select(perturbation_dataset, factor_varied, x, mae, property_of_gene, value) %>%
     mutate(value = as.numeric(value)) %>%
     na.omit() %>%
     group_by(property_of_gene, factor_varied, x, perturbation_dataset) %>%
@@ -142,24 +179,29 @@ main_experiments = c("1.0_1",     "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
     summarise(value = median(value), mae = mean(mae)) %>%
     ungroup() %>%
     group_by(perturbation_dataset, property_of_gene, quintile) %>%
-    dplyr::mutate(beats_baselines = check_if_beats_baselines(mae, x)) 
-  
-  ggplot(long_data, aes(x = quintile, fill = beats_baselines, y = x)) +
-    geom_tile() +
-    scale_fill_manual(values = c("TRUE" = "red", "FALSE" = "black")) + 
-    facet_grid(factor_varied ~ perturbation_dataset + property_of_gene, scales = "free_y") 
-  ggsave('plots/fig_basics_stratify_perts.pdf', width = 10, height = 2)
+    dplyr::mutate(
+      beats_baselines = check_if_beats_baselines(mae, x), 
+      mae_relative_reduction = check_mae_reduction(mae, x), 
+    ) %>% 
+    subset(mae_relative_reduction > 0.05) %>% 
+    arrange(-mae_relative_reduction)                         
+  long_data %>% write.csv('plots/fig_basics_stratify_perts.csv')
+  long_data %>% 
+    extract(c("property_of_gene", "quintile")) %>% 
+    table %>% 
+    as.data.frame %>% 
+    arrange(-Freq) %>% 
+    subset(Freq>0) %>%
+    write.csv('plots/fig_basics_stratify_perts_summary.csv')
 }
-
-
 
 # Supplement: additional performance metrics 
 {
   X = collect_experiments(main_experiments) %>% make_the_usual_labels_nice
   X %<>% subset(x!="QuantileRegressor")
   metrics = c("spearman", "mse_top_20", "mse_top_100", "mse_top_200",
-               "mse", "mae", "proportion_correct_direction")
-  metrics_where_bigger_is_better = c("spearman", "proportion_correct_direction")
+               "mse", "mae", "proportion_correct_direction", "cell_type_correct")
+  metrics_where_bigger_is_better = c("spearman", "proportion_correct_direction", "cell_type_correct")
   X %<>%
     group_by(x, perturbation_dataset, factor_varied) %>%
     summarise(across(metrics, mean))

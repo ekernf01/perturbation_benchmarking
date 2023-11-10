@@ -24,11 +24,11 @@ X = collect_experiments(c(
   "1.4.2_1",
   "1.4.2_2",
   "1.4.2_3",
-  "1.4.2_4",
+  # "1.4.2_4",
   "1.4.2_5",
   "1.4.2_6",
-  "1.4.2_7",
-  "1.4.2_8"
+  "1.4.2_7"
+  # "1.4.2_8"
 )
 )
 X$regression_method %<>% gsub("0$", "", .)
@@ -44,12 +44,13 @@ X$desired_heldout_fraction %<>%
 X$data_split_seed %<>% as.character()
 for(metric in c("mae", "mse_top_20")){
   ggplot(X) + 
-    geom_point(aes_string(x = "regression_method", 
-                          y = metric, 
-                          color = "data_split_seed"), position = position_dodge(width=0.3)) + 
+    geom_line(aes_string(x = "regression_method", 
+                        y = metric, 
+                        group = "data_split_seed",
+                        color = "data_split_seed")) + 
     labs(x='', 
          y = metric) +
-    facet_grid(desired_heldout_fraction~perturbation_dataset) + 
+    facet_grid(perturbation_dataset~desired_heldout_fraction, scales = "free_y") + 
     theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) 
   ggsave(paste0('plots/fig_gears_', metric, '.pdf'), width = 8, height = 3)
 }
