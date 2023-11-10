@@ -3,7 +3,7 @@
     "nickname": "ml methods",
     "readme": "Like 1.0_1 (various sklearn methods) but using only the GFP controls.",
     "refers_to": "1.0_1",
-    "is_active": true,
+    "is_active": false,
     "control_subtype": "Emerald"
 }
 
