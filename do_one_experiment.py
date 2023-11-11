@@ -61,7 +61,7 @@ except Exception as e:
 if args.experiment_name is None:
     args = Namespace(**{
         "experiment_name": "1.0_0",
-        "amount_to_do": "missing_models",
+        "amount_to_do": "models",
         "save_trainset_predictions": False,
         "save_models": False,
         "skip_bad_runs": False,
@@ -120,7 +120,7 @@ for i in conditions.index:
                     os.unlink(train_mem_file)
                 except FileNotFoundError:
                     pass
-                with memray.Tracker(train_mem_file, follow_fork = True): 
+                with memray.Tracker(train_mem_file, follow_fork = True, file_format = memray.FileFormat.AGGREGATED_ALLOCATIONS): 
                     grn = experimenter.do_one_run(
                         conditions = conditions, 
                         i = i,
@@ -134,6 +134,7 @@ for i in conditions.index:
                 train_time = time.time() - start_time
                 peak_ram = subprocess.run(["memray", "summary", train_mem_file], capture_output=True, text=True).stdout
                 peak_ram = peak_ram.split("\n")[5].split("│")[2].strip()
+                os.unlink(train_mem_file)
                 pd.DataFrame({"walltime (seconds)":train_time, "peak RAM": peak_ram}, index = [i]).to_csv(train_time_file)
             except Exception as e: 
                 if args.skip_bad_runs:
