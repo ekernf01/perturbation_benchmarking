@@ -14,12 +14,6 @@
         "DCDFG-spectral_radius-mlplr-False" 
     ],
     "baseline_condition": 0,
-    "kwargs": { 
-        "num_train_epochs": 600, 
-        "num_fine_epochs" : 100,
-        "train_batch_size": 64,
-        "verbose": false
-    },
     "merge_replicates": false,
     "perturbation_dataset": "frangieh_IFNγ_v1",
     "num_genes": 1000,
