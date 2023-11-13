@@ -30,7 +30,6 @@ We wanted experiment identifiers to be concise, stable, and informative. To help
         1.8.5. How do different data splits affect performance (50-50 vs 90-10, different seeds)?
         1.8.6. Some evaluations require revealing all the test data to the predictor -- for instance, any evaluation of heldout data log likelihood. Does this make the task substantially easier?
     1.9. Why does everything fail? Would similar evaluations work if cascading effects were much larger than noise, or if models were correctly specified?
-
 2. Different model assumptions imply different amounts of perturbations are needed to identify network structure. What do our results imply about identifiability?
 3. Is it possible to obtain calibrated predictive intervals for expression profiles after unseen perturbations? 
     3.1. What are the biggest drivers of uncertainty?
@@ -39,4 +38,5 @@ We wanted experiment identifiers to be concise, stable, and informative. To help
         3.1.3. Causal effect size & direction?
         3.1.4. Systematic errors such as samples failing sequencing or off-target CRISPR effects
 4. What makes some genes easier to predict and others harder?
+5. How do different methods scale in practice? (CPU time and RAM.)
 
