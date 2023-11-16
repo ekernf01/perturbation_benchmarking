@@ -18,7 +18,7 @@ Results are saved to `experiments/ggrn_docker_backend/outputs`. If it works, or 
 
 ### Install and/or reproduce results
 
-See `environment/install.md`.
+This work involves a lot of dependencies. See `environment/install.md` for install instructions.
 
 ### Related infrastructure
 
