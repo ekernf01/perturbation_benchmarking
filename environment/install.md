@@ -16,6 +16,8 @@ In case of different operating systems, exact conda environment reproduction is 
 - This install code uses bash. On a Mac, the default shell is zsh, and you may need to run a bash shell (just type `bash`) for everything to work. On Windows, we are only beginning to test these instructions. Some of the major differences: bash commands must be adapted if used via PowerShell, and conda configuration may work differently. It is easy to think you have activated a conda environment, but if you have not configured the shell to alias `activate` to `activate.bat`, activation will not work.
 - If the data download doesn't work with `curl`, you can easily rephrase it to use `wget` instead.
 
+Here are the steps for a minimal install. 
+
 ```bash
 mkdir expression_forecasting_benchmarks
 cd expression_forecasting_benchmarks
