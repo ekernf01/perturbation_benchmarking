@@ -41,9 +41,10 @@ do
 done
 ```
 
-You can test your installation by running this from inside the `perturbation_benchmarking` folder, which should be nested inside the `expression_forecasting_benchmarks` folder that got created up front. 
+You can test your installation by running this.
 
 ```bash
+cd perturbation_benchmarking
 conda activate ggrn
 python do_one_experiment.py -h # see the help page
 python do_one_experiment.py --experiment_name "1.0_0" --amount_to_do models
