@@ -52,7 +52,7 @@ python do_one_experiment.py --experiment_name "1.0_0" --amount_to_do models
 
 ### Exact reproduction
 
-To reproduce our results, you need a clean Ubuntu 20.04 box. We recommend using AWS. 
+To reproduce our results, you need a clean Ubuntu 20.04 box. We recommend using AWS. This could take a long time (weeks); we ran experiments bit by bit over a long period. 
 
 ```bash
 git clone https://github.com/ekernf01/perturbation_benchmarking
