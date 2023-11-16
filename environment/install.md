@@ -58,7 +58,7 @@ To reproduce our results, you need a clean Ubuntu 20.04 box. We recommend using 
 git clone https://github.com/ekernf01/perturbation_benchmarking
 source environment/install.sh
 cd perturbation_benchmarking
-source run_experiments.sh &  #This could take a couple weeks.
+source run_experiments.sh &  #This could take weeks!
 Rscript make_figures/*.R 
 ```
 
