@@ -54,6 +54,8 @@ python do_one_experiment.py --experiment_name "1.0_0" --amount_to_do models
 
 To reproduce our results, you need a clean Ubuntu 20.04 box. We recommend using AWS. This could take a long time (weeks); we ran experiments bit by bit over a long period. 
 
+The repo is under active development and may not be entirely stable or may not exactly reproduce our preprint. A list of commit hashes used for version one of our preprint can be found in the `environment` folder, and we plan to make code releases for future preprint versions or journal submissions.
+
 ```bash
 git clone https://github.com/ekernf01/perturbation_benchmarking
 source environment/install.sh
@@ -65,7 +67,6 @@ Rscript make_figures/*.R
 Explanation:
 
 - Run  `environment/install.sh` to install the Conda environment and download the data.
-    - The repo is under active development and may not be entirely stable or may not exactly reproduce our preprint. A list of commit hashes used for version one of our preprint can be found in the `environment` folder. 
 - Experiments can be run via `source run_experiments.sh &`. This takes a long time. You can also run individual experiments via `do_one_experiment.py`.  
 - Once the experiments are done, figures can be produced using the R scripts in `make_figures`. This requires some common basic R packages like ggplot2 that are not included in our environment setup -- let us know if you have trouble installing them.
 
