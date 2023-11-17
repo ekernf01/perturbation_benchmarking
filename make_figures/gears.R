@@ -5,26 +5,12 @@ library(arrow)
 library(magrittr)
 setwd("/home/ekernf01/Desktop/jhu/research/projects/perturbation_prediction/cell_type_knowledge_transfer/perturbation_benchmarking/make_figures/")
 
-# Figure <gears>
-collect_experiments = function(experiments){
-  X <- list()
-  for (experiment in experiments) {
-    print(experiment)
-    filepath <- paste0("../experiments/", experiment, "/outputs/evaluationPerPert.parquet")
-    X[[experiment]] <- arrow::read_parquet(filepath)
-    X[[experiment]]$color_by %<>% as.character
-    X[[experiment]]$refers_to %<>% as.character
-    X[[experiment]]$question %<>% as.character
-  }
-  X <- bind_rows(X)
-  return(X)
-}
 
 X = collect_experiments(c(
   "1.4.2_1",
   "1.4.2_2",
   "1.4.2_3",
-  # "1.4.2_4",
+  "1.4.2_4",
   "1.4.2_5",
   "1.4.2_6",
   "1.4.2_7"

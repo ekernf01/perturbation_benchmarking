@@ -4,17 +4,6 @@ library(arrow)
 library(magrittr)
 setwd("/home/ekernf01/Desktop/jhu/research/projects/perturbation_prediction/cell_type_knowledge_transfer/perturbation_benchmarking/make_figures/")
 
-collect_experiments = function(experiments){
-  X <- list()
-  for (experiment in experiments) {
-    filepath <- paste0("../experiments/", experiment, "/outputs/evaluationPerPert.parquet")
-    X[[experiment]] <- arrow::read_parquet(filepath)
-    X[[experiment]]$refers_to %<>% as.character
-    X[[experiment]]$question %<>% as.character
-  }
-  X <- bind_rows(X)
-  return(X)
-}
 X = collect_experiments(c("1.6.1_1", "1.6.1_3", "1.6.1_6", "1.6.1_7","1.6.1_8", "1.6.1_9", "1.6.1_10", "1.6.1_11"))
 X <- X %>% mutate(chart_x = paste(regression_method, starting_expression, sep = "_"))
 method_tidy = c(
