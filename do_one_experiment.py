@@ -133,7 +133,12 @@ for i in conditions.index:
                     )
                 train_time = time.time() - start_time
                 peak_ram = subprocess.run(["memray", "summary", train_mem_file], capture_output=True, text=True).stdout
-                peak_ram = peak_ram.split("\n")[5].split("│")[2].strip()
+                try:
+                    peak_ram = peak_ram.split("\n")[5].split("│")[2].strip()
+                except:
+                    print("Memory profiling results are not as expected.")
+                    print(peak_ram)
+                    peak_ram = np.NAN                
                 os.unlink(train_mem_file)
                 pd.DataFrame({"walltime (seconds)":train_time, "peak RAM": peak_ram}, index = [i]).to_csv(train_time_file)
             except Exception as e: 
@@ -208,7 +213,6 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
     for i in conditions.index:
         print(f"- {i}", flush=True)
         perturbed_expression_data_train_i, perturbed_expression_data_heldout_i = get_current_data_split(i)
-        classifier = experimenter.train_classifier(perturbed_expression_data_train_i)
         try:
             assert predictions[i].shape[0]==perturbed_expression_data_heldout_i.shape[0]
         except AssertionError:
@@ -229,7 +233,7 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
         is_test_set = True,
         conditions = conditions,
         outputs = outputs,
-        classifier = classifier,
+        classifier_labels = None, # Default is to look for "louvain" or give up
         do_scatterplots = False,
     )
     evaluationPerPert.to_parquet(   os.path.join(outputs, "evaluationPerPert.parquet"))
@@ -242,7 +246,7 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
             is_test_set = False,
             conditions = conditions,
             outputs = os.path.join(outputs, "trainset_performance"),
-            classifier = classifier,
+            classifier_labels = None, # Default is to look for "louvain" or give up
             do_scatterplots = False,
         )
         os.makedirs(os.path.join(outputs, "trainset_performance"), exist_ok=True)
