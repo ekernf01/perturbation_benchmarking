@@ -102,9 +102,11 @@ heatmap_all_metrics = function(
   # plawt
   g = ggplot(X) +
     geom_tile(aes(x = x, y = metric, fill = scaled_value)) + 
+    scale_fill_gradient( breaks=c(0,1),labels=c("min","max"), limits=c(0,1)) +
     geom_point(data = subset(X, is_best), aes(x = x, y = metric, color = is_best)) + 
     scale_color_manual(values = c("red")) +
-    labs(x = "", y = "") +
+    labs(x = "", y = "", fill = "Scaled\nvalue", color = "Best\nperformer") +
+    
     facet_grid(facet1~facet2, scales = "free") + 
     theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) 
   return(g)
