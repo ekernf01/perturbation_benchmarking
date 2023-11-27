@@ -25,7 +25,7 @@ collect_experiments = function(experiments, stratify_by_pert = T){
 #' Make plot labels nice and put elements in the desired order left to right.
 #' 
 make_the_usual_labels_nice = function(X){
-  try({X$factor_varied %<>% factor(levels = c("matching_method", "regression_method", "network_datasets"))}, silent = T)
+  try({X$factor_varied %<>% factor(levels = c("regression_method", "network_datasets", "matching_method"))}, silent = T)
   try({X$perturbation_dataset %<>% gsub("_", " ", .) %>% sub(" ", "\n", .) %>% gsub("γ", "g" , .)}, silent = T)
   try({X$network_datasets %<>% gsub("0$", "", .)})
   X$x = ifelse(X$factor_varied=="regression_method", X$regression_method, X$network_datasets)

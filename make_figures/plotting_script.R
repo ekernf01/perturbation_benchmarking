@@ -13,7 +13,6 @@ main_experiments = c("1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1.0
                      "1.4.3_1", "1.4.3_2", "1.4.3_3", "1.4.3_5", "1.4.3_6", "1.4.3_7", "1.4.3_8", "1.4.3_9", "1.4.3_10")
 {
   X = collect_experiments(main_experiments) %>% make_the_usual_labels_nice
-  X$cell_type_correct = NA
   heatmap_all_metrics(X, compare_across_rows = T)
   ggsave('plots/fig_basics.pdf', width = 8, height = 10)
 }
@@ -111,9 +110,19 @@ main_experiments = c("1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1.0
 
 # Runtime analysis
 {
+  conditions = read.csv("../experiments/5_0/outputs/conditions.csv")
   list.files("../experiments/5_0/outputs/train_resources", full.names = T) %>% 
     lapply(read.csv) %>% 
-    data.table::rbindlist()
+    data.table::rbindlist() %>%
+    dplyr::rename(condition = X) %>%
+    merge(conditions, by = "condition") %>%
+    ggplot() + 
+    geom_point(aes(x = regression_method, y = walltime..seconds., color = num_genes)) + 
+    scale_y_log10() + 
+    ylab("Walltime (seconds)") + 
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
+    ggtitle("Compute time on Nakatake with different numbers of genes included")
+  ggsave("plots/fig_walltime.pdf", width = 5, height = 5)
 }
 
 # Different data splits
@@ -125,8 +134,8 @@ main_experiments = c("1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1.0
 }
 
 # Geneformer
-X = collect_experiments(c("1.3.3_1",# "1.3.3_2",
-                          "1.3.3_3"))# "1.3.3_5", "1.3.3_6", "1.3.3_7", "1.3.3_8", "1.3.3_9", "1.3.3_10"))
+X = collect_experiments(c("1.3.3_1","1.3.3_2",
+                          "1.3.3_3","1.3.3_5", "1.3.3_6", "1.3.3_7", "1.3.3_8", "1.3.3_9", "1.3.3_10"))
 X$regression_method %<>% gsub("0$", "", .)
 X$regression_method %<>% gsub("RidgeCV", "Ridge regression on\nperturbed GeneFormer\nembeddings", .)
 X %<>% make_the_usual_labels_nice()
@@ -157,7 +166,7 @@ ggsave(paste0('plots/fig_geneformer.pdf'), width = 8, height = 5)
 }
 # DCD-FG
 {
-  X = collect_experiments(c("1.6.1_1", "1.6.1_3", "1.6.1_6", "1.6.1_7","1.6.1_8", "1.6.1_9", "1.6.1_10", "1.6.1_11"))
+  X = collect_experiments(c("1.6.1_1", "1.6.1_3", "1.6.1_6", "1.6.1_7","1.6.1_8", "1.6.1_9", "1.6.1_10", "1.6.1_11", "1.6.1_12", "1.6.1_13"))
   X <- X %>% mutate(chart_x = paste(regression_method, starting_expression, sep = "_"))
   method_tidy = c(
     "DCDFG-spectral_radius-mlplr-False"="DCD-FG" ,
