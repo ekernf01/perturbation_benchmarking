@@ -1,3 +1,5 @@
+### Basic operations 
+
 The benchmarks in this project are composed of small, structured folders called Experiments. 
 
 - Metadata fully describing each Experiment lives in a file `experiments/<experiment_name>/metadata.json`. 
@@ -15,7 +17,7 @@ python do_one_experiment.py --experiment_name 1.0_0 --amount_to_do missing_model
 
 To see the reference manual describing the flags used in that call, run `python do_one_experiment.py -h`.
 
-#### Metadata format and features
+### Metadata specifying an experiment
 
 Experiment metadata files are JSON dictionaries. Most simple entries can be either a single value, or a list. If a list is provided, the experiment is run once for each item in the list. If multiple keys have lists, all combinations will be used. 
 
@@ -30,7 +32,7 @@ With apologies, many metadata keys have idiosyncratic formatting and meaning.
 - `skip_bad_runs`, if `true`, will allow an Experiment to continue if one condition encounters an error. Set this to `false` for easier debugging.
 - `refers_to` points to another Experiment. If A refers to B, then all key/value pairs are copied from B's metadata unless explicitly provided in A's metadata. You may not refer to an experiment that already refers to something. You may not refer to multiple experiments.
 - `expand` can be either `"grid"` or `"ladder"`. It governs how the metadata are combined into a table of experimental conditions. If you set `expand` to `"grid"` (default), then it works like the base R function `expand.grid`, creating a dataframe with all combinations. If you set `expand` to `"ladder"`, then it works like the base R function `cbind`, using the first items of all lists, then the second, etc. For example, if you specify `"data_split_seed":[0,1,2]` and `"method":["mean", "median", "RidgeCV"]`, then the default `"expand": "grid"` is to test all 9 combinations and the alternative `"expand": "ladder"`  tests the mean with seed 0, the median with seed 1, and RidgeCV with seed 2. 
-- `kwargs` is a dict of keyword args passed on to GEARS, or DCD-FG, or any method [wrapped via Docker](https://github.com/ekernf01/ggrn_docker_backend). If you want to do a hyperparameter grid search, you can provide a list instead of a scalar, but you need to use `kwargs_to_expand` to indicate that each element should be passed to your method in a separate trial, rather than all together in one trial. For example, if you have `"kwargs":{"penalty": [1,2,3], "dimension": [5,10]}` then you can search all six combinations by setting `kwargs_to_expand = ["penalty", "dimension"]`.
+- `kwargs` is a dict of keyword args passed on to GEARS, or DCD-FG, or any method [wrapped via Docker](https://github.com/ekernf01/ggrn_docker_backend). By default, lists inside kwargs do not get `expand`ed as described above. If you want to do a hyperparameter grid search or similar, you need to use `kwargs_to_expand`. For example, if you have `"kwargs":{"penalty": [1,2,3], "dimension": [5,10]}` then you can search all six combinations by setting `kwargs_to_expand = ["penalty", "dimension"]`. 
 - `data_split_seed`: integer used to set the seed for repeatable data splits.
 - `type_of_split`: how the data are split. This option is fully documented in the docstrings for our data splitter functions. 
     - if "interventional" (default), then any perturbation occurs in either the training or the test set, but not both. 
@@ -66,9 +68,9 @@ With apologies, many metadata keys have idiosyncratic formatting and meaning.
             }
         
 
-There are many other keys describing x/color/facet of the automated plots, the way network structures are used/pruned/ignored, and the regression methods used. Use `perturbation_benchmarking_package.experimenter.get_default_metadata()` to see the default values of each metadata field. Use `perturbation_benchmarking_package.experimenter.get_required_keys()` to see which keys are required. Use `perturbation_benchmarking_package.experimenter.get_optional_keys()` to learn about optional keys.  
+There are other keys describing x/color/facet of the automated plots, the way network structures are used/pruned/ignored, and the regression methods used. Use `perturbation_benchmarking_package.experimenter.get_default_metadata()` to see the default values of each metadata field. Use `perturbation_benchmarking_package.experimenter.get_required_keys()` to see which keys are required. Use `perturbation_benchmarking_package.experimenter.get_optional_keys()` to learn about optional keys.  
 
-#### Outputs
+### Outputs
 
 Here is an annotated layout of files and folders produced for each Experiment.
 
