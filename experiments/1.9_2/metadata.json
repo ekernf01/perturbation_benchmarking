@@ -6,5 +6,6 @@
     "question": "1.9",
     "is_active": true,
     "eligible_regulators": "all",
+    "data_split_seed": [0,1,2],
     "perturbation_dataset":  "simulation_TrueNetwork=cellnet_human_Hugene_S=10_NoiseSD=0"
 }
