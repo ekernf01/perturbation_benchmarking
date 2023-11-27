@@ -8,6 +8,17 @@ We use Conda + Mamba to manage most dependencies. We offer either a minimal inst
 
 Certain models nominally require GPU's, but we have been able to run most experiments using a CPU, sometimes by making minimal changes to Pytorch code. See the [GGRN repo](https://github.com/ekernf01/ggrn) for details on GPU requirements of specific methods. 50GB of disk space and 64GB of RAM is enough resources to run most experiments. Certain tree-based models require more RAM, as does GEARS on the Norman data. The more benchmarks you run, the more predictions are saved and the more disk space is occupied. To re-run all experiments, we would recommend 250GB disk space to be safe. 
 
+##### Desired results
+
+For each of the options below, the desired results are a Conda environment called 'ggrn' and a folder containing four sub-folders: three data collections and the benchmark experiments.
+
+```
+├── accessory_data
+├── network_collection
+├── perturbation_data
+├── perturbation_benchmarking 
+```
+
 ### Flexible install
 
 In case of different operating systems, exact conda environment reproduction is infeasible. However, you may be able to carry out some of our experiments, or your own new experiments, even without all dependencies. Follow the minimal installation instructions below. Some notes:
