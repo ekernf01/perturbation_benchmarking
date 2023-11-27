@@ -1,5 +1,6 @@
 {
     "unique_id": "1.4.2_10",
+    "is_active": false,
     "nickname": "GEARS",
     "readme": "Test of GEARS on other datasets.",
     "refers_to": "1.4.2_1",    
