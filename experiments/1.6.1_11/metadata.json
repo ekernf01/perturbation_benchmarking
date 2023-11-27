@@ -5,7 +5,6 @@
     "refers_to": "1.6.1_1",
     "is_active": true,
     "perturbation_dataset": "freimer",     
-    "starting_expression": ["control"],
     "network_datasets": {
         "dense":{}
     }

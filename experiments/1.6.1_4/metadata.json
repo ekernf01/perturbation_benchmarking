@@ -3,9 +3,8 @@
     "nickname": "dcdfg",
     "readme": "Like experiment 1.6.1_1, but data preprocessed differently.",
     "refers_to": "1.6.1_1",
-    "is_active": true,
+    "is_active": false,
     "perturbation_dataset": "frangieh_IFNγ_v4", 
-    
     "network_datasets": {
         "dense":{}
     }
