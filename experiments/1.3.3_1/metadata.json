@@ -12,10 +12,11 @@
     "feature_extraction": [
         "mrna",
         "mrna",
-        "geneformer"
+        "geneformer_hyperparam_finetune"
     ],
     "expand": "ladder",
     "eligible_regulators": "all",
+    "predict_self": true,
     "data_split_seed": [0],    
     "type_of_split": ["interventional"],
     "num_genes": 10000,
