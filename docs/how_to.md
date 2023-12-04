@@ -2,20 +2,18 @@
 
 We hope this documentation makes it easy for you to achieve any of the specific goals outlined below. If there's something missing or incorrect, please feel free to file a github issue; we're excited to support anyone repurposing this work. 
 
-### Prereqs
+### Prereqs and general procedure
 
-These how-to's assume you have already followed our installation instructions. 
+These how-to's assume you have already followed our installation instructions. If you have not, please do that first.
 
-### General procedure
-
-In each case, you will need to 
+Once the software is installed, you will almost always need to: 
 
 - Make a new folder named after your experiment.
-- Populate it with a `metadata.json`. We give examples below for specific use-cases.
-- Run it in the ggrn conda environment.
+- Populate it with a json file `metadata.json`. We give examples below for specific use-cases.
+- Run it in the ggrn conda environment using `do_one_experiment.py`.
 - Find results in `Experiments/my_experiment/outputs/evaluationPerPert.parquet`.
 
-Code: 
+##### Code for the last two steps
 
 ```bash
 cd perturbation_benchmarking
@@ -26,8 +24,14 @@ python do_one_experiment.py --experiment_name my_experiment --amount_to_do missi
 
 ```python
 import pandas as pd
+experimental_conditions = pd.read_csv('Experiments/my_experiment/outputs/conditions.csv')
 benchmark_results = pd.read_parquet('Experiments/my_experiment/outputs/evaluationPerPert.parquet', engine='pyarrow')
 ```
+
+##### Expected result 
+
+- `experimental_conditions` should be a small dataframe with one row per experimental condition.
+- `benchmark_results` should be a large dataframe with one row per pair (perturbation, experimental condition). The columns will contain performance metrics like mae and metadata. Consult `docs/reference.md` for comprehensive information.
 
 ### How to repeat our regression method experiments
 
@@ -40,10 +44,6 @@ for experiment in `ls -1 experiments | grep '1.0_'"`
 
 do
     echo "Starting ${experiment}"
-    echo "Monitor progress:
-less experiments/${experiment}/err.txt
-less experiments/${experiment}/stdout.txt
-"
     python do_one_experiment.py --experiment_name $experiment --amount_to_do missing_models \
         > experiments/$experiment/stdout.txt 2> experiments/$experiment/err.txt
 done
@@ -76,7 +76,7 @@ done
 
 ### How to run a hyperparameter sweep
 
-Use Experiment `1.1.1_1` as an example. The crucial items are `kwargs` and `kwargs_to_expand`.
+Use Experiment `1.1.1_1` (metadata copied below) as an example. The crucial items are `kwargs` and `kwargs_to_expand`.
 
 ```json
 {
@@ -100,7 +100,7 @@ Use Experiment `1.1.1_1` as an example. The crucial items are `kwargs` and `kwar
 
 ### How to split the data differently
 
-Use Experiment `1.8.4_0` as an example. The crucial items here are `type_of_split` and `data_split_seed`.
+Use Experiment `1.8.4_0` (metadata copied below) as an example. The crucial items here are `type_of_split` and `data_split_seed`.
 
 ```json
 {
@@ -138,3 +138,45 @@ with open("custom_test_sets/0.json", "w") as f:
 ### How to add a new dataset
 
 See the perturbation data [repo](https://github.com/ekernf01/perturbation_data).
+
+### How to add a new metric
+
+To add your own evaluation metrics, you will need to make a fork of the `perturbation_benchmarking_package` [repo](https://github.com/ekernf01/perturbation_benchmarking_package), edit `evaluator.py`, and install your version prior to running your experiments. 
+
+##### Making the fork
+
+Use github's [interface](https://docs.github.com/en/get-started/quickstart/fork-a-repo). Use `git clone` to download your fork.
+
+##### Editing the code
+
+Find `evaluator.py`. Near the top is a dict `METRICS` containing our evaluation functions. It should like this.
+
+``` python
+METRICS = {
+    "mae":                          lambda predicted, observed, baseline: np.abs(observed - predicted).mean(),
+    "mse":                          lambda predicted, observed, baseline: np.linalg.norm(observed - predicted)**2,
+    "spearman":                     lambda predicted, observed, baseline: [x for x in spearmanr(observed - baseline, predicted - baseline)][0],
+    "proportion_correct_direction": lambda predicted, observed, baseline: np.mean(np.sign(observed - baseline) == np.sign(predicted - baseline)),
+    "mse_top_20":                   lambda predicted, observed, baseline: mse_top_n(predicted, observed, baseline, n=20),
+    "mse_top_100":                  lambda predicted, observed, baseline: mse_top_n(predicted, observed, baseline, n=100),
+    "mse_top_200":                  lambda predicted, observed, baseline: mse_top_n(predicted, observed, baseline, n=200),
+}
+```
+
+You can add any function by following the same format you see. Results will be included in a column named after the key you add to the dictionary. For example, you could modify the "spearman" item to assess the spearman correlation of predicted vs observed expression (instead of the fold change).
+ 
+```python
+{
+    "expression_correlation": lambda predicted, observed, baseline: [x for x in spearmanr(observed, predicted)][0],
+}
+```
+
+##### Installing your version
+
+Navigate to the same folder you ran `git clone` from. Run `conda activate ggrn` and `pip install -e perturbation_benchmarking_experiments`. Then run python and look for your new metric in METRICS. You can test any metric using code similar to this.
+
+```python
+from perturbation_benchmarking_package import evaluator
+import numpy as np
+evaluator.METRICS["mae"](np.array([1,2,3]), np.array([4,5,6]), np.array([7,8,9]))
+```
