@@ -5,10 +5,10 @@ This repo contains benchmark experiments to evaluate various strategies for pred
 ![image](https://github.com/ekernf01/perturbation_benchmarking/assets/5271803/ae7a5c86-dca6-49be-b048-743f8e110a18)
 
 - For context and key results, see our [preprint](https://www.biorxiv.org/content/10.1101/2023.07.28.551039v1).
-- For a summary of our guiding questions and experiments, see `all_experiments.tsv` and `guiding_questions.txt`. 
-- For the installation guide: see [`environment/install.md`](https://github.com/ekernf01/perturbation_benchmarking/blob/main/environment/install.md).
-- For a reference describing all possible inputs and outputs: see [docs/reference.md](https://github.com/ekernf01/perturbation_benchmarking/blob/main/docs/reference.md).
-- For how-to recipes to design your own experiments, see [docs/how_to.md](https://github.com/ekernf01/perturbation_benchmarking/blob/main/docs/how_to.md).
+- For a list of our experiments and guiding questions, see `all_experiments.tsv` and `guiding_questions.txt`. 
+- For the installation guide, see [`environment/install.md`](https://github.com/ekernf01/perturbation_benchmarking/blob/main/environment/install.md).
+- For how-to recipes to incorporate new data, methods, or metrics, see [docs/how_to.md](https://github.com/ekernf01/perturbation_benchmarking/blob/main/docs/how_to.md).
+- For a reference describing all inputs and outputs for experiments we can run out of the box, see [docs/reference.md](https://github.com/ekernf01/perturbation_benchmarking/blob/main/docs/reference.md).
 - If there's something you cannot find, go ahead and file a github issue -- with your input, we hope to improve the project.
 
 ### Related infrastructure
