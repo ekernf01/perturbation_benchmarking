@@ -12,8 +12,8 @@ main_experiments = c("1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1.0
                      "1.2.2_1", "1.2.2_2", "1.2.2_3", "1.2.2_5", "1.2.2_6", "1.2.2_7", "1.2.2_8", "1.2.2_9", "1.2.2_10",
                      "1.4.3_1", "1.4.3_2", "1.4.3_3", "1.4.3_5", "1.4.3_6", "1.4.3_7", "1.4.3_8", "1.4.3_9", "1.4.3_10")
 {
-  X = collect_experiments(main_experiments) %>% make_the_usual_labels_nice
-  heatmap_all_metrics(X, compare_across_rows = T)
+  X = collect_experiments(main_experiments) %>% make_the_usual_labels_nice %>% subset(factor_varied != "matching_method")
+  heatmap_all_metrics(X, compare_across_rows = T) 
   ggsave('plots/fig_basics.pdf', width = 8, height = 10)
 }
 
@@ -166,7 +166,8 @@ ggsave(paste0('plots/fig_geneformer.pdf'), width = 8, height = 5)
 }
 # DCD-FG
 {
-  X = collect_experiments(c("1.6.1_1", "1.6.1_3", "1.6.1_6", "1.6.1_7","1.6.1_8", "1.6.1_9", "1.6.1_10", "1.6.1_11", "1.6.1_12", "1.6.1_13"))
+  X = collect_experiments(c("1.6.1_1", "1.6.1_3", "1.6.1_6", "1.6.1_2", "1.6.1_7", #"1.6.1_8", "1.6.1_9",
+                            "1.6.1_10", "1.6.1_11", "1.6.1_12", "1.6.1_13", "1.6.1_14", "1.6.1_15"))
   X <- X %>% mutate(chart_x = paste(regression_method, starting_expression, sep = "_"))
   method_tidy = c(
     "DCDFG-spectral_radius-mlplr-False"="DCD-FG" ,
