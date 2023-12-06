@@ -52,7 +52,7 @@ done
 
 ### How to evaluate a new method
 
-- Make a docker image to run your new method. We have a [separate guide for this](https://github.com/ekernf01/ggrn/tree/main/ggrn_docker_backend).
+- Make a docker image to containerize your new method. We have a [separate guide for this](https://github.com/ekernf01/ggrn/tree/main/ggrn_docker_backend).
 - Follow the general steps above using the [metadata for our docker demo experiment](https://github.com/ekernf01/perturbation_benchmarking/blob/main/experiments/ggrn_docker_backend/metadata.json) as a starting point.
 
 ```json

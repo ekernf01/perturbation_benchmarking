@@ -7,7 +7,7 @@ This repo contains benchmark experiments to evaluate various strategies for pred
 - For context and key results, see our [preprint](https://www.biorxiv.org/content/10.1101/2023.07.28.551039v1).
 - For the installation guide, see [`environment/install.md`](https://github.com/ekernf01/perturbation_benchmarking/blob/main/environment/install.md).
 - For how-to recipes to incorporate new data, methods, or metrics, see [docs/how_to.md](https://github.com/ekernf01/perturbation_benchmarking/blob/main/docs/how_to.md).
-- For a reference describing all inputs and outputs for experiments we can run out of the box, see [docs/reference.md](https://github.com/ekernf01/perturbation_benchmarking/blob/main/docs/reference.md).
+- For a reference describing our framework and all inputs and outputs for experiments we can run out of the box, see [docs/reference.md](https://github.com/ekernf01/perturbation_benchmarking/blob/main/docs/reference.md).
 - For a list of our experiments and guiding questions, see `all_experiments.tsv` and `guiding_questions.txt`. 
 - If there's something you cannot find, go ahead and file a github issue -- with your input, we hope to improve the project.
 
@@ -19,7 +19,7 @@ This project is tightly coupled with our collections of data, our GGRN package f
     - Our code expects each of those three folders to be unzipped and placed adjacent to this repo.
     - Use our [perturbation loader](https://github.com/ekernf01/load_perturbations) and [network loader](https://github.com/ekernf01/load_networks) to easily access and validate data from Python.
 - [GGRN](https://github.com/ekernf01/ggrn) offers flexible combination of different features for regulatory network inference.
-- Our [perturbation benchmarking package](https://github.com/ekernf01/perturbation_benchmarking_package) helps conduct the `Experiment`s that are specified in this repo.
+- Our [perturbation benchmarking package](https://github.com/ekernf01/perturbation_benchmarking_package) helps conduct the experiments that are specified in this repo.
 - Certain additional experiments are implemented in [our fork of DCD-FG](https://github.com/ekernf01/dcdfg).
 
 
