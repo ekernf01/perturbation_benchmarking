@@ -9,6 +9,7 @@ GEARS_gene_set.pkl
 ggrn_gears_input/*
 geneformer_loom_data
 geneformer_tokenized_data
+geneformer_finetuned
 logs
 wandb
 err.txt
