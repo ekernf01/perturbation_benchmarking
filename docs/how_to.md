@@ -49,6 +49,7 @@ do
 done
 ```
 
+
 ### How to evaluate a new method
 
 - Make a docker image to run your new method. We have a [separate guide for this](https://github.com/ekernf01/ggrn/tree/main/ggrn_docker_backend).
@@ -180,3 +181,13 @@ from perturbation_benchmarking_package import evaluator
 import numpy as np
 evaluator.METRICS["mae"](np.array([1,2,3]), np.array([4,5,6]), np.array([7,8,9]))
 ```
+
+### How to repeat all of our experiments
+
+Our experiments can be run via `source run_experiments.sh &`. Progress can be monitored by inspecting `stdout.txt` and `err.txt` in each experiment's folder. Once the experiments are done, figures can be produced using the R scripts in `make_figures`. 
+
+You are likely to encounter some difficulties.
+
+- Experiments could take a long time (weeks on a typical laptop). We ran experiments bit by bit over a long period, and they are not currently set up to be dispatched in a massively parallel way. 
+- The repo is under active development as of December 2023 and may not be entirely stable or may not exactly reproduce our preprint. A list of commit hashes used for version one of our preprint can be found in the `environment` folder, and we plan to make code releases for future preprint versions or journal submissions.
+- Making figures requires some common basic R packages like ggplot2 that are not included in our environment setup. Let us know if you have trouble installing them.
