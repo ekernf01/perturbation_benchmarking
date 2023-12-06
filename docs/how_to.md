@@ -8,7 +8,7 @@ These how-to's assume you have already followed our installation instructions. I
 
 Once the software is installed, you will almost always need to: 
 
-- Make a new folder named after your experiment.
+- Make a new folder inside `Experiments` named after your experiment
 - Populate it with a json file `metadata.json`. We give examples below for specific use-cases.
 - Run it in the ggrn conda environment using `do_one_experiment.py`.
 - Find results in `Experiments/my_experiment/outputs/evaluationPerPert.parquet`.
@@ -52,7 +52,7 @@ done
 ### How to evaluate a new method
 
 - Make a docker image to run your new method. We have a [separate guide for this](https://github.com/ekernf01/ggrn/tree/main/ggrn_docker_backend).
-- Copy and modify the [metadata for our docker demo experiment](https://github.com/ekernf01/perturbation_benchmarking/blob/main/experiments/ggrn_docker_backend/metadata.json).
+- Follow the general steps above using the [metadata for our docker demo experiment](https://github.com/ekernf01/perturbation_benchmarking/blob/main/experiments/ggrn_docker_backend/metadata.json) as a starting point.
 
 ```json
 {
@@ -76,7 +76,7 @@ done
 
 ### How to run a hyperparameter sweep
 
-Use Experiment `1.1.1_1` (metadata copied below) as an example. The crucial items are `kwargs` and `kwargs_to_expand`.
+Follow the general procedure discussed above using Experiment `1.1.1_1` (metadata copied below) as an example. The crucial items are `kwargs` and `kwargs_to_expand`.
 
 ```json
 {
@@ -100,7 +100,7 @@ Use Experiment `1.1.1_1` (metadata copied below) as an example. The crucial item
 
 ### How to split the data differently
 
-Use Experiment `1.8.4_0` (metadata copied below) as an example. The crucial items here are `type_of_split` and `data_split_seed`.
+Follow the general procedure discussed above using Experiment `1.8.4_0` (metadata copied below) as a starting point. The crucial items here are `type_of_split` and `data_split_seed`.
 
 ```json
 {
