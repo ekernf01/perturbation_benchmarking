@@ -15,7 +15,7 @@
     ],
     "baseline_condition": 0,
     "merge_replicates": false,
-    "perturbation_dataset": "frangieh_IFNγ_v1",
+    "perturbation_dataset": "frangieh_IFNg_v1",
     "num_genes": 1000,
     "starting_expression": ["control", "heldout"],
     "network_datasets": {

@@ -4,7 +4,7 @@
     "readme": "Like experiment 1.6.1_1, but data preprocessed differently.",
     "refers_to": "1.6.1_1",
     "is_active": true,
-    "perturbation_dataset": "frangieh_IFNγ_v3", 
+    "perturbation_dataset": "frangieh_IFNg_v3", 
     "network_datasets": {
         "dense":{}
     }

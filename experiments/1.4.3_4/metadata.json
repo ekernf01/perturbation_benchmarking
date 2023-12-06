@@ -3,7 +3,7 @@
     "nickname": "base_network",
     "readme": "Networks experiment but only using GFP controls.",
     "question": "1.4.3",
-    "is_active": true,
+    "is_active": false,
     "refers_to": "1.4.3_1", 
     "control_subtype": "Emerald"
 }

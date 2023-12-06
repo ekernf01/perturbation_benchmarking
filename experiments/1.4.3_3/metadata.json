@@ -1,10 +1,10 @@
 {
     "unique_id": "1.4.3_3",
     "nickname": "base_network",
-    "readme": "Network experiment but on frangieh_IFNγ_v3",
+    "readme": "Network experiment but on frangieh_IFNg_v3",
     "question": "1.4.3",
     "is_active": true,
     "refers_to": "1.4.3_1", 
-    "perturbation_dataset": "frangieh_IFNγ_v3"
+    "perturbation_dataset": "frangieh_IFNg_v3"
 }
 
