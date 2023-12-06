@@ -19,12 +19,23 @@ For each of the options below, the installation should create a Conda environmen
 ├── perturbation_benchmarking 
 ```
 
+You can test your installation by running this.
+
+```bash
+cd perturbation_benchmarking
+conda activate ggrn
+python do_one_experiment.py -h # see the help page
+python do_one_experiment.py --experiment_name "1.0_0" --amount_to_do models
+```
+
 ### Flexible install
 
 In case of different operating systems, exact conda environment reproduction is infeasible. However, you may be able to carry out some of our experiments, or your own new experiments, even without all dependencies. Follow the minimal installation instructions below. Some notes:
 
 - This code requires mamba to be installed already. Install mamba using the [official instructions](https://mamba.readthedocs.io/en/latest/installation.html).
-- This install code uses bash. On a Mac, the default shell is zsh, and you may need to run a bash shell (just type `bash`) for everything to work. On Windows, we are only beginning to test these instructions. Some of the major differences: bash commands must be adapted if used via PowerShell, and conda configuration may work differently. It is easy to think you have activated a conda environment, but if you have not configured the shell to alias `activate` to `activate.bat`, activation will not work.
+- This install code uses bash. On a Mac, the default shell is zsh, and you may need to run a bash shell (just type `bash`) for everything to work. On Windows, we are only beginning to test these instructions. Some of the major differences:
+    - bash commands must be adapted if used via PowerShell. The Windows Subsystem for Linux may be a better alternative.
+    - conda configuration may work differently. It is easy to think you have activated a conda environment, but if you have not configured the shell to alias `activate` to `activate.bat`, activation will not work.
 - If the data download doesn't work with `curl`, you can easily rephrase it to use `wget` instead, or you can download the data manually from a web browser.
 
 Here are the steps for a minimal install. 
@@ -52,33 +63,12 @@ do
 done
 ```
 
-You can test your installation by running this.
-
-```bash
-cd perturbation_benchmarking
-conda activate ggrn
-python do_one_experiment.py -h # see the help page
-python do_one_experiment.py --experiment_name "1.0_0" --amount_to_do models
-```
-
 ### Exact reproduction
 
-To reproduce our results, you need a clean Ubuntu 20.04 box. We recommend using AWS. This could take a long time (weeks); we ran experiments bit by bit over a long period. 
-
-The repo is under active development and may not be entirely stable or may not exactly reproduce our preprint. A list of commit hashes used for version one of our preprint can be found in the `environment` folder, and we plan to make code releases for future preprint versions or journal submissions.
+To reproduce our computing environemnt exactly, you need a clean Ubuntu 20.04 box. We recommend using AWS. 
 
 ```bash
 git clone https://github.com/ekernf01/perturbation_benchmarking
 source environment/install.sh
-cd perturbation_benchmarking
-source run_experiments.sh &  #This could take weeks!
-Rscript make_figures/*.R 
 ```
-
-Explanation:
-
-- Run  `environment/install.sh` to install the Conda environment and download the data.
-- Experiments can be run via `source run_experiments.sh &`. This takes a long time. You can also run individual experiments via `do_one_experiment.py`.  
-- Once the experiments are done, figures can be produced using the R scripts in `make_figures`. This requires some common basic R packages like ggplot2 that are not included in our environment setup -- let us know if you have trouble installing them.
-
 
