@@ -6,7 +6,7 @@
     "is_active": true,
     "data_split_seed": [0],    
     "type_of_split": ["interventional"],
-    "extend": "ladder",
+    "expand": "ladder",
     "regression_method":[
         "mean",         "mean", 
         "median",         "median", 
@@ -25,9 +25,14 @@
         "RidgeCV", "RidgeCV"
     ],
     "feature_extraction": [
-        "rna", "rna", "rna", "rna", "rna", "rna", "rna", "rna", "rna", "rna", 
-        "rna", "rna", "rna", "rna", "rna", "rna", "rna", "rna", "rna", "rna", 
-        "rna", "rna", "rna", "rna", "rna", "rna", "rna", "rna", "geneformer", "geneformer"
+        "mrna", "mrna", "mrna", "mrna", "mrna", "mrna", "mrna", "mrna", "mrna", "mrna", 
+        "mrna", "mrna", "mrna", "mrna", "mrna", "mrna", "mrna", "mrna", "mrna", "mrna", 
+        "mrna", "mrna", "mrna", "mrna", "mrna", "mrna", "mrna", "mrna", "geneformer", "geneformer"
+    ],
+    "predict_self": [
+        false,  false,  false,  false,  false,  false,  false,  false,  false,  false,  
+        false,  false,  false,  false,  false,  false,  false,  false,  false,  false,  
+        false,  false,  false,  false,  false,  false,  false,  false,  true,         true
     ],
     "num_genes":          [ 
         500,  1000,   500,  1000,   500,  1000,   500,  1000,   500,  1000,   
