@@ -8,7 +8,14 @@ Certain models nominally require GPU's, but we have been able to run most experi
 
 ### Minimal install
 
-In case of different operating systems, exact conda environment reproduction is infeasible. However, you may be able to carry out some of our experiments, or your own new experiments, even without all dependencies. Follow the minimal installation instructions below. Some notes:
+In case of different operating systems, exact conda environment reproduction is infeasible. However, you may be able to carry out some of our experiments, or your own new experiments, even without all dependencies. Follow the minimal installation instructions below. 
+
+```bash
+git clone https://github.com/ekernf01/perturbation_benchmarking
+source perturbation_benchmarking/environment/install_minimal.sh
+```
+
+Some notes:
 
 - If the data download doesn't work with `curl`, you can easily rephrase it to use `wget` instead, or you can download the data manually from a web browser.
 - This code requires mamba to be installed already. Install mamba using the [official instructions](https://mamba.readthedocs.io/en/latest/installation.html).
@@ -16,18 +23,13 @@ In case of different operating systems, exact conda environment reproduction is 
     - bash commands will not work in PowerShell. The Windows Subsystem for Linux may be a good alternative.
     - conda configuration may work differently. 
 
-```bash
-git clone https://github.com/ekernf01/perturbation_benchmarking
-source environment/install.sh
-```
-
 ### Exact install
 
 To reproduce our computing environemnt exactly, you need a bash shell on a clean Ubuntu 20.04 box. We recommend using AWS.
 
 ```bash
 git clone https://github.com/ekernf01/perturbation_benchmarking
-source environment/install.sh
+source perturbation_benchmarking/environment/install.sh
 ```
 
 ### How to check the installation
