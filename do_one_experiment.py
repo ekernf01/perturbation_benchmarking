@@ -15,13 +15,13 @@ import perturbation_benchmarking_package.evaluator as evaluator
 import perturbation_benchmarking_package.experimenter as experimenter
 import load_perturbations
 import load_networks
-import ggrn.api as ggrn
 
 # User input: name of experiment and whether to fully rerun or just remake plots. 
 parser = argparse.ArgumentParser("experimenter")
 parser.add_argument("--experiment_name", help="Unique id for the experiment.", type=str)
 parser.add_argument("--save_models",     help="If true, save model objects.", default = False, action = "store_true")
 parser.add_argument("--save_trainset_predictions", help="If provided, make & save predictions of training data.", default = False, action = "store_true")
+parser.add_argument("--no_parallel", help="If provided, don't use loky parallelization.", default = False, action = "store_true")
 parser.add_argument('--no_skip_bad_runs', dest='skip_bad_runs', action='store_false', help="Unless this flag is used, keep running when some runs hit errors.")
 parser.add_argument('--networks', type=str, default='../network_collection/networks', help="Location of our network collection on your hard drive")
 parser.add_argument('--data', type=str, default='../perturbation_data/perturbations', help="Location of our perturbation data on your hard drive")
@@ -61,10 +61,11 @@ except Exception as e:
 if args.experiment_name is None:
     args = Namespace(**{
         "experiment_name": "1.0_0",
-        "amount_to_do": "models",
+        "amount_to_do": "missing_models",
         "save_trainset_predictions": False,
         "save_models": False,
-        "skip_bad_runs": False,
+        "skip_bad_runs": False, # Makes debug/traceback easier
+        "no_parallel": True, # Makes debug/traceback easier
     })
 # Additional bookkeeping
 print("Running experiment", flush = True)
@@ -130,15 +131,18 @@ for i in conditions.index:
                         outputs = outputs,
                         metadata = metadata,
                         human_tfs = DEFAULT_HUMAN_TFs,
+                        do_parallel=(not args.no_parallel),
                     )
                 train_time = time.time() - start_time
                 peak_ram = subprocess.run(["memray", "summary", train_mem_file], capture_output=True, text=True).stdout
                 try:
-                    peak_ram = peak_ram.split("\n")[5].split("│")[2].strip()
+                    peak_ram = peak_ram.split("\n")
+                    peak_ram = [p for p in peak_ram if ("B" in p)][0]
+                    peak_ram = peak_ram.split("│")[2].strip()
                 except:
                     print("Memory profiling results are not as expected.")
                     print(peak_ram)
-                    peak_ram = np.NAN                
+                    peak_ram = np.NAN
                 os.unlink(train_mem_file)
                 pd.DataFrame({"walltime (seconds)":train_time, "peak RAM": peak_ram}, index = [i]).to_csv(train_time_file)
             except Exception as e: 
@@ -171,7 +175,7 @@ for i in conditions.index:
                 ],
                 predictions = predictions,
                 control_subtype = conditions.loc[i, "control_subtype"], 
-                feature_extraction_requires_raw_data = (grn.feature_extraction == "geneformer"),
+                feature_extraction_requires_raw_data = grn.feature_extraction.startswith("geneformer"),
             )
             predictions.obs.index = perturbed_expression_data_heldout_i.obs.index.copy()
             # Sometimes AnnData has trouble saving pandas bool columns and sets, and they aren't needed here anyway.
@@ -192,7 +196,7 @@ for i in conditions.index:
                         for r in perturbed_expression_data_train_i.obs[["perturbation", "expression_level_after_perturbation"]].iterrows()
                     ], 
                     predictions = predictions_train, 
-                    feature_extraction_requires_raw_data = (grn.feature_extraction == "geneformer"),
+                    feature_extraction_requires_raw_data = grn.feature_extraction.startswith("geneformer"),
                 )
                 fitted_values.obs.index = perturbed_expression_data_train_i.obs.index.copy()
                 # Sometimes AnnData has trouble saving pandas bool columns, and they aren't needed here anyway.
