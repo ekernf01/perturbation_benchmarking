@@ -140,14 +140,6 @@ main_experiments = c("1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1.0
   ggsave("plots/fig_ram.pdf", width = 5, height = 5)
 }
 
-# Different data splits
-{
-  X = collect_experiments("1.8.4_0") 
-  X$x = X$regression_method
-  heatmap_all_metrics(X, facet1 = "data_split_seed", facet2 = "type_of_split", compare_across_rows = FALSE)
-  ggsave('plots/fig_data_splitting.pdf', width = 8, height = 8)
-}
-
 # Geneformer
 X = collect_experiments(c("1.3.3_1","1.3.3_2",
                           "1.3.3_3","1.3.3_5", "1.3.3_6", "1.3.3_7", "1.3.3_8", "1.3.3_9", "1.3.3_10"))
