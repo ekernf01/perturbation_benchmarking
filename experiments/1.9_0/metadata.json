@@ -5,5 +5,5 @@
     "readme": "Testing different network structures like in experiment 1.4.3_1, but with simulated data based on known networks.",
     "question": "1.9",
     "is_active": true,
-    "perturbation_dataset": "simulation_TrueNetwork=celloracle_human_S=1_NoiseSD=0"
+    "perturbation_dataset":  "simulation_TrueNetwork=MARA_FANTOM4_S=1_NoiseSD=0"
 }

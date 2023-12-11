@@ -27,8 +27,9 @@
         "ANANSE_tissue_0.5":     { "do_aggregate_subnets": true },
         "humanbase":             { "do_aggregate_subnets": true }
     },
-    "matching_method": "user",
+    "matching_method": ["user"],
     "predict_self": true,
     "data_split_seed": [0,1,2],
+    "prediction_timescale": 1,
     "perturbation_dataset": "simulation_TrueNetwork=cellnet_human_Hg1332_S=1_NoiseSD=0"
 }
