@@ -136,6 +136,26 @@ with open("custom_test_sets/0.json", "w") as f:
     json.dump(list(custom_test_set), f)
 ```
 
+Here is an example of the way results can differ in response to different data splits. 
+
+![A heatmap showing different results from 'interventional', 'simple', and 'stratified' splits](fig_data_splitting.pdf)
+
+This example can be constructed by running experiment `1.8.4_0` and using the following R code. 
+
+```r
+library(ggplot2)
+library(dplyr)
+library(stringr)
+library(arrow)
+library(magrittr)
+setwd("perturbation_benchmarking/make_figures/")
+source("plotting_functions.R") # Defines collect_experiments and heatmap_all_metrics
+X = collect_experiments("1.8.4_0") 
+X$x = X$regression_method
+heatmap_all_metrics(X, facet1 = "data_split_seed", facet2 = "type_of_split", compare_across_rows = FALSE)
+ggsave('fig_data_splitting.pdf', width = 8, height = 8)
+```
+
 ### How to add a new dataset
 
 See the perturbation data [repo](https://github.com/ekernf01/perturbation_data).
