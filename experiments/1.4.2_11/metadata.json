@@ -3,6 +3,7 @@
     "nickname": "GEARS",
     "readme": "Test of GEARS on other datasets.",
     "refers_to": "1.4.2_1",    
+    "is_active" : false,
     "type_of_split": "genetic_interaction",
     "perturbation_dataset": "norman"
 }
