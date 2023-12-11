@@ -26,3 +26,4 @@ experiments/*/outputs_old
 node_modules/*
 lightning_logs/*
 TODO.md
+node_modules
