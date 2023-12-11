@@ -1,3 +1,8 @@
+## Reference documentation for benchmarking infrastructure
+
+![Editable source for this diagram is in slides for Nov 7 2023 Battle Lab long talk](call_diagram.png)
+
+
 ### Basic operations 
 
 The benchmarks in this project are composed of small, structured folders called Experiments. 
