@@ -12,7 +12,7 @@ main_experiments = c("1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1.0
                      "1.2.2_1", "1.2.2_2", "1.2.2_3", "1.2.2_5", "1.2.2_6", "1.2.2_7", "1.2.2_8", "1.2.2_9", "1.2.2_10",
                      "1.4.3_1", "1.4.3_2", "1.4.3_3", "1.4.3_5", "1.4.3_6", "1.4.3_7", "1.4.3_8", "1.4.3_9", "1.4.3_10")
 {
-  X = collect_experiments(main_experiments) %>% make_the_usual_labels_nice %>% subset(factor_varied != "matching_method")
+  X = collect_experiments(main_experiments) %>% make_the_usual_labels_nice 
   heatmap_all_metrics(X, compare_across_rows = T) 
   ggsave('plots/fig_basics.pdf', width = 8, height = 10)
 }
@@ -101,28 +101,43 @@ main_experiments = c("1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1.0
     dplyr::mutate(perturbation_dataset = gsub(".*=", "", perturbation_dataset)) %>%
     dplyr::mutate(noise_sd = gsub(".*=", "", noise_sd)) %>%
     dplyr::mutate(number_of_steps = gsub(".*=", "", number_of_steps)) %>%
-    dplyr::mutate(number_of_steps = paste0(number_of_steps, " steps")) 
+    dplyr::mutate(number_of_steps = paste0(number_of_steps, " steps")) %>%
+    subset(perturbation_dataset != "MARA\nFANTOM4") 
   X$is_true_network = X$perturbation_dataset == X$x
   X$cell_type_correct = NA
-  heatmap_all_metrics(X, facet2 = "data_split_seed", compare_across_rows = F) 
+  g = heatmap_all_metrics(X, facet2 = "data_split_seed", compare_across_rows = F) 
+  g + geom_vline(data = g$data %>% subset(x==gsub("\\s", " ", facet1)), color = "green", aes(xintercept = x) )
   ggsave('plots/fig_basics_simulation.pdf', width = 8, height = 8)
 }
 
 # Runtime analysis
 {
   conditions = read.csv("../experiments/5_0/outputs/conditions.csv")
-  list.files("../experiments/5_0/outputs/train_resources", full.names = T) %>% 
+  X = list.files("../experiments/5_0/outputs/train_resources", full.names = T) %>% 
     lapply(read.csv) %>% 
     data.table::rbindlist() %>%
     dplyr::rename(condition = X) %>%
     merge(conditions, by = "condition") %>%
-    ggplot() + 
-    geom_point(aes(x = regression_method, y = walltime..seconds., color = num_genes)) + 
+    dplyr::mutate(method = ifelse(feature_extraction=="geneformer", feature_extraction, regression_method)) %>%
+    dplyr::mutate(peak.RAM = gsub("KB","E3", peak.RAM)) %>%
+    dplyr::mutate(peak.RAM = gsub("MB","E6", peak.RAM)) %>%
+    dplyr::mutate(peak.RAM = gsub("GB","E9", peak.RAM)) %>%
+    dplyr::mutate(peak.RAM = gsub("B","", peak.RAM))  %>%
+    dplyr::mutate(peak.RAM = as.numeric(peak.RAM)) 
+    
+  ggplot(X) + 
+    geom_point(aes(x = method, y = walltime..seconds., color = num_genes)) + 
     scale_y_log10() + 
     ylab("Walltime (seconds)") + 
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
-    ggtitle("Compute time on Nakatake with different numbers of genes included")
-  ggsave("plots/fig_walltime.pdf", width = 5, height = 5)
+    ggtitle("Compute time on Nakatake with different numbers of genes predicted") 
+  ggplot(X) + 
+    geom_point(aes(x = method, y = peak.RAM, color = num_genes)) + 
+    scale_y_log10() + 
+    ylab("Peak RAM (bytes)") + 
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
+    ggtitle("Peak RAM consumption on Nakatake with different numbers of genes predicted") 
+  ggsave("plots/fig_ram.pdf", width = 5, height = 5)
 }
 
 # Different data splits
@@ -137,10 +152,10 @@ main_experiments = c("1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1.0
 X = collect_experiments(c("1.3.3_1","1.3.3_2",
                           "1.3.3_3","1.3.3_5", "1.3.3_6", "1.3.3_7", "1.3.3_8", "1.3.3_9", "1.3.3_10"))
 X$regression_method %<>% gsub("0$", "", .)
-X$regression_method %<>% gsub("RidgeCV", "Ridge regression on\nperturbed GeneFormer\nembeddings", .)
+X$regression_method %<>% gsub("RidgeCV", "Regress on\nGeneFormer embeddings", .)
 X %<>% make_the_usual_labels_nice()
-heatmap_all_metrics(X)
-ggsave(paste0('plots/fig_geneformer.pdf'), width = 8, height = 5)
+heatmap_all_metrics(X, facet2 = "perturbation_dataset", facet1 = "factor_varied")
+ggsave(paste0('plots/fig_geneformer.pdf'), width = 10, height = 4)
 
 # GEARS
 {
@@ -162,11 +177,11 @@ ggsave(paste0('plots/fig_geneformer.pdf'), width = 8, height = 5)
   X$x = X$regression_method
   X$facet2 = with(X, paste0(desired_heldout_fraction*100, "% heldout\nseed=", data_split_seed))
   heatmap_all_metrics(X, facet2 = "perturbation_dataset", facet1 = "facet2")
-  ggsave(paste0('plots/fig_gears.pdf'), width = 9, height = 5)
+  ggsave(paste0('plots/fig_gears.pdf'), width = 6, height = 4)
 }
 # DCD-FG
 {
-  X = collect_experiments(c("1.6.1_1", "1.6.1_3", "1.6.1_6", "1.6.1_2", "1.6.1_7", #"1.6.1_8", "1.6.1_9",
+  X = collect_experiments(c("1.6.1_1", "1.6.1_3", "1.6.1_6",  "1.6.1_7", #"1.6.1_8", "1.6.1_9", "1.6.1_2",
                             "1.6.1_10", "1.6.1_11", "1.6.1_12", "1.6.1_13", "1.6.1_14", "1.6.1_15"))
   X <- X %>% mutate(chart_x = paste(regression_method, starting_expression, sep = "_"))
   method_tidy = c(
@@ -177,21 +192,11 @@ ggsave(paste0('plots/fig_geneformer.pdf'), width = 8, height = 5)
   ) 
   X$regression_method = method_tidy[X$regression_method] %>% factor(levels = c("median", "mean", "NOTEARS-LR", "DCD-FG"))
   X$perturbation_dataset %<>% gsub("γ", "g", .)
-  t.test(
-    subset(X, regression_method=="DCD-FG" & perturbation_dataset == "nakatake" & starting_expression == "control", select = "mae") - 
-      subset(X, regression_method=="mean" & perturbation_dataset == "nakatake" & starting_expression == "control", select = "mae"),
-  )
-  
-  t.test(
-    subset(X, regression_method=="DCD-FG" & perturbation_dataset == "nakatake" & starting_expression == "control", select = "mae") - 
-      subset(X, regression_method=="NOTEARS-LR" & perturbation_dataset == "nakatake" & starting_expression == "control", select = "mae"),
-  )
-  
   X %<>% make_the_usual_labels_nice()
-  my_levels = unique(c("frangieh_IFNg_v1", "frangieh_IFNg_v3", "nakatake", X$perturbation_dataset))
+  my_levels = unique(c("frangieh_IFNg_v1", "frangieh_IFNg_v2", "frangieh_IFNg_v3", "nakatake", X$perturbation_dataset))
   X$perturbation_dataset %<>% factor(levels = my_levels)
   X$x = X$regression_method
   heatmap_all_metrics(X, facet2 = "perturbation_dataset", facet1 = "starting_expression", compare_across_rows = F)
   dir.create("plots", showWarnings = FALSE)
-  ggsave(filename = paste0("plots/fig_dcdfg.pdf"), width = 8, height = 4)
+  ggsave(filename = paste0("plots/fig_dcdfg.pdf"), width = 10, height = 4)
 }
