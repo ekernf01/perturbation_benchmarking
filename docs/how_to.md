@@ -4,7 +4,7 @@ We hope this documentation makes it easy for you to achieve any of the specific 
 
 ### Prereqs and general procedure
 
-These how-to's assume you have already followed our installation instructions. If you have not, please do that first.
+These how-to's assume you have already followed our installation instructions. If you have not, you will not be able to follow along and test the commands below.
 
 Once the software is installed, you will almost always need to: 
 
@@ -149,16 +149,18 @@ library(stringr)
 library(arrow)
 library(magrittr)
 setwd("perturbation_benchmarking/make_figures/")
-source("plotting_functions.R") # Defines collect_experiments and heatmap_all_metrics
+source("plotting_functions.R") # D
+<!-- @import "[TOC]" {cmd="toc" depthFrom=1 depthTo=6 orderedList=false} -->
+efines collect_experiments and heatmap_all_metrics
 X = collect_experiments("1.8.4_0") 
 X$x = X$regression_method
 heatmap_all_metrics(X, facet1 = "data_split_seed", facet2 = "type_of_split", compare_across_rows = FALSE)
 ggsave('fig_data_splitting.pdf', width = 8, height = 8)
 ```
 
-### How to add a new dataset
+### How to add a new dataset or network
 
-See the perturbation data [repo](https://github.com/ekernf01/perturbation_data).
+See the perturbation data [repo](https://github.com/ekernf01/perturbation_data) or network collection [repo](https://github.com/ekernf01/network_collection).
 
 ### How to add a new metric
 
