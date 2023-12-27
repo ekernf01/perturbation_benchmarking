@@ -1,10 +1,10 @@
 ## How to use, re-use, and re-purpose our benchmarking infrastructure
 
-We hope this documentation makes it easy for you to achieve any of the specific goals outlined below. If there's something missing or incorrect, please feel free to file a github issue; we're excited to support anyone repurposing this work. 
+We hope this documentation makes it easy for you to achieve any of the goals outlined below. If there's something missing or incorrect, please file a github issue; we're excited to support anyone repurposing this work. 
 
 ### Prereqs and general procedure
 
-These how-to's assume you have already followed our installation instructions. If you have not, you will not be able to follow along and test the commands below.
+**Warning!** These how-to's assume you have already followed our installation instructions. Otherwise, you will not be able to follow along and test the commands below.
 
 Once the software is installed, you will almost always need to: 
 
@@ -32,6 +32,14 @@ benchmark_results = pd.read_parquet('Experiments/my_experiment/outputs/evaluatio
 
 - `experimental_conditions` should be a small dataframe with one row per experimental condition.
 - `benchmark_results` should be a large dataframe with one row per pair (perturbation, experimental condition). The columns will contain performance metrics like mae and metadata. Consult `docs/reference.md` for comprehensive information.
+
+##### Troubleshooting
+
+The default behavior of `do_one_experiment.py` is optimized for performance, but several non-default options can help a lot with initial use and debugging. Run `python do_one_experiment.py -h` for usage instructions. In brief:
+
+- You can get error tracebacks by not skipping individual bad runs and not using Joblib parallelization. 
+- You can save models for later inspection using `save_models`.
+- If you are afraid of overfitting, you can monitor train and test-set performance separately using `save_trainset_predictions`.
 
 ### How to repeat our regression method experiments
 
@@ -126,7 +134,7 @@ Follow the general procedure discussed above using Experiment `1.8.4_0` (metadat
 }
 ```
 
-If you use the `custom` data split, it should be in `Experiments/my_new_experiment/custom_test_sets/<data_split_seed>.json` and it should be formatted as a `json` list containing names of observations to reserve for the test set. In our unit tests, we generate a custom test set file from an AnnData object like this.
+If you use the `custom` data split, custom data split info should be in `Experiments/my_new_experiment/custom_test_sets/<data_split_seed>.json` and it should be formatted as a `json` list containing names of observations to reserve for the test set. In our unit tests, we generate a custom test set file from an AnnData object like this.
 
 ```python
 import json
@@ -140,7 +148,7 @@ Here is an example of the way results can differ in response to different data s
 
 ![A heatmap showing different results from 'interventional', 'simple', and 'stratified' splits](fig_data_splitting.pdf)
 
-This example can be constructed by running experiment `1.8.4_0` and using the following R code. 
+This example can be constructed by running experiment `1.8.4_0` and using the following R code for plotting. 
 
 ```r
 library(ggplot2)
@@ -149,9 +157,7 @@ library(stringr)
 library(arrow)
 library(magrittr)
 setwd("perturbation_benchmarking/make_figures/")
-source("plotting_functions.R") # D
-<!-- @import "[TOC]" {cmd="toc" depthFrom=1 depthTo=6 orderedList=false} -->
-efines collect_experiments and heatmap_all_metrics
+source("plotting_functions.R") # Defines collect_experiments and heatmap_all_metrics
 X = collect_experiments("1.8.4_0") 
 X$x = X$regression_method
 heatmap_all_metrics(X, facet1 = "data_split_seed", facet2 = "type_of_split", compare_across_rows = FALSE)
@@ -206,10 +212,10 @@ evaluator.METRICS["mae"](np.array([1,2,3]), np.array([4,5,6]), np.array([7,8,9])
 
 ### How to repeat all of our experiments
 
-Our experiments can be run via `source run_experiments.sh &`. Progress can be monitored by inspecting `stdout.txt` and `err.txt` in each experiment's folder. Once the experiments are done, figures can be produced using the R scripts in `make_figures`. 
+Our experiments can be run via `./run_experiments.sh &`. Progress can be monitored by inspecting `stdout.txt` and `err.txt` in each experiment's folder. Once the experiments are done, figures can be produced using the R scripts in `make_figures`. 
 
 You are likely to encounter some difficulties.
 
-- Experiments could take a long time (weeks on a typical laptop). We ran experiments bit by bit over a long period, and they are not currently set up to be dispatched in a massively parallel way. 
+- Experiments could take a long time (weeks on a typical laptop). We ran experiments bit by bit over a long period, and they are not currently set up to be dispatched to cloud or cluster resources in a massively parallel way. 
 - The repo is under active development as of December 2023 and may not be entirely stable or may not exactly reproduce our preprint. A list of commit hashes used for version one of our preprint can be found in the `environment` folder, and we plan to make code releases for future preprint versions or journal submissions.
 - Making figures requires some common basic R packages like ggplot2 that are not included in our environment setup. Let us know if you have trouble installing them.
