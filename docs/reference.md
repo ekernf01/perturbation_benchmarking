@@ -2,7 +2,6 @@
 
 ![Editable source for this diagram is in slides for Nov 7 2023 Battle Lab long talk](call_diagram.png)
 
-
 ### Basic operations 
 
 The benchmarks in this project are composed of small, structured folders called Experiments. 
@@ -24,7 +23,7 @@ To see the reference manual describing the flags used in that call, run `python 
 
 ### Metadata specifying an experiment
 
-Experiment metadata files are JSON dictionaries. Most simple entries can be either a single value, or a list. If a list is provided, the experiment is run once for each item in the list. If multiple keys have lists, all combinations will be used. 
+Experiment metadata files are JSON dictionaries. Most simple entries can be either a single value, or a list. If a list is provided, the experiment is run once for each item in the list. If multiple keys have lists, combinations will be used (see `expand` below). 
 
 With apologies, many metadata keys have idiosyncratic formatting and meaning. 
 
@@ -73,7 +72,7 @@ With apologies, many metadata keys have idiosyncratic formatting and meaning.
             }
         
 
-There are other keys describing x/color/facet of the automated plots, the way network structures are used/pruned/ignored, and the regression methods used. Use `perturbation_benchmarking_package.experimenter.get_default_metadata()` to see the default values of each metadata field. Use `perturbation_benchmarking_package.experimenter.get_required_keys()` to see which keys are required. Use `perturbation_benchmarking_package.experimenter.get_optional_keys()` to learn about optional keys.  
+You can add standard GGRN args to the metadata; they are documented in the [ggrn repo](https://github.com/ekernf01/ggrn). There are some components not yet documented. If this becomes an obstacle to you, file a github issue and we'll try to help out. If you need to study or alter the code, most code implementing these behaviors is in the `experimenter` module of the [perturbation benchmarking package](https://github.com/ekernf01/perturbation_benchmarking_package). Use `perturbation_benchmarking_package.experimenter.get_default_metadata()` to see the default values of each metadata field. Use `perturbation_benchmarking_package.experimenter.get_required_keys()` to see which keys are required. Use `perturbation_benchmarking_package.experimenter.get_optional_keys()` to see optional keys.  
 
 ### Outputs
 
