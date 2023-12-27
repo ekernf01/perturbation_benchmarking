@@ -20,7 +20,7 @@ conda activate ggrn
 pip install vl-convert-python
 # Avoid interfering with gimmemotifs 0.17 or with the PyTorch install by using --no-deps
 # The deps should be taken care of by the above. 
-pip install git+https://github.com/snap-stanford/GEARS@bb44b87 --no-deps
+pip install git+https://github.com/snap-stanford/GEARS@df09d7a --no-deps
 pip install celloracle==0.12.0 --no-deps
 pip install prescient==0.1.0   --no-deps 
 pip install geomloss==0.2.3    --no-deps 
