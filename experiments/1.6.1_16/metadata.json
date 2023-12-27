@@ -1,0 +1,12 @@
+{
+    "unique_id": "1.6.1_16",
+    "nickname": "dcdfg",
+    "readme": "Like experiment 1.6.1_1, but different data. Note: only 1000 genes selected, as in 1.6.1_1.",
+    "refers_to": "1.6.1_1",
+    "is_active": true,
+    "perturbation_dataset": "nakatake_simulated_scrna",     
+    "network_datasets": {
+        "dense":{}
+    }
+}
+
