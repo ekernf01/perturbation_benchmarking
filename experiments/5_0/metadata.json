@@ -21,23 +21,29 @@
         "BayesianRidge",                            "BayesianRidge",
         "DCDFG-spectral_radius-linearlr-False",     "DCDFG-spectral_radius-linearlr-False",   
         "DCDFG-spectral_radius-mlplr-False",        "DCDFG-spectral_radius-mlplr-False", 
-        "GEARS",                                    "GEARS",
-        "RidgeCV",                                  "RidgeCV"
+
+        "GEARS",         "GEARS",                   "RidgeCV",     "RidgeCV"
     ],
     "feature_extraction": [
         "mrna", "mrna", "mrna", "mrna", "mrna", "mrna", "mrna", "mrna", "mrna", "mrna", 
         "mrna", "mrna", "mrna", "mrna", "mrna", "mrna", "mrna", "mrna", "mrna", "mrna", 
-        "mrna", "mrna", "mrna", "mrna", "mrna", "mrna", "mrna", "mrna",                "geneformer", "geneformer"
+        "mrna", "mrna", "mrna", "mrna", "mrna", "mrna",     
+        
+        "mrna",       "mrna",                "geneformer", "geneformer"
     ],
     "predict_self": [
         false,  false,  false,  false,  false,  false,  false,  false,  false,  false,  
         false,  false,  false,  false,  false,  false,  false,  false,  false,  false,  
-        false,  false,  false,  false,  false,  false,  false,  false,                  true,         true
+        false,  false,  false,  false,  false,  false,        
+        
+        true,         true,                true,         true
     ],
     "num_genes":          [ 
         500,  1000,   500,  1000,   500,  1000,   500,  1000,   500,  1000,   
         500,  1000,   500,  1000,   500,  1000,   500,  1000,   500,  1000,   
-        500,  1000,   500,  1000,   500,  1000,   500,  1000,                            500,  1000
+        500,  1000,   500,  1000,   500,  1000,   
+        
+           500,  1000,                    500,  1000
     ],
     "eligible_regulators": "all",
     "facet_by": null,
