@@ -23,9 +23,7 @@ To see the reference manual describing the flags used in that call, run `python 
 
 ### Metadata specifying an experiment
 
-Experiment metadata files are JSON dictionaries. Most simple entries can be either a single value, or a list. If a list is provided, the experiment is run once for each item in the list. If multiple keys have lists, combinations will be used (see `expand` below). 
-
-With apologies, many metadata keys have idiosyncratic formatting and meaning. 
+Experiment metadata files are JSON dictionaries. Most simple entries can be either a single value, or a list. If a list is provided, the experiment is run once for each item in the list. If multiple keys have lists, combinations will be used (see `expand` below). Here are the most important fields.
 
 - `perturbation_dataset` describes a dataset using the same names as our perturbation dataset collection. Only one dataset is allowed per Experiment. 
 - `readme` describes the purpose of the experiment. 
