@@ -25,7 +25,7 @@ Some notes:
 
 ### Exact install
 
-To reproduce our computing environemnt exactly, you need a bash shell on a clean Ubuntu 20.04 box. We recommend using AWS.
+To reproduce our computing environment exactly, you need a bash shell on a clean Ubuntu 20.04 box. We recommend using AWS.
 
 ```bash
 git clone https://github.com/ekernf01/perturbation_benchmarking

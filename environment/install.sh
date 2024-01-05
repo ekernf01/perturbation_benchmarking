@@ -1,12 +1,13 @@
 # This script sets up a new box (for us, usually an AWS EC2 instance) to run benchmarking analyses. 
  
 # Get data collections from Zenodo 
+sudo apt install unzip
 # accessory data, e.g. pLI and list of TF names
-wget https://zenodo.org/record/8071809/files/accessory_data.zip && unzip accessory_data.zip &
+wget https://zenodo.org/record/10436339/files/accessory_data.zip && unzip accessory_data.zip &
 # perturbations 
-wget https://zenodo.org/record/8071809/files/perturbation_data.zip && unzip perturbation_data.zip && mv perturbation_data_ perturbation_data &
+wget https://zenodo.org/record/10436339/files/perturbation_data.zip && unzip perturbation_data.zip &
 # networks
-wget https://zenodo.org/record/8071809/files/network_collection.zip && unzip network_collection.zip &
+wget https://zenodo.org/record/10436339/files/network_collection.zip && unzip network_collection.zip &
 
 # Get mamba
 wget "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"

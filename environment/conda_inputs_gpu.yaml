@@ -12,6 +12,7 @@ dependencies:
   - python-duckdb
   - pytorch-lightning
   - scipy
+  - scanpy
   - pytorch   
   - pytorch-cuda=11.8
   - torchtext
