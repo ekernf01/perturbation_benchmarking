@@ -42,7 +42,7 @@ main_experiments = c("1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1.0
     group_by(perturbation_dataset, property_of_gene, quintile) %>%
     dplyr::mutate(
       beats_baselines = check_if_beats_baselines(mae, x), 
-        mae_relative_reduction = check_mae_reduction(mae, x), 
+        mae_relative_reduction = percent_change_from_best(mae, x), 
     ) %>% 
     subset(beats_baselines) %>% 
     arrange(-mae_relative_reduction)
@@ -73,7 +73,7 @@ main_experiments = c("1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1.0
     group_by(perturbation_dataset, property_of_gene, quintile) %>%
     dplyr::mutate(
       beats_baselines = check_if_beats_baselines(mae, x), 
-      mae_relative_reduction = check_mae_reduction(mae, x), 
+      mae_relative_reduction = percent_change_from_best(mae, x), 
     ) %>% 
     subset(mae_relative_reduction > 0.05) %>% 
     arrange(-mae_relative_reduction)                         
@@ -156,10 +156,9 @@ ggsave(paste0('plots/fig_geneformer.pdf'), width = 10, height = 4)
     "1.4.2_2",
     "1.4.2_3",
     "1.4.2_4"
-    # "1.4.2_5",
-    # "1.4.2_6",
-    # "1.4.2_7"
-    # "1.4.2_8"
+    # "1.4.2_12",
+    # "1.4.2_13",
+    # "1.4.2_14"
   )
   )
   X %<>% make_the_usual_labels_nice()
@@ -171,9 +170,14 @@ ggsave(paste0('plots/fig_geneformer.pdf'), width = 10, height = 4)
   heatmap_all_metrics(X, facet2 = "perturbation_dataset", facet1 = "facet2")
   ggsave(paste0('plots/fig_gears.pdf'), width = 6, height = 4)
 }
+
+# X = collect_experiments(c("1.4.2_11"))
+# X %<>% make_the_usual_labels_nice()
+# ggsave(paste0('plots/fig_genetic_interaction.pdf'), width = 6, height = 4)
+
 # DCD-FG
 {
-  X = collect_experiments(c("1.6.1_1", "1.6.1_3", "1.6.1_6",  "1.6.1_7", #"1.6.1_8", "1.6.1_9", "1.6.1_2",
+  X = collect_experiments(c("1.6.1_1", "1.6.1_3", "1.6.1_6",  "1.6.1_7", #"1.6.1_16", "1.6.1_2",
                             "1.6.1_10", "1.6.1_11", "1.6.1_12", "1.6.1_13", "1.6.1_14", "1.6.1_15"))
   X <- X %>% mutate(chart_x = paste(regression_method, starting_expression, sep = "_"))
   method_tidy = c(

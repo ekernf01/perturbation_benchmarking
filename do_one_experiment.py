@@ -60,7 +60,7 @@ except Exception as e:
 # Default args to this script for interactive use
 if args.experiment_name is None:
     args = Namespace(**{
-        "experiment_name": "1.0_0",
+        "experiment_name": "5_0",
         "amount_to_do": "missing_models",
         "save_trainset_predictions": False,
         "save_models": False,

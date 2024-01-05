@@ -15,7 +15,7 @@ This repo contains benchmark experiments to evaluate various strategies for pred
 
 This project is tightly coupled with our collections of data, our GGRN package for network inference, and a companion package containing benchmarking infrastructure. More information:
 
-- Perturbation data, the network collection, and some accessory data (e.g. a list of TF's) are on Zenodo with DOI `10.5281/zenodo.10363068`.
+- Perturbation data, the network collection, and some accessory data (e.g. a list of TF's) are on Zenodo with DOI `10.5281/zenodo.10436339`.
     - Our code expects each of those three folders to be unzipped and placed adjacent to this repo.
     - Use our [perturbation loader](https://github.com/ekernf01/load_perturbations) and [network loader](https://github.com/ekernf01/load_networks) to easily access and validate data from Python.
 - [GGRN](https://github.com/ekernf01/ggrn) offers flexible combination of different features for regulatory network inference.
