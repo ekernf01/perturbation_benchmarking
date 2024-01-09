@@ -3,7 +3,8 @@
     "nickname": "GEARS",
     "readme": "Test of GEARS on other datasets.",
     "refers_to": "1.4.2_1",    
-    "perturbation_dataset": "frangieh_IFNg_v1"
+    "perturbation_dataset": "frangieh_IFNg_v1",
+    "num_genes":1000
 }
 
 
