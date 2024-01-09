@@ -32,7 +32,6 @@ pip install biomart --no-deps
 pip install ray[tune]==2.6.2
 
 # Install our packages
-cd ..
 for p in load_networks load_perturbations ggrn_backend2 ggrn perturbation_benchmarking_package geneformer_embeddings
 do
     git clone http://github.com/ekernf01/${p} 
