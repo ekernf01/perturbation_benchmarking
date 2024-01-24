@@ -5,7 +5,8 @@
     "readme": "Test of GEARS on other datasets.",
     "refers_to": "1.4.2_1",    
     "desired_heldout_fraction": 0.2, 
-    "perturbation_dataset": "nakatake"
+    "perturbation_dataset": "nakatake",
+    "num_genes":6000
 }
 
 

@@ -10,7 +10,7 @@
         "mean",
         "GEARS" 
     ],
-    "num_genes": 10000,
+    "num_genes": 1000,
     "facet_by": null,
     "color_by": "data_split_seed",
     "factor_varied": "regression_method",

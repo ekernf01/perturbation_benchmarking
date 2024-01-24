@@ -5,7 +5,8 @@
     "refers_to": "1.4.2_1",    
     "is_active" : true,
     "type_of_split": "genetic_interaction",
-    "perturbation_dataset": "norman"
+    "perturbation_dataset": "norman",
+    "num_genes":10000
 }
 
 
