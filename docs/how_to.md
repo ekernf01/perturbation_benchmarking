@@ -58,6 +58,16 @@ done
 ```
 
 
+### How to repeat all of our experiments
+
+Our experiments can be run via `./run_experiments.sh &`. Progress can be monitored by inspecting `stdout.txt` and `err.txt` in each experiment's folder. Once the experiments are done, figures can be produced using the R scripts in `make_figures`. 
+
+You are likely to encounter some difficulties.
+
+- Experiments could take a long time (weeks on a typical laptop). We ran experiments bit by bit over a long period, and they are not currently set up to be dispatched to cloud or cluster resources in a massively parallel way. If it's worth the investment to you, a good option might be to convert `run_experiments.sh` into a SnakeMake or WDL pipeline.
+- The repo is under active development as of December 2023 and may not be entirely stable or may not exactly reproduce our preprint. A list of commit hashes used for version one of our preprint can be found in the `environment` folder, and we plan to make code releases for future preprint versions or journal submissions.
+- Making figures requires some common basic R packages like ggplot2 that are not included in our environment setup. Please do let us know if you have trouble installing them.
+
 ### How to evaluate a new method
 
 - Make a docker image to containerize your new method. We have a [separate guide for this](https://github.com/ekernf01/ggrn/tree/main/ggrn_docker_backend).
@@ -85,7 +95,7 @@ done
 
 ### How to run a hyperparameter sweep
 
-Follow the general procedure discussed above using Experiment `1.1.1_1` (metadata copied below) as an example. The crucial items are `kwargs` and `kwargs_to_expand`.
+Follow the general procedure discussed above using Experiment `1.1.1_1` (metadata copied below) as an example. The crucial items are `kwargs` and `kwargs_to_expand`; if it is unclear, you can read about them in `docs/reference.md`.
 
 ```json
 {
@@ -109,7 +119,7 @@ Follow the general procedure discussed above using Experiment `1.1.1_1` (metadat
 
 ### How to split the data differently
 
-Follow the general procedure discussed above using Experiment `1.8.4_0` (metadata copied below) as a starting point. The crucial items here are `type_of_split` and `data_split_seed`.
+Follow the general procedure discussed above using Experiment `1.8.4_0` (metadata copied below) as a starting point. The crucial items here are `type_of_split` and `data_split_seed`; if it is unclear, you can read about them in `docs/reference.md`.
 
 ```json
 {
@@ -168,6 +178,40 @@ ggsave('fig_data_splitting.pdf', width = 8, height = 8)
 
 See the perturbation data [repo](https://github.com/ekernf01/perturbation_data) or network collection [repo](https://github.com/ekernf01/network_collection).
 
+### How to evaluate only a network structure
+
+Using our infrastructure, you can run an evaluation where instead of predicting fold change, each method only predicts positive regulation versus no regulation, similar to the evaluations in [BETS](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1008223) figure 6. You can use the metadata below. The most important argument is that `regression_method` is set to `"regulon"`: for the `"regulon"` method, the targets in the provided network will mirror the fold change of their regulators. For example, in `outputs/predictions/0.h5ad`, whenever log-scale FOXA1 expression goes up by 0.5 due to overexpression, expect to see FOXA1's targets in the `celloracle_human` network go up by 0.5 also. We recommend focusing on the evaluation metric called `pvalue_targets_vs_non_targets`, which is the p-value from an ANOVA comparing observed fold change for genes predicted to change (targets) against observed fold change for genes predicted to stay the same (non-targets).
+
+```json
+{
+    "unique_id": "1.4.4_1",
+    "nickname": "network_only",
+    "readme": "Are network-connected genes enriched for perturbation responses? This experiment uses network structure alone for prediction, with no training data and all perturbations reserved for evaluation.",
+    "question": "1.4.4",
+    "factor_varied": "network_datasets",
+    "type_of_split": "interventional",
+    "desired_heldout_fraction": [1],
+    "color_by": null,
+    "facet_by": null,
+    "regression_method": "regulon",
+    "perturbation_dataset": "nakatake",
+    "num_genes": 10000,
+    "network_datasets": {
+        "celloracle_human":      { "do_aggregate_subnets": true },
+        "gtex_rna":              { "do_aggregate_subnets": true },
+        "magnum_compendium_32":  { "do_aggregate_subnets": true },   
+        "magnum_compendium_ppi": { "do_aggregate_subnets": true },
+        "cellnet_human_Hg1332":  { "do_aggregate_subnets": true },
+        "cellnet_human_Hugene":  { "do_aggregate_subnets": true },
+        "MARA_FANTOM4":          { "do_aggregate_subnets": true },
+        "STRING":                { "do_aggregate_subnets": true },
+        "ANANSE_0.5":            { "do_aggregate_subnets": true },
+        "ANANSE_tissue_0.5":     { "do_aggregate_subnets": true },
+        "humanbase":             { "do_aggregate_subnets": true }
+    }
+}
+```
+
 ### How to add a new metric
 
 To add your own evaluation metrics, you will need to make a fork of the `perturbation_benchmarking_package` [repo](https://github.com/ekernf01/perturbation_benchmarking_package), edit `evaluator.py`, and install your version prior to running your experiments. 
@@ -192,7 +236,7 @@ METRICS = {
 }
 ```
 
-You can add any function by following the same format you see. Results will be included in a column named after the key you add to the dictionary. For example, you could modify the "spearman" item to assess the spearman correlation of predicted vs observed expression (instead of the fold change).
+You can add any function by following the same format you see. Results will be included in a column named after the key you add to the dictionary. For example, you could modify the "spearman" item to assess the spearman correlation of predicted vs observed expression (instead of predicted vs observed fold change).
  
 ```python
 {
@@ -209,13 +253,3 @@ from perturbation_benchmarking_package import evaluator
 import numpy as np
 evaluator.METRICS["mae"](np.array([1,2,3]), np.array([4,5,6]), np.array([7,8,9]))
 ```
-
-### How to repeat all of our experiments
-
-Our experiments can be run via `./run_experiments.sh &`. Progress can be monitored by inspecting `stdout.txt` and `err.txt` in each experiment's folder. Once the experiments are done, figures can be produced using the R scripts in `make_figures`. 
-
-You are likely to encounter some difficulties.
-
-- Experiments could take a long time (weeks on a typical laptop). We ran experiments bit by bit over a long period, and they are not currently set up to be dispatched to cloud or cluster resources in a massively parallel way. 
-- The repo is under active development as of December 2023 and may not be entirely stable or may not exactly reproduce our preprint. A list of commit hashes used for version one of our preprint can be found in the `environment` folder, and we plan to make code releases for future preprint versions or journal submissions.
-- Making figures requires some common basic R packages like ggplot2 that are not included in our environment setup. Let us know if you have trouble installing them.
