@@ -60,7 +60,7 @@ except Exception as e:
 # Default args to this script for interactive use
 if args.experiment_name is None:
     args = Namespace(**{
-        "experiment_name": "5_0",
+        "experiment_name": "1.6.1_17",
         "amount_to_do": "missing_models",
         "save_trainset_predictions": False,
         "save_models": False,
@@ -105,6 +105,7 @@ for i in conditions.index:
     train_mem_file = os.path.join( outputs, "train_memory_requirements", f"{i}.bin")
     if args.amount_to_do in {"models", "missing_models"}:
         perturbed_expression_data_train_i, perturbed_expression_data_heldout_i = get_current_data_split(i, verbose = True)
+        gc.collect()
         # Fit models!!
         if \
             (args.amount_to_do in {"models"}) or \
@@ -203,6 +204,7 @@ for i in conditions.index:
                 experimenter.safe_save_adata( fitted_values, h5ad_fitted )
             print("... done.", flush = True)
             del grn
+            gc.collect()
 
 # Evaluate the results
 if args.amount_to_do in {"models", "missing_models", "evaluations"}:
