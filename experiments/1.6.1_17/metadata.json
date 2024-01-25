@@ -1,0 +1,14 @@
+{
+    "unique_id": "1.6.1_17",
+    "nickname": "dcdfg",
+    "readme": "Follow-up on a promising from experiment 1.6.1_16.",
+    "refers_to": "1.6.1_1",
+    "is_active": true,
+    "perturbation_dataset": "nakatake_simulated_scrna",     
+    "network_datasets": {
+        "dense":{}
+    },
+    "starting_expression": ["control"],
+    "data_split_seed": [1,2,3]
+}
+

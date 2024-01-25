@@ -1,0 +1,35 @@
+{
+    "unique_id": "1.6.1_18",
+    "nickname": "dcdfg",
+    "readme": "Parameter sweep for a less sparse NO-TEARS model.",
+    "refers_to": "1.6.1_1",
+    "is_active": true,
+    "perturbation_dataset": "dixit",
+    "network_datasets": {
+        "dense":{}
+    },
+    "starting_expression": ["control"],
+    "expand": "ladder", 
+    "regression_method":[
+        "mean", 
+        "median",
+
+        "DCDFG-spectral_radius-linearlr-False",   
+        "DCDFG-spectral_radius-linearlr-False",   
+        "DCDFG-spectral_radius-linearlr-False",   
+        "DCDFG-spectral_radius-linearlr-False",   
+        "DCDFG-spectral_radius-linearlr-False",   
+
+        "DCDFG-spectral_radius-mlplr-False", 
+        "DCDFG-spectral_radius-mlplr-False",
+        "DCDFG-spectral_radius-mlplr-False",
+        "DCDFG-spectral_radius-mlplr-False",
+        "DCDFG-spectral_radius-mlplr-False"
+    ],
+    "pruning_parameter": [
+        0, 0, 
+        0.0001, 0.001, 0.01, 0.1, 1, 
+        0.0001, 0.001, 0.01, 0.1, 1
+    ]
+}
+
