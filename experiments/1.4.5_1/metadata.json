@@ -1,0 +1,32 @@
+{
+    "unique_id": "1.4.4_1",
+    "nickname": "network_only",
+    "readme": "Are network-connected genes enriched for perturbation responses? This experiment uses network structure alone for prediction, with no training data and all perturbations reserved for evaluation.",
+    "question": "1.4.4",
+    "is_active": true,
+    "factor_varied": "network_datasets",
+    "type_of_split": "interventional",
+    "data_split_seed": [0],
+    "desired_heldout_fraction": [1],
+    "color_by": null,
+    "facet_by": null,
+    "regression_method": "?????",
+    "perturbation_dataset": "nakatake",
+    "eligible_regulators": "all",    
+    "starting_expression": ["heldout"],
+    "num_genes": 10000,
+    "network_datasets": {
+        "celloracle_human":      { "do_aggregate_subnets": true },
+        "gtex_rna":              { "do_aggregate_subnets": true },
+        "magnum_compendium_32":  { "do_aggregate_subnets": true },   
+        "magnum_compendium_ppi": { "do_aggregate_subnets": true },
+        "cellnet_human_Hg1332":  { "do_aggregate_subnets": true },
+        "cellnet_human_Hugene":  { "do_aggregate_subnets": true },
+        "MARA_FANTOM4":          { "do_aggregate_subnets": true },
+        "STRING":                { "do_aggregate_subnets": true },
+        "ANANSE_0.5":            { "do_aggregate_subnets": true },
+        "ANANSE_tissue_0.5":     { "do_aggregate_subnets": true },
+        "humanbase":             { "do_aggregate_subnets": true }
+    }
+}
+
