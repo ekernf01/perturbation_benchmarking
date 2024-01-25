@@ -43,10 +43,10 @@ Experiment metadata files are JSON dictionaries. Most simple entries can be eith
     - If "stratified", we put some samples from each perturbation in the training set, and if there is replication, we put some in the test set. 
     - If "custom", we load the test set from the file 'custom_test_sets/<data_split_seed>.json'.
 - `baseline_condition` DEPRECATED. This is a number, most often 0. This experimental condition, which corresponds to the same-numbered h5ad file in the `predictions` output and the same-numbered row in the `conditions.csv` output, is used as a baseline for computing performance improvement over baseline.
-- `network_datasets` describes a GRN using the same names as our network collection. The behavior is complicated because the network collection separates out tissue-specific subnetworks. The value associated with the `network_datasets` key is a dict where keys are network sources and values are (sub-)dicts controlling specific behaviors. Each (sub-)dict controls behavior as follows. 
-    - To use certain subnetworks, set `subnets` to a list naming them. To use all, set subnets to "all" (default).
+- `network_datasets` describes a GRN using the same names as our network collection. The behavior is complicated because the network collection is hierarchical: individual sources often include tissue-specific subnetworks. The value associated with the `network_datasets` key is a dict where keys are network sources and values are (sub-)dicts controlling which tissue-specific networks are included and whether/how they are aggregated. Each (sub-)dict controls behavior as follows. 
+    - To use only certain tissue-specific subnetworks, set `subnets` to a list naming them. To use all, set subnets to an empty list (default).
     - To take the union of the subnetworks, for example to compare the entire CellNet collection to the entire ANANSE collection, set `do_aggregate_subnets` to `true`. To keep subnetworks separate, for example to compare all tissue-specific networks from CellNet, set `do_aggregate_subnets` to `false` (default).
-    - You can use `empty` or `dense` for a network with no edges or all possible edges. Default is `dense`.
+    - You can use `empty` or `dense` for a network with no edges or all possible edges. Default is `dense`. By dense, we mean fully connected.
     - An empty (sub-)dict will cause the program to take the union of all subnets.
     - This example from experiment `1.3.2_9` compares a dense network, and empty network, and nine separate cell-type-specific networks from the Magnum compendium. 
 
