@@ -18,6 +18,7 @@ We wanted experiment identifiers to be concise, stable, and informative. To help
         1.4.2. What’s the best way to use a given network? Does GEARS beat causal inference approaches?
         1.4.3. Do some sources of network structures work better than others?
         1.4.4. Even if we can't get quantitative fold estimates, do networks predict which genes will change and which stay the same?
+        1.4.5. Given gene expression, do existing networks predict which genes were perturbed (DoRothEA copycat)?
     1.5. How do existing methods compare on common tasks?
     1.6. What method of imposing low-rank structure works best, if any?
         1.6.1. Does DCD-FG work?
