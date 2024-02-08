@@ -8,6 +8,7 @@
     "type_of_split": "interventional",
     "data_split_seed": [0],
     "desired_heldout_fraction": [1],
+    "allowed_regulators_vs_network_regulators": "union",
     "color_by": null,
     "facet_by": null,
     "regression_method": "regulon",

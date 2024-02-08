@@ -1,0 +1,10 @@
+{
+    "unique_id": "1.4.4_3",
+    "nickname": "network_only",
+    "readme": "Are network-connected genes enriched for perturbation responses? This experiment uses network structure alone for prediction, with no training data and all perturbations reserved for evaluation.",
+    "question": "1.4.4",
+    "is_active": true,
+    "refers_to": "1.4.4_1",
+    "perturbation_dataset": "frangieh_IFNg_v3"
+}
+
