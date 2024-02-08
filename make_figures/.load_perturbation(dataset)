@@ -1,0 +1,113 @@
+Help on module ingestion:
+
+NNAAMMEE
+    ingestion
+
+FFUUNNCCTTIIOONNSS
+    aaggggrreeggaattee__bbyy__ppeerrttuurrbbaattiioonn(adata: anndata._core.anndata.AnnData, group_by: list, use_raw=True)
+        Compute pseudo-bulk expression by adding raw counts.
+        
+        Args:
+            adata (anndata.AnnData): Object with raw counts in adata.raw.X
+            group_by (list of st): names of categorical columns in adata.obs to group by. Typically starts with "perturbation". 
+        
+        Returns:
+            anndata.AnnData: Pseudo-bulk expression
+    
+    cchheecckkCCoonnssiisstteennccyy(adata: anndata._core.anndata.AnnData, perturbationType: str = 'overexpression', group: str = None, verbose: bool = False, do_return_pval=False, show_plots=False)
+        Check whether the gene that was perturbed is actually 
+        measured to be higher (if overexpressed) or lower (if knocked
+        down) or nearly zero (if knocked out).
+        If an observation is a control or if the perturbed gene is not measured, 'N/A' is labeled. 
+        If a perturbagen's expression is higher or lower than the median control (matching 
+        the direction of intended perturbation), it is labeled True. Otherwise, False. 
+        
+        Args:
+            adata (anndata.AnnData): the object to operate on. adata.X is expected to be normalized but not log-transformed. 
+                It is expected to be a dense array, not a sparse e.g. scipy CSR. 
+            perturbation_type (str): one of {"overexpression", "knockout", "knockdown"}
+            group (str, default None): a column in adata.obs to indicate sub-group of
+                                       the treatment and the control.
+            verbose (bool): show a swarmplot noting the difference between the control
+                            and the treatment, if the perturbation direction and expression
+                            level are disconcordant.
+    
+    cchheecckkPPeerrttuurrbbaattiioonnEEffffeeccttMMeettrriiccCCoorrrreellaattiioonn(adata: anndata._core.anndata.AnnData, metrics)
+        Compute correlation between different measures of global effect size
+    
+    ccoommppuutteeCCoorrrreellaattiioonn(adata: anndata._core.anndata.AnnData, verbose: bool = False, group: str = None)
+        Compute the correlation between biological replicates on scale of log fold change. For each 
+        set of perturbation, the final correlation score is the median of 
+        correlation between all pair-wise combinations of perturbation expression
+        and control expression. Both Spearman and Pearson correlation are
+        computed.
+        
+        This assume the existence of "is_control" in adata.obs.
+    
+    ccoonnvveerrtt__eennss__ttoo__ssyymmbbooll(ensembl_ids, gtf, strip_version=False)
+        Convert ensembl gene id's (incomprehensible) into Entrez gene symbols (e.g. GAPDH)
+        
+        Args:
+        
+        - gtf: path to a GTF file with transcript annotations, e.g. Gencode V35.
+        - ensemble_ids: iterable with inputs.
+        - strip_version: ensembl ID's can be like 'ENSG01234.5' or like 'ENSG01234'. The '.5' is the version, i.e. the number of times this id has changed. Sometimes you want to strip this off (strip_version = True). More on ensembl ID's:
+            
+            https://useast.ensembl.org/Help/Faq?id=488#:~:text=An%20Ensembl%20stable%20ID%20consists,(version).&text=The%20second%20part%20is%20a,(object%20type)(identifier).
+    
+    ddeessccrriibbee__ppeerrttuurrbbaattiioonn__eeffffeecctt(adata: anndata._core.anndata.AnnData, perturbation_type, multiple_genes_hit: bool = None) -> anndata._core.anndata.AnnData
+        Add details about perturbation's effect on the targeted genes
+        
+        Args:
+            adata (anndata.AnnData): A perturbation dataset
+            perturbation_type (typing.Union): one of {"overexpression", "knockout", "knockdown"}, or if mixed, an iterable of length equal to n_samples.
+            multiple_genes_hit: Set to True if there observations with multiple genes perturbed.
+        Raises:
+            ValueError: Triggered by invalid perturbation types.
+        
+        Returns:
+            anndata.AnnData: adata with columns filled in for 'expression_level_after_perturbation' and 'perturbation_type'
+    
+    ddeesseeqq22NNoorrmmaalliizzaattiioonn(counts_df)
+        Equivalent to DESeq2:::counts.DESeqDataSet; counts(x, normalized=T)
+    
+    ddeesseeqq22__ssiizzee__ffaaccttoorrss(counts_df)
+        Calculate DESeq size factors
+        median of ratio to reference sample (geometric mean of all samples)
+        
+        https://github.com/broadinstitute/pyqtl/blob/master/qtl/norm.py
+        References:
+         [1] Anders & Huber, 2010
+         [2] R functions:
+              DESeq::estimateSizeFactorsForMatrix
+    
+    rreeaadd__ccmmaapp(expression_file, gene_metadata, instance_metadata)
+        Read a dataset in CMAP's HDF-based gctx format, returning an AnnData object.
+    
+    ssiimmpplliiffyy__ccaatteeggoorriiccaall(x: pandas.core.frame.DataFrame, column: str, max_categories: int = 20, filler: str = 'other', new_column: str = None)
+        Mark less frequent categories as other. Accepts and returns a dataframe.
+    
+    ssiimmuullaattee__ssiinnggllee__cceellllss(adata: anndata._core.anndata.AnnData, num_cells: int, counts_per_cell: int)
+        Split bulk RNA samples into a simulated homogeneous population of cells.
+        
+        Args:
+            adata (anndata.AnnData): bulk RNA perturbation data
+            num_cells (int): how many cells to split each sample into
+            counts_per_cell (int): how many reads or UMIs to simulate per cell
+        
+        Returns:
+            anndata.AnnData: perturbation data with the same variables and num_cells times as many samples
+    
+    ttrryy__ttooaarrrraayy(x)
+    
+    vviissuuaalliizzeeLLooggFFCC(fc, pval=None, show_plots=False)
+    
+    vviissuuaalliizzeePPeerrttuurrbbaattiioonnEEffffeecctt(adata, metrics, TFDict, EpiDict)
+        Visualize effect size versus type of perturbation, e.g. TF versus non-TF
+    
+    vviissuuaalliizzeePPeerrttuurrbbaattiioonnMMeettaaddaattaa(adata: anndata._core.anndata.AnnData, x: str, y: str, style=None, hue=None, markers=None, xlim=None, s=30)
+        Plot characteristics of each perturbation, e.g. correlation between replicates or global effect size.
+
+FFIILLEE
+    /home/ekernf01/Desktop/jhu/research/projects/perturbation_prediction/cell_type_knowledge_transfer/perturbation_data/setup/ingestion.py
+

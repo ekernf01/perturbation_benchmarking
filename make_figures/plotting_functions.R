@@ -30,6 +30,7 @@ make_the_usual_labels_nice = function(X){
   try({X$factor_varied %<>% gsub("_", " ", .)}, silent = T)
   try({X$factor_varied %<>% factor(levels = c("regression method", "network datasets", "matching method"))}, silent = T)
   try({X$perturbation_dataset %<>% gsub("_", " ", .) %>% sub(" ", "\n", .) %>% gsub("γ", "g" , .)}, silent = T)
+  try({X$perturbation_dataset %<>% gsub("nakatake\nsimulated scrna", "nakatake\nscrna\nsimulated", .)}, silent = T) # Fits tighter
   try({X$network_datasets %<>% gsub("0$", "", .)})
   X$x = ifelse(X$factor_varied=="regression method", X[["regression_method"]], X[["network_datasets"]])
   X[["timescale handling"]] = paste0(X[["matching_method"]], " (", X[["prediction_timescale"]], "-step)")
