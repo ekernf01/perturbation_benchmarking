@@ -4,7 +4,7 @@ We hope this documentation makes it easy for you to achieve any of the goals out
 
 ### Prereqs and general procedure
 
-**Warning!** These how-to's assume you have already followed our installation instructions. Otherwise, you will not be able to follow along and test the commands below.
+**Warning!** These how-to's assume you have already followed our [installation instructions](https://github.com/ekernf01/perturbation_benchmarking/blob/main/environment/install.md). Otherwise, you will not be able to follow along and test the commands below.
 
 Once the software is installed, you will almost always need to: 
 
@@ -65,8 +65,8 @@ Our experiments can be run via `./run_experiments.sh &`. Progress can be monitor
 You are likely to encounter some difficulties.
 
 - Experiments could take a long time (weeks on a typical laptop). We ran experiments bit by bit over a long period, and they are not currently set up to be dispatched to cloud or cluster resources in a massively parallel way. If it's worth the investment to you, a good option might be to convert `run_experiments.sh` into a SnakeMake or WDL pipeline.
-- The repo is under active development as of January 2024 and may not be entirely stable or may not exactly reproduce our preprint. A list of commit hashes used for version one of our preprint can be found in the `environment` folder, and we plan to make code releases for future preprint versions or journal submissions.
-- Making figures requires some common basic R packages like ggplot2 that are not included in our environment setup. Please do let us know if you have trouble installing them.
+- The repo is under active development as of February 2024 and may not be entirely stable or may not exactly reproduce our preprint. A list of commit hashes used for version one of our preprint can be found in the `environment` folder, and we plan to make code releases for future preprint versions or journal submissions. Certain output may never be repeatable: notably, DCD-FG is not deterministic.
+- Making figures requires some commonly used R packages like ggplot2 that are not included/versioned in our environment setup. Please let us know if you have trouble installing them.
 
 ### How to evaluate a new method
 
