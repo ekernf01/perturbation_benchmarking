@@ -10,6 +10,7 @@ ggrn_gears_input/*
 geneformer_loom_data
 geneformer_tokenized_data
 geneformer_finetuned
+from_to_docker
 logs
 wandb
 err.txt
