@@ -71,7 +71,7 @@ You are likely to encounter some difficulties.
 ### How to evaluate a new method
 
 - Make a docker image to containerize your new method. We have a [separate guide for this](https://github.com/ekernf01/ggrn/tree/main/ggrn_docker_backend).
-- Follow the general steps given at the top using the [metadata for our docker demo experiment](https://github.com/ekernf01/perturbation_benchmarking/blob/main/experiments/ggrn_docker_backend/metadata.json) as a starting point.
+- Follow the general steps given at the top of this file using the [metadata for our docker demo experiment](https://github.com/ekernf01/perturbation_benchmarking/blob/main/experiments/ggrn_docker_backend/metadata.json) as a starting point.
 
 ```json
 {
@@ -95,7 +95,7 @@ You are likely to encounter some difficulties.
 
 ### How to run a hyperparameter sweep
 
-Follow the general procedure discussed at the top using Experiment `1.1.1_1` (metadata copied below) as an example. The crucial items are `kwargs` and `kwargs_to_expand`; if it is unclear, you can read about them in `docs/reference.md`. You can combine this with the Docker example above. 
+Follow the general procedure discussed at the top of this file using Experiment `1.1.1_1` (metadata copied below) as an example. The crucial items are `kwargs` and `kwargs_to_expand`; if it is unclear, you can read about them in `docs/reference.md`. You can combine this with the Docker example above. 
 
 ```json
 {
@@ -119,7 +119,7 @@ Follow the general procedure discussed at the top using Experiment `1.1.1_1` (me
 
 ### How to split the data differently
 
-Follow the general procedure discussed at the top using Experiment `1.8.4_0` (metadata copied below) as a starting point. The crucial items here are `type_of_split` and `data_split_seed`; if it is unclear, you can read about them in `docs/reference.md`.
+Follow the general procedure discussed at the top of this file using Experiment `1.8.4_0` (metadata copied below) as a starting point. The crucial items here are `type_of_split` and `data_split_seed`; if it is unclear, you can read about them in `docs/reference.md`.
 
 ```json
 {
@@ -180,7 +180,7 @@ See the perturbation data [repo](https://github.com/ekernf01/perturbation_data) 
 
 ### How to evaluate only a network structure
 
-Using our infrastructure, you can run an evaluation where instead of predicting fold change, each method only predicts positive regulation versus no regulation, similar to the evaluations in [BETS](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1008223) figure 6. Follow the general procedure at the top of this file using the metadata below. 
+Using our infrastructure, you can run an evaluation where instead of predicting fold change, each method only predicts positive regulation versus no regulation, similar to the evaluations in [BETS](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1008223) figure 6. Follow the general procedure at the top of this file of this file using the metadata below. 
 
 The most important argument is that `regression_method` is set to `"regulon"`: for the `"regulon"` method, the targets in the provided network will mirror the fold change of their regulators. For example, in `outputs/predictions/0.h5ad`, whenever log-scale FOXA1 expression goes up by 0.5 due to overexpression, expect to see FOXA1's targets in the `celloracle_human` network go up by 0.5 also. In the parquet file with per-perturbation output, look for the evaluation metric called `pvalue_targets_vs_non_targets`, which is the p-value from an ANOVA comparing observed fold change for genes predicted to change (targets) against observed fold change for genes predicted to stay the same (non-targets).
 
