@@ -196,6 +196,26 @@ main_experiments = c("1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1.0
   ggsave(filename = paste0("plots/fig_dcdfg.pdf"), width = 12, height = 4)
 }
 
+# Exact repeat of a DCD-FG experiment
+{
+  X = collect_experiments(c("1.6.1_15", "1.6.1_19"))
+  X <- X %>% mutate(chart_x = paste(regression_method, starting_expression, sep = "_"))
+  method_tidy = c(
+    "DCDFG-spectral_radius-mlplr-False"="DCD-FG" ,
+    "median"  = "median",                              
+    "DCDFG-spectral_radius-linearlr-False"="NOTEARS-LR",
+    "mean"  = "mean"   
+  ) 
+  X$regression_method = method_tidy[X$regression_method] %>% factor(levels = c("median", "mean", "NOTEARS-LR", "DCD-FG"))
+  X$perturbation_dataset %<>% gsub("γ", "g", .)
+  X %<>% make_the_usual_labels_nice()
+  my_levels = unique(c("frangieh\nIFNg v1", "frangieh\nIFNg v2", "frangieh\nIFNg v3", "nakatake", "nakatake\nscrna\nsimulated", X$perturbation_dataset))
+  X$perturbation_dataset %<>% factor(levels = my_levels)
+  X$x = X$regression_method
+  heatmap_all_metrics(X, facet2 = "unique_id", facet1 = "starting_expression", compare_across_rows = F)
+  ggsave(filename = paste0("plots/fig_dcdfg_repeat.pdf"), width = 6, height = 3)
+}
+
 {
   X = collect_experiments(c("1.6.1_17"))
   X <- X %>% mutate(chart_x = paste(regression_method, starting_expression, sep = "_"))
