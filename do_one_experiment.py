@@ -25,7 +25,7 @@ parser.add_argument("--no_parallel", help="If provided, don't use loky paralleli
 parser.add_argument('--no_skip_bad_runs', dest='skip_bad_runs', action='store_false', help="Unless this flag is used, keep running when some runs hit errors.")
 parser.add_argument('--networks', type=str, default='../network_collection/networks', help="Location of our network collection on your hard drive")
 parser.add_argument('--data', type=str, default='../perturbation_data/perturbations', help="Location of our perturbation data on your hard drive")
-parser.add_argument('--tf', type=str, default = "../accessory_data/humanTFs.csv", help="Location of our list of TFs on your hard drive")
+parser.add_argument('--tf', type=str, default = "../accessory_data/humanTFs.csv",     help="Location of our list of TFs on your hard drive")
 parser.set_defaults(feature=True)
 parser.add_argument(
     "--amount_to_do",
@@ -60,7 +60,7 @@ except Exception as e:
 # Default args to this script for interactive use
 if args.experiment_name is None:
     args = Namespace(**{
-        "experiment_name": "1.6.1_17",
+        "experiment_name": "1.6.1_3",
         "amount_to_do": "missing_models",
         "save_trainset_predictions": False,
         "save_models": False,
@@ -75,7 +75,7 @@ metadata = experimenter.validate_metadata(experiment_name=args.experiment_name)
 print("Starting at " + str(datetime.datetime.now()), flush = True)
 
 # Set up the perturbation and network data
-perturbed_expression_data, networks, conditions = experimenter.set_up_data_networks_conditions(
+perturbed_expression_data, networks, conditions, timeseries_expression_data = experimenter.set_up_data_networks_conditions(
     metadata,
     amount_to_do = args.amount_to_do, 
     outputs = outputs,
@@ -83,12 +83,16 @@ perturbed_expression_data, networks, conditions = experimenter.set_up_data_netwo
 
 # Split the data
 def get_current_data_split(i, verbose = False):
+    perts = experimenter.filter_genes( perturbed_expression_data, num_genes = conditions.loc[i, "num_genes"], outputs = outputs)
+    if conditions.loc[i, "type_of_split"] == "timeseries":
+        return timeseries_expression_data[:, perts.var_names], perts
     return experimenter.splitDataWrapper(
-        experimenter.filter_genes(perturbed_expression_data, num_genes = conditions.loc[i, "num_genes"], outputs = outputs),
+        perts,
         networks = networks, 
-        desired_heldout_fraction = conditions.loc[i, "desired_heldout_fraction"],  
-        type_of_split            = conditions.loc[i, "type_of_split"],
-        data_split_seed          = conditions.loc[i, "data_split_seed"],
+        desired_heldout_fraction                 = conditions.loc[i, "desired_heldout_fraction"],  
+        type_of_split                            = conditions.loc[i, "type_of_split"],
+        data_split_seed                          = conditions.loc[i, "data_split_seed"],
+        allowed_regulators_vs_network_regulators = conditions.loc[i, "allowed_regulators_vs_network_regulators"],
         verbose = verbose,
     )
 
@@ -241,6 +245,7 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
         outputs = outputs,
         classifier_labels = None, # Default is to look for "louvain" or give up
         do_scatterplots = False,
+        do_parallel = not args.no_parallel,
     )
     evaluationPerPert.to_parquet(   os.path.join(outputs, "evaluationPerPert.parquet"))
     evaluationPerTarget.to_parquet( os.path.join(outputs, "evaluationPerTarget.parquet"))
@@ -254,6 +259,7 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
             outputs = os.path.join(outputs, "trainset_performance"),
             classifier_labels = None, # Default is to look for "louvain" or give up
             do_scatterplots = False,
+            do_parallel = not args.no_parallel,
         )
         os.makedirs(os.path.join(outputs, "trainset_performance"), exist_ok=True)
         evaluationPerPertTrainset.to_parquet(   os.path.join(outputs, "trainset_performance", "evaluationPerPert.parquet"))
