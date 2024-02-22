@@ -8,7 +8,7 @@ Certain models nominally require GPU's, but we have been able to run most experi
 
 ### Minimal install
 
-In case of different operating systems, exact conda environment reproduction is infeasible. However, you may be able to carry out some of our experiments, or your own new experiments, even without all dependencies. Follow the minimal installation instructions below. 
+In case of different operating systems, exact conda environment reproduction is infeasible. However, you may be able to carry out some of our experiments, or your own new experiments, even without all dependencies. Use these commands. They will install software via apt and mamba, and they will download about 20Gb of data from Zenodo.
 
 ```bash
 git clone https://github.com/ekernf01/perturbation_benchmarking
@@ -25,7 +25,7 @@ Some notes:
 
 ### Exact install
 
-To reproduce our computing environment exactly, you need a bash shell on a clean Ubuntu 20.04 box. We recommend using AWS.
+To reproduce our computing environment exactly, you need a bash shell on a clean Ubuntu 20.04 box. We recommend using AWS. Use these commands. They will install software via apt and mamba, and they will download about 20Gb of data from Zenodo.
 
 ```bash
 git clone https://github.com/ekernf01/perturbation_benchmarking
@@ -51,5 +51,5 @@ You can test your installation by running this.
 cd perturbation_benchmarking
 conda activate ggrn
 python do_one_experiment.py -h # see the help page
-python do_one_experiment.py --experiment_name "1.0_0" --amount_to_do models
+python do_one_experiment.py --experiment_name "1.0_0" --amount_to_do models # Run a simple benchmark
 ```
