@@ -1,0 +1,17 @@
+{
+    "unique_id": "ggrn_docker_backend_celloracle",
+    "nickname": "ggrn_docker_backend_celloracle",
+    "readme": "Test of the ggrn backend that runs a docker container with CO installed.",
+    "question": "None", 
+    "is_active": true,
+    "factor_varied": "regression_method",  
+    "color_by": null,
+    "facet_by": null,
+    "perturbation_dataset": "freimer",
+    "pruning_parameter": 2000,
+    "regression_method":"docker____ekernf01/ggrn_docker_backend_celloracle", 
+    "network_datasets": {
+        "celloracle_human":{}
+    }
+}
+

@@ -1,0 +1,24 @@
+{
+    "unique_id": "1.8.1_0",
+    "nickname": "timeseries pilot",
+    "readme": "Our first time-series experiment",
+    "question": "1.8.1",
+    "is_active": true,
+    "facet_by": "type_of_split",
+    "color_by": "regression_method",
+    "factor_varied": "data_split_seed",
+    "regression_method": [ 
+        "median", 
+        "mean", 
+        "RidgeCV"
+    ],
+    "type_of_split": "timeseries",
+    "num_genes": 10000,
+    "eligible_regulators": "human_tfs",
+    "merge_replicates": false,
+    "perturbation_dataset": "fantom4",
+    "network_datasets": {
+        "dense":{}
+    }
+}
+
