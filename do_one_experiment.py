@@ -30,6 +30,7 @@ parser.set_defaults(feature=True)
 parser.add_argument(
     "--amount_to_do",
     choices = ["plots", "evaluations", "models", "missing_models"],
+    default = "missing_models",
     help="""
     The code makes models, evaluations, and plots, in that order. It saves the models and the evaluations. 
     To do just plots, using saved evaluations and models, specify "plots".
@@ -60,7 +61,7 @@ except Exception as e:
 # Default args to this script for interactive use
 if args.experiment_name is None:
     args = Namespace(**{
-        "experiment_name": "1.6.1_3",
+        "experiment_name": "1.6.1_7",
         "amount_to_do": "missing_models",
         "save_trainset_predictions": False,
         "save_models": False,
@@ -148,7 +149,6 @@ for i in conditions.index:
                     print("Memory profiling results are not as expected.")
                     print(peak_ram)
                     peak_ram = np.NAN
-                os.unlink(train_mem_file)
                 pd.DataFrame({"walltime (seconds)":train_time, "peak RAM": peak_ram}, index = [i]).to_csv(train_time_file)
             except Exception as e: 
                 if args.skip_bad_runs:
@@ -301,5 +301,7 @@ if args.amount_to_do in {"plots", "models", "missing_models", "evaluations"}:
         )
     except FileNotFoundError:
         pass
+else:
+    raise ValueError("--amount_to_do must be one of the allowed options (see them on the help page by passing the -h flag).")
 
 print("Experiment done at " + str(datetime.datetime.now()), flush = True)
