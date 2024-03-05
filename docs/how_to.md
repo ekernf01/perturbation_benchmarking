@@ -37,6 +37,7 @@ benchmark_results = pd.read_parquet('Experiments/my_experiment/outputs/evaluatio
 
 The default behavior of `do_one_experiment.py` is optimized for performance, but several non-default options can help a lot with initial use and debugging. Run `python do_one_experiment.py -h` for usage instructions. In brief:
 
+- If `conda` is not available, try the usual `source "${HOME}/mambaforge/etc/profile.d/conda.sh"` (unix only).
 - You can get error tracebacks by not skipping individual bad runs and not using Joblib parallelization. 
 - You can save models for later inspection using `save_models`.
 - If you are afraid of overfitting, you can monitor train and test-set performance separately using `save_trainset_predictions`.
