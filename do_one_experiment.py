@@ -181,6 +181,7 @@ for i in conditions.index:
                 predictions = predictions,
                 control_subtype = conditions.loc[i, "control_subtype"], 
                 feature_extraction_requires_raw_data = grn.feature_extraction.startswith("geneformer"),
+                prediction_timescale = conditions.loc[i,"prediction_timescale"] if metadata["expand_prediction_timescale"] else metadata["prediction_timescale"],
             )
             predictions.obs.index = perturbed_expression_data_heldout_i.obs.index.copy()
             # Sometimes AnnData has trouble saving pandas bool columns and sets, and they aren't needed here anyway.
