@@ -12,6 +12,7 @@
     ],
     "matching_method": ["steady_state", "closest"],
     "prediction_timescale": [1, 3, 10],
+    "expand_prediction_timescale": true,
     "factor_varied": "matching_method", 
     "color_by": "prediction_timescale", 
     "facet_by": null, 
