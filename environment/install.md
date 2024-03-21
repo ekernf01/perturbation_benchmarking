@@ -2,9 +2,6 @@
 
 We use Conda + Mamba to manage most dependencies. We offer either a minimal install, which may work cross-platform but lacks access to many GRN methods, or an exact install, which requires can reproduce all our results but only works on Ubuntu 20.04. 
 
-- We require git and mamba to be installed already. Install mamba using the [official instructions](https://mamba.readthedocs.io/en/latest/installation.html).
-
-
 ### Hardware
 
 Certain models nominally require GPU's, but we have been able to run most experiments using a CPU, sometimes by making minimal changes to Pytorch code. See the [GGRN repo](https://github.com/ekernf01/ggrn) for details on GPU requirements of specific methods. 50GB of disk space and 64GB of RAM is enough resources to run most experiments. Certain tree-based models or large datasets (Norman especially) may require more RAM. The more benchmarks you run, the more predictions are saved and the more disk space is occupied. To re-run all experiments, we would recommend 250GB disk space. 
@@ -21,6 +18,7 @@ source perturbation_benchmarking/environment/install_minimal.sh
 Some notes:
 
 - If the data download doesn't work with `curl`, you can easily rephrase it to use `wget` instead, or you can download the data manually from a web browser.
+- We require git and mamba to be installed already. Install mamba using the [official instructions](https://mamba.readthedocs.io/en/latest/installation.html).
 - This install code is written in bash. On a Mac, the default shell is zsh, and you may need to run a bash shell (just type `bash`) for everything to work. On Windows, we are only beginning to test these instructions. Some of the major differences:
     - bash commands will not work in PowerShell. The Windows Subsystem for Linux may be a good alternative.
     - conda configuration may work differently. 
