@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import importlib
 import sys
-import perturbation_benchmarking_package.experimenter as experimenter
+import pereggrn.experimenter as experimenter
 all_active_experiments = []
 for experiment in os.listdir("experiments"):
     try:
