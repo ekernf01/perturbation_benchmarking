@@ -51,5 +51,5 @@ You can test your installation by running this.
 cd perturbation_benchmarking
 conda activate ggrn
 python do_one_experiment.py -h # see the help page
-python do_one_experiment.py --experiment_name "1.0_0" --amount_to_do models # Run a simple benchmark
+python do_one_experiment.py --experiment_name "1.0_0" --amount_to_do models --no_skip_bad_runs # Run a simple benchmark
 ```
