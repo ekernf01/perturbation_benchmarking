@@ -12,7 +12,7 @@ curl https://zenodo.org/record/10436339/files/network_collection.zip -O -s netwo
 mamba env create --name ggrn --file perturbation_benchmarking/environment/conda_inputs_minimal.yaml
 conda activate ggrn
 pip install vl-convert-python
-for p in load_networks load_perturbations ggrn_backend2 ggrn perturbation_benchmarking_package geneformer_embeddings
+for p in pereggrn_networks pereggrn_perturbations pereggrn ggrn ggrn_backend2 geneformer_embeddings
 do
     git clone "https://github.com/ekernf01/${p}"
     pip install -e "${p}" --no-deps 

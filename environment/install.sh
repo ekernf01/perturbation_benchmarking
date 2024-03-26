@@ -33,7 +33,7 @@ pip install ray[tune]==2.6.2
 pip install scrublet --no-deps
 
 # Install our packages
-for p in load_networks load_perturbations ggrn_backend2 ggrn perturbation_benchmarking_package geneformer_embeddings
+for p in pereggrn_networks pereggrn_perturbations pereggrn ggrn ggrn_backend2 geneformer_embeddings 
 do
     git clone http://github.com/ekernf01/${p} 
     pip install -e $p --no-deps 
