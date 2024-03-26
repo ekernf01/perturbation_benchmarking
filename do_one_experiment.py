@@ -11,10 +11,10 @@ import memray
 import subprocess
 
 # Access our code
-import perturbation_benchmarking_package.evaluator as evaluator
-import perturbation_benchmarking_package.experimenter as experimenter
-import load_perturbations
-import load_networks
+import pereggrn.evaluator as evaluator
+import pereggrn.experimenter as experimenter
+import pereggrn_perturbations
+import pereggrn_networks
 
 # User input: name of experiment and whether to fully rerun or just remake plots. 
 parser = argparse.ArgumentParser("experimenter")
@@ -46,10 +46,10 @@ print("args to experimenter.py:", flush = True)
 print(args)
 
 # Access our data collections
-load_networks.set_grn_location(
+pereggrn_networks.set_grn_location(
     args.networks
 )
-load_perturbations.set_data_path(
+pereggrn_perturbations.set_data_path(
     args.data
 )
 try:
@@ -61,7 +61,7 @@ except Exception as e:
 # Default args to this script for interactive use
 if args.experiment_name is None:
     args = Namespace(**{
-        "experiment_name": "1.6.1_7",
+        "experiment_name": "1.0_0",
         "amount_to_do": "missing_models",
         "save_trainset_predictions": False,
         "save_models": False,
@@ -163,22 +163,34 @@ for i in conditions.index:
             
             # Make predictions on test and (maybe) train set
             print("Generating predictions...", flush = True)
-            if conditions.loc[i, "starting_expression"] == "control":
-                predictions       = None
-                predictions_train = None
-            elif conditions.loc[i, "starting_expression"] == "heldout":
-                print("Setting up initial conditions.")
-                predictions       = perturbed_expression_data_heldout_i.copy()
-                predictions_train = perturbed_expression_data_train_i.copy()
+            # For backwards compatibility, we allow datasets with no timepoint or cell type information
+            for c in ["timepoint", "cell_type"]:
+                if c not in perturbed_expression_data_heldout_i.obs.columns or c not in perturbed_expression_data_train_i.obs.columns:
+                    perturbed_expression_data_heldout_i.obs[c] = 0
+                    perturbed_expression_data_train_i.obs[c] = 0
+            if conditions.loc[i, "type_of_split"] == "timeseries":
+                tcp = ['timepoint', 'cell_type', 'perturbation']
+                predictions_metadata       = perturbed_expression_data_heldout_i.obs[tcp.append("expression_level_after_perturbation")].group_by(tcp).agg(mean)
+                predictions_train_metadata = perturbed_expression_data_train_i.obs[tcp.append("expression_level_after_perturbation")].group_by(tcp).agg(mean)
+                assert conditions.loc[i, "starting_expression"] == "control", "cannot currently reveal test data when doing time-series benchmarks"
             else:
-                raise ValueError(f"Unexpected value of 'starting_expression' in metadata: { conditions.loc[i, 'starting_expression'] }")
+                if conditions.loc[i, "starting_expression"] == "control":
+                    predictions       = None
+                    predictions_train = None
+                    predictions_metadata       = perturbed_expression_data_heldout_i.obs[['timepoint', 'cell_type', 'perturbation', "expression_level_after_perturbation"]]
+                    predictions_train_metadata = perturbed_expression_data_train_i.obs[['timepoint', 'cell_type', 'perturbation', "expression_level_after_perturbation"]]
+                elif conditions.loc[i, "starting_expression"] == "heldout":
+                    print("Setting up initial conditions.")
+                    predictions       = perturbed_expression_data_heldout_i.copy()
+                    predictions_train = perturbed_expression_data_train_i.copy()                
+                    predictions_metadata       = None
+                    predictions_train_metadata = None
+                else:
+                    raise ValueError(f"Unexpected value of 'starting_expression' in metadata: { conditions.loc[i, 'starting_expression'] }")
             print("Running GRN.predict()...")
             predictions   = grn.predict(
-                [
-                    (r[1][0], r[1][1]) 
-                    for r in perturbed_expression_data_heldout_i.obs[["perturbation", "expression_level_after_perturbation"]].iterrows()
-                ],
                 predictions = predictions,
+                predictions_metadata = predictions_metadata,
                 control_subtype = conditions.loc[i, "control_subtype"], 
                 feature_extraction_requires_raw_data = grn.feature_extraction.startswith("geneformer"),
                 prediction_timescale = conditions.loc[i,"prediction_timescale"] if metadata["expand_prediction_timescale"] else metadata["prediction_timescale"],
@@ -197,10 +209,7 @@ for i in conditions.index:
             del predictions
             if args.save_trainset_predictions:
                 fitted_values = grn.predict(
-                    [
-                        (r[1][0], r[1][1]) 
-                        for r in perturbed_expression_data_train_i.obs[["perturbation", "expression_level_after_perturbation"]].iterrows()
-                    ], 
+                    predictions_metadata = predictions_train_metadata,
                     predictions = predictions_train, 
                     feature_extraction_requires_raw_data = grn.feature_extraction.startswith("geneformer"),
                 )
