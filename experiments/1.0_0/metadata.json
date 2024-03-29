@@ -3,6 +3,7 @@
     "nickname": "ml methods tiny",
     "readme": "Like 1.0_1 but faster / smaller, mostly for realistic testing.",
     "refers_to": "1.0_1",
+    "num_genes": 1000,
     "regression_method":[
         "mean", 
         "RidgeCV" 
