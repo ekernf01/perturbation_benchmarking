@@ -15,8 +15,7 @@ bash Mambaforge-$(uname)-$(uname -m).sh -b
 source "${HOME}/mambaforge/etc/profile.d/conda.sh"
 
 # Set up Conda env
-# If you have a GPU, you can use conda_list_explicit_gpu.txt.
-mamba create --name ggrn --file perturbation_benchmarking/environment/conda_list_explicit.txt
+mamba create --name ggrn --file perturbation_benchmarking/environment/conda_list_explicit_gpu.txt
 conda activate ggrn
 pip install vl-convert-python
 # Avoid interfering with gimmemotifs 0.17 or with the PyTorch install by using --no-deps
