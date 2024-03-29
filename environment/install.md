@@ -25,11 +25,20 @@ Some notes:
 
 ### Exact install
 
-To reproduce our computing environment exactly, you need a bash shell on a clean Ubuntu 20.04 box. We recommend using AWS. Use these commands. They will install software via apt and mamba, and they will download about 20Gb of data from Zenodo.
+To reproduce our computing environment exactly, you need a bash shell on a clean Ubuntu 20.04 box. We recommend using AWS. Use these commands. This will install mamba and many python packages, and they will download about 20Gb of data from Zenodo.
 
 ```bash
 git clone https://github.com/ekernf01/perturbation_benchmarking
 source perturbation_benchmarking/environment/install.sh
+```
+
+### Near-exact install with GPU
+
+This is a minor modification of the "exact install" option, but using the GPU-enabled version of PyTorch.
+
+```bash
+git clone https://github.com/ekernf01/perturbation_benchmarking
+source perturbation_benchmarking/environment/install_gpu.sh
 ```
 
 ### How to check the installation
