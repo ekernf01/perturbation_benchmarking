@@ -108,6 +108,7 @@ heatmap_all_metrics = function(
     mutate(value = value*ifelse(metric %in% metrics_where_bigger_is_better, 1, -1)) %>%
     # mutate(metric = paste(metric, ifelse(metric %in% metrics_where_bigger_is_better, "", "(inverted)"))) %>%
     mutate(scaled_value = percent_change_from_best(value))
+  X %<>% subset(!is.na(scaled_value))
   # plawt
   g = ggplot(X) +
     geom_tile(aes(x = x, y = metric, fill = scaled_value)) + 
@@ -117,6 +118,36 @@ heatmap_all_metrics = function(
     # labs(x = "", y = "", fill = "Scaled\nvalue", color = "Best\nperformer") +
     labs(x = "", y = "", fill = "Percent change\nfrom best \n(capped at 10%)", color = "Best\nperformer") +
     
+    facet_grid(facet1~facet2, scales = "free") + 
+    theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) 
+  return(g)
+}
+
+#' Plot all of our metrics in a heatmap, shifted and scaled so that best is 1 and worst is 0.
+#'
+#' @param X Data as if from collect_experiments.
+#' @param facet1 @param facet2 variables to facet the plot by.
+#' @param compare_across_rows If TRUE, then experiments with different values of facet2 are compared directly. 
+#' This is only appropriate if the data split is exactly the same, as in our main benchmark results figure.
+#'
+#' This function returns a ggplot object. This function produces a rigid plot format:
+#' the X axis will be X$x, y will be the name of the evaluation metric, fill will be the value of the
+#' evaluation metric.
+#'
+plot_one_metric = function(
+    X,
+    facet1 = "perturbation_dataset",
+    facet2 = "factor_varied",
+    compare_across_rows = FALSE,
+    metric = "mse"
+){
+  X[["facet1"]] = X[[facet1]]
+  X[["facet2"]] = X[[facet2]]
+  X %<>%
+    group_by(x, facet1, facet2) %>%
+    summarise(across(metric, mean))
+  g = ggplot(X) +
+    geom_point(aes_string(x = "x", y = metric)) + 
     facet_grid(facet1~facet2, scales = "free") + 
     theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) 
   return(g)
