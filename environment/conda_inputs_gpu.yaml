@@ -39,6 +39,7 @@ dependencies:
   - goatools
   - python-annoy
   - pyreadr
+  - regex
   - scikit-misc
   - matplotlib[version'>=3.4,<3.5']
   - rpy2
