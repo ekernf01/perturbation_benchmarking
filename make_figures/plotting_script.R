@@ -13,7 +13,8 @@ main_experiments = c("1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1.0
                      "1.2.2_1", "1.2.2_2", "1.2.2_3", "1.2.2_5", "1.2.2_6", "1.2.2_7", "1.2.2_8", "1.2.2_9", "1.2.2_10",
                      "1.4.3_1", "1.4.3_2", "1.4.3_3", "1.4.3_5", "1.4.3_6", "1.4.3_7", "1.4.3_8", "1.4.3_9", "1.4.3_10")
 {
-  X = collect_experiments(main_experiments) %>% make_the_usual_labels_nice 
+  X = collect_experiments(main_experiments) %>% make_the_usual_labels_nice
+  plot_one_metric(X, compare_across_rows = T) 
   heatmap_all_metrics(X, compare_across_rows = T) 
   ggsave('plots/fig_basics.pdf', width = 8, height = 10)
 }
