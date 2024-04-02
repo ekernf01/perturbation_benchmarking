@@ -1,5 +1,17 @@
+#!/bin/bash -l	
+#SBATCH --job-name="ericBenchmarking"
+#SBATCH --output="slurm.log"
+#SBATCH --partition=shared
+#SBATCH -t 20-00:00:15
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=8
+#SBATCH --mem-per-cpu=4GB 
+ 
 source "${HOME}/mambaforge/etc/profile.d/conda.sh"
+conda init
 conda activate ggrn
+
+
 for experiment in `ls -1 experiments  | grep -E $1`
 do
     echo "Starting ${experiment}"
