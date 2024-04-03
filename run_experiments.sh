@@ -2,7 +2,7 @@
 #SBATCH --job-name="ericBenchmarking"
 #SBATCH --output="slurm.log"
 #SBATCH --partition=shared
-#SBATCH --time=20-10:10:10
+#SBATCH --time=14-10:10:10
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=8
 #SBATCH --mem-per-cpu=4GB 
