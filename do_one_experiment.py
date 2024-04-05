@@ -146,8 +146,7 @@ for i in conditions.index:
                     peak_ram = [p for p in peak_ram if ("B" in p)][0]
                     peak_ram = peak_ram.split("│")[2].strip()
                 except:
-                    print("Memory profiling results are not as expected.")
-                    print(peak_ram)
+                    print(f"Memory profiling results are not as expected. You can find the memray output in {train_mem_file}.")
                     peak_ram = np.NAN
                 pd.DataFrame({"walltime (seconds)":train_time, "peak RAM": peak_ram}, index = [i]).to_csv(train_time_file)
             except Exception as e: 
@@ -193,7 +192,8 @@ for i in conditions.index:
                 predictions_metadata = predictions_metadata,
                 control_subtype = conditions.loc[i, "control_subtype"], 
                 feature_extraction_requires_raw_data = grn.feature_extraction.startswith("geneformer"),
-                prediction_timescale = conditions.loc[i,"prediction_timescale"] if metadata["expand_prediction_timescale"] else metadata["prediction_timescale"],
+                prediction_timescale = conditions.loc[i,"prediction_timescale"] if metadata["expand_prediction_timescale"] else metadata["prediction_timescale"], 
+                do_parallel = not args.no_parallel,
             )
             predictions.obs.index = perturbed_expression_data_heldout_i.obs.index.copy()
             # Sometimes AnnData has trouble saving pandas bool columns and sets, and they aren't needed here anyway.
@@ -212,6 +212,8 @@ for i in conditions.index:
                     predictions_metadata = predictions_train_metadata,
                     predictions = predictions_train, 
                     feature_extraction_requires_raw_data = grn.feature_extraction.startswith("geneformer"),
+                    prediction_timescale = conditions.loc[i,"prediction_timescale"] if metadata["expand_prediction_timescale"] else metadata["prediction_timescale"], 
+                    do_parallel = not args.no_parallel,
                 )
                 fitted_values.obs.index = perturbed_expression_data_train_i.obs.index.copy()
                 # Sometimes AnnData has trouble saving pandas bool columns, and they aren't needed here anyway.
