@@ -4,7 +4,7 @@
 #SBATCH --partition=shared
 #SBATCH --time=1-12:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=8
+#SBATCH --ntasks-per-node=16
 #SBATCH --mem-per-cpu=4GB 
  
 source "${HOME}/mambaforge/etc/profile.d/conda.sh"
