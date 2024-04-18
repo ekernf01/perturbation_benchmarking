@@ -7,18 +7,20 @@
     "facet_by": "type_of_split",
     "color_by": "regression_method",
     "factor_varied": "data_split_seed",
+    "type_of_split": "timeseries",
+    "eligible_regulators": "human_tfs",
+    "num_genes": 100,
+    "expand": "ladder",
     "regression_method": [ 
         "median", 
         "mean", 
-        "RidgeCV"
+        "RidgeCV",
+        "docker____ekernf01/ggrn_docker_backend_celloracle",
+        "docker____ekernf01/ggrn_docker_backend_prescient"
     ],
-    "type_of_split": "timeseries",
-    "num_genes": 10000,
-    "eligible_regulators": "human_tfs",
-    "merge_replicates": false,
-    "perturbation_dataset": "fantom4",
+    "pruning_parameter": [null, null, null, 2000, null],
     "network_datasets": {
-        "dense":{}
-    }
+        "celloracle_human":{}
+    },
+    "perturbation_dataset": "fantom4"
 }
-
