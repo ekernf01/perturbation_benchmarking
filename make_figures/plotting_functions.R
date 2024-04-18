@@ -27,6 +27,7 @@ collect_experiments = function(experiments, stratify_by_pert = T){
 #' Make plot labels nice and put elements in the desired order left to right.
 #' 
 make_the_usual_labels_nice = function(X){
+  try({colnames(X) %<>% gsub("cell_type_correct", "cell_label_accuracy", .)}, silent = T)
   try({X$factor_varied %<>% gsub("_", " ", .)}, silent = T)
   try({X$factor_varied %<>% factor(levels = c("regression method", "network datasets", "matching method"))}, silent = T)
   try({X$perturbation_dataset %<>% gsub("_", " ", .) %>% sub(" ", "\n", .) %>% gsub("γ", "g" , .)}, silent = T)
@@ -88,8 +89,8 @@ heatmap_all_metrics = function(
     facet2 = "factor_varied",
     compare_across_rows = FALSE,
     metrics = c("spearman", "mse_top_20", "mse_top_100", "mse_top_200",
-                "mse", "mae", "proportion_correct_direction", "cell_type_correct"),
-    metrics_where_bigger_is_better = c("spearman", "proportion_correct_direction", "cell_type_correct", "proportion correct direction", "cell type correct")
+                "mse", "mae", "proportion_correct_direction", "cell_label_accuracy"),
+    metrics_where_bigger_is_better = c("spearman", "proportion_correct_direction", "cell_label_accuracy", "proportion correct direction", "cell type correct")
 ){
   X[["facet1"]] = X[[facet1]]
   X[["facet2"]] = X[[facet2]]
@@ -139,13 +140,15 @@ plot_one_metric = function(
     facet1 = "perturbation_dataset",
     facet2 = "factor_varied",
     compare_across_rows = FALSE,
-    metric = "mse"
+    metric = "mse", 
+    threshold_outliers_at = Inf
 ){
   X[["facet1"]] = X[[facet1]]
   X[["facet2"]] = X[[facet2]]
   X %<>%
     group_by(x, facet1, facet2) %>%
     summarise(across(metric, mean))
+  X = X[ X[[metric]] < threshold_outliers_at, ]
   g = ggplot(X) +
     geom_point(aes_string(x = "x", y = metric)) + 
     facet_grid(facet1~facet2, scales = "free") + 
