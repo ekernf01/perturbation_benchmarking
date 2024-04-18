@@ -32,14 +32,9 @@ git clone https://github.com/ekernf01/perturbation_benchmarking
 source perturbation_benchmarking/environment/install.sh
 ```
 
-### Near-exact install with GPU
+### GPU install
 
-This is a minor modification of the "exact install" option, but using the GPU-enabled version of PyTorch.
-
-```bash
-git clone https://github.com/ekernf01/perturbation_benchmarking
-source perturbation_benchmarking/environment/install_gpu.sh
-```
+We recommend you use the exact or minimal install above; activate the `ggrn` environment; and then install a gpu version PyTorch `2.x.x`.
 
 ### How to check the installation
 
