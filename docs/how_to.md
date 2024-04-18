@@ -68,7 +68,7 @@ Our experiments can be run via `./run_experiments.sh &`. Progress can be monitor
 
 You are likely to encounter some difficulties.
 
-- Experiments could take a long time (weeks on a typical laptop). We ran experiments bit by bit over a long period, and they are not currently set up to be dispatched to cloud or cluster resources in a massively parallel way. If it's worth the investment to you, a good option might be to convert `run_experiments.sh` into a SnakeMake or WDL pipeline.
+- Experiments could take a long time (weeks to months on a typical laptop). We ran experiments bit by bit over a long period, and they are not currently set up to be dispatched to cloud or cluster resources in a massively parallel way. If it's worth the investment to you, a good option might be to convert `run_experiments.sh` into a SnakeMake or WDL pipeline.
 - The repo is under active development as of February 2024 and may not be entirely stable or may not exactly reproduce our preprint. A list of commit hashes used for version one of our preprint can be found in the `environment` folder, and we plan to make code releases for future preprint versions or journal submissions. Certain output may never be repeatable: notably, DCD-FG is not deterministic.
 - Making figures requires some commonly used R packages like ggplot2 that are not included/versioned in our environment setup. Please let us know if you have trouble installing them.
 
