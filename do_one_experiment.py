@@ -61,7 +61,7 @@ except Exception as e:
 # Default args to this script for interactive use
 if args.experiment_name is None:
     args = Namespace(**{
-        "experiment_name": "1.0_0",
+        "experiment_name": "1.8.1_1",
         "amount_to_do": "missing_models",
         "save_trainset_predictions": False,
         "save_models": False,
@@ -167,15 +167,22 @@ for i in conditions.index:
                 if c not in perturbed_expression_data_heldout_i.obs.columns or c not in perturbed_expression_data_train_i.obs.columns:
                     perturbed_expression_data_heldout_i.obs[c] = 0
                     perturbed_expression_data_train_i.obs[c] = 0
+
+            # Different defaults for timeseries versus non-timeseries benchmarks. 
+            # For timeseries, predict each combo of cell type, timepoint, and perturbation ONCE. No dupes.
+            # For non-timeseries, predict one value per test datapoint. There may be dupes. 
+            # Predictions metadata will be in a dataframe or in the .obs of an AnnData; see docs for grn.predict().
+            predictions       = None
+            predictions_train = None
             if conditions.loc[i, "type_of_split"] == "timeseries":
                 tcp = ['timepoint', 'cell_type', 'perturbation']
-                predictions_metadata       = perturbed_expression_data_heldout_i.obs[tcp.append("expression_level_after_perturbation")].group_by(tcp).agg(mean)
-                predictions_train_metadata = perturbed_expression_data_train_i.obs[tcp.append("expression_level_after_perturbation")].group_by(tcp).agg(mean)
+                predictions_metadata       = perturbed_expression_data_heldout_i.obs[tcp + ["expression_level_after_perturbation"]].groupby(tcp).mean()
+                predictions_train_metadata = perturbed_expression_data_train_i.obs[  tcp + ["expression_level_after_perturbation"]].groupby(tcp).mean()
+                predictions_metadata = predictions_metadata.reset_index()
+                predictions_train_metadata = predictions_train_metadata.reset_index()
                 assert conditions.loc[i, "starting_expression"] == "control", "cannot currently reveal test data when doing time-series benchmarks"
             else:
                 if conditions.loc[i, "starting_expression"] == "control":
-                    predictions       = None
-                    predictions_train = None
                     predictions_metadata       = perturbed_expression_data_heldout_i.obs[['timepoint', 'cell_type', 'perturbation', "expression_level_after_perturbation"]]
                     predictions_train_metadata = perturbed_expression_data_train_i.obs[['timepoint', 'cell_type', 'perturbation', "expression_level_after_perturbation"]]
                 elif conditions.loc[i, "starting_expression"] == "heldout":
@@ -195,7 +202,11 @@ for i in conditions.index:
                 prediction_timescale = conditions.loc[i,"prediction_timescale"] if metadata["expand_prediction_timescale"] else metadata["prediction_timescale"], 
                 do_parallel = not args.no_parallel,
             )
-            predictions.obs.index = perturbed_expression_data_heldout_i.obs.index.copy()
+            # We can't always do this given the new default prediction shape for timeseries experiments. For backwards compatibility we still try. 
+            try:
+                predictions.obs.index = perturbed_expression_data_heldout_i.obs.index.copy()
+            except ValueError as e:
+                pass
             # Sometimes AnnData has trouble saving pandas bool columns and sets, and they aren't needed here anyway.
             try:
                 del predictions.obs["is_control"] 
