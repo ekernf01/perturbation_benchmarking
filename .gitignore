@@ -28,3 +28,4 @@ node_modules/*
 lightning_logs/*
 TODO.md
 node_modules
+make_figures/global_effects/*
