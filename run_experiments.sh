@@ -1,11 +1,10 @@
 #!/bin/bash -l	
 #SBATCH --job-name="ericBenchmarking"
 #SBATCH --output="slurm.log"
-#SBATCH --partition=shared
-#SBATCH --time=1-12:00:00
+#SBATCH --partition=parallel
+#SBATCH --time=72:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=16
-#SBATCH --mem-per-cpu=4GB 
  
 source "${HOME}/mambaforge/etc/profile.d/conda.sh"
 conda init
