@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 import scanpy as sc
 import anndata
-import load_perturbations
-load_perturbations.set_data_path('../../perturbation_data/perturbations')
+import pereggrn_perturbations
+pereggrn_perturbations.set_data_path('../../perturbation_data/perturbations')
 import sys 
 import altair as alt
 
@@ -24,7 +24,7 @@ for dataset in [
     'norman',
 ]:    
     print(dataset)
-    adata = load_perturbations.load_perturbation(dataset)
+    adata = pereggrn_perturbations.load_perturbation(dataset)
     pt = adata.obs["perturbation_type"][0]
     uns = adata.uns.copy()
     try:
@@ -41,7 +41,7 @@ for dataset in [
     print("Consistency:")
     print(pd.Series(consistency[0]).value_counts()) 
     fname = "global_effects/" + dataset + ".txt"
-    global_effects.quantifyEffect(adata, fname = fname, withDEG = False)
+    global_effects.quantifyEffect(adata, fname = fname, withDEG = False, withMI = False, pseudocount = 1)
     obs = adata.obs[['perturbation', 'is_control', 'logFC', 'logFCNorm2', 'logFCMean', 'expression_level_after_perturbation', 'perturbation_type']].copy()
     
     obs.loc[:, "dataset"] = dataset

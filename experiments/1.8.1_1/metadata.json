@@ -1,0 +1,8 @@
+{
+    "unique_id": "1.8.1_1",
+    "nickname": "timeseries pilot endoderm",
+    "readme": "Our second time-series experiment",
+    "question": "1.8.1",
+    "refers_to": "1.8.1_0",
+    "perturbation_dataset": "definitive_endoderm"
+}
