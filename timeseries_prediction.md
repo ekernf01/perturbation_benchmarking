@@ -39,6 +39,8 @@ Based on past work, here are some signals that we might have more success predic
 - Long-term change in cell type proportions. PRESCIENT focuses on this.
 - Cell type specific TF activity: rank the TF's by the magnitude of the change predicted upon knockout, e.g. cosine similarity of velocity before and after KO. scKINETICS and CellOracle focus on this.
 
+When evaluating fold changes, the baseline expression has to be different between predicted and test data. For the test data, it should be a **test-set** control sample from the same timepoint and cell type. For the predictions, it should also be a **training-set** control sample from the same timepoint and cell type. 
+
 #### Shapes and sizes
 
 Given the new implementation and the lack of clarity about timescales, the shapes of the training data and test data are no longer guaranteed to match. For example, we may run CellOracle and make predictions at 1,2,3, and 10 time-steps, yielding 4 observations per starting state per perturbation. The test data may contain many replicates per perturbation. 
