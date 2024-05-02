@@ -9,7 +9,7 @@
     "factor_varied": "data_split_seed",
     "type_of_split": "timeseries",
     "eligible_regulators": "human_tfs",
-    "num_genes": 100,
+    "num_genes": 3000,
     "expand": "ladder",
     "regression_method": [ 
         "median", 
