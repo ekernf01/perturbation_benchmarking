@@ -185,7 +185,7 @@ See the perturbation data [repo](https://github.com/ekernf01/perturbation_data) 
 
 ### How to evaluate only a network structure
 
-Using our infrastructure, you can run an evaluation where instead of predicting fold change, each method only predicts positive regulation versus no regulation, similar to the evaluations in [BETS](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1008223) figure 6. Follow the general procedure at the top of this file of this file using the metadata below. 
+Using our infrastructure, you can run an evaluation where instead of predicting fold change, each method only predicts positive regulation versus no regulation, similar to the evaluations in [BETS](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1008223) figure 6. Follow the general procedure at the top of this file using the metadata below. 
 
 The most important argument is that `regression_method` is set to `"regulon"`: for the `"regulon"` method, the targets in the provided network will mirror the fold change of their regulators. For example, in `outputs/predictions/0.h5ad`, whenever log-scale FOXA1 expression goes up by 0.5 due to overexpression, expect to see FOXA1's targets in the `celloracle_human` network go up by 0.5 also. In the parquet file with per-perturbation output, look for the evaluation metric called `pvalue_targets_vs_non_targets`, which is the p-value from an ANOVA comparing observed fold change for genes predicted to change (targets) against observed fold change for genes predicted to stay the same (non-targets).
 
