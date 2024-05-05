@@ -32,6 +32,7 @@ predictions = sc.read_h5ad('experiments/my_experiment/outputs/predictions/0.h5ad
 
 ##### Expected result 
 
+- `do_one_experiment.py` should populate `experiments/my_experiment/outputs` with gene expression predictions and evaluation results. 
 - `experimental_conditions` should be a small dataframe with one row per experimental condition.
 - `benchmark_results` should be a large dataframe with one row per pair (perturbation, experimental condition). The columns will contain performance metrics like mae and metadata. Consult `docs/reference.md` for comprehensive information.
 - `predictions` should be an AnnData object containing predicted expression. This will change in size depending on the data split. For most splits this is the same size as the test data. For "timeseries", though, it will contain separate predictions for each combination of perturbation, cell type, starting timepoint, and prediction timescale (number of iterations).
