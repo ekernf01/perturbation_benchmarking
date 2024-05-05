@@ -46,14 +46,14 @@ The default behavior of `do_one_experiment.py` is optimized for performance, but
 - You can save models for later inspection using `save_models`.
 - If you are afraid of overfitting, you can monitor train and test-set performance separately using `save_trainset_predictions`.
 
-### How to repeat our regression method experiments
+### How to repeat our network comparison experiments
 
-Our experiments on different regression methods all start with `1.0_`. We would typically run them like this.
+Our experiments on different regression methods all start with `1.4.3_`. We would typically run them like this.
 
 ```bash
 cd perturbation_benchmarking
 conda activate ggrn
-for experiment in `ls -1 experiments | grep '1.0_'"`
+for experiment in `ls -1 experiments | grep '1.4.3_'"`
 
 do
     echo "Starting ${experiment}"
@@ -62,16 +62,84 @@ do
 done
 ```
 
+The metadata looks like this, and the networks are specified towards the bottom. 
 
-### How to repeat all of our experiments
+```
+{
+    "unique_id": "1.4.3_1",
+    "nickname": "base_network",
+    "readme": "people have published big lists of TF-target or gene-gene relationships, often for GWAS interpretation or reprogramming. Existing benchmarks have limited information content and seldom compare these published network structures directly without introducing confounding factors. For instance, one might ask whether the networks used by CellNet, Mogrify, Irene, and CellOracle are of comparable value in predicting perturbation outcomes. Those methods have been compared, but they each involve many other components that may also affect the outcome, confounding the effect of network structure. This experiment benchmarks many networks using otherwise-equivalent methods to see how much each network helps predict held-out perturbations.",
+    "question": "1.4.3",
+    "is_active": true,
+    "factor_varied": "network_datasets",
+    "data_split_seed": [0],
+    "color_by": "type_of_split",
+    "type_of_split": ["interventional"],
+    "facet_by": null,
+    "merge_replicates": true,
+    "regression_method": "RidgeCV",
+    "perturbation_dataset": "nakatake",
+    "eligible_regulators": "human_tfs",
+    "num_genes": 10000,
+    "network_prior": "restrictive",
+    "network_datasets": {
+        "empty":     { "do_aggregate_subnets": true }, 
+        "dense":     { "do_aggregate_subnets": true },    
+        "celloracle_human":      { "do_aggregate_subnets": true },
+        "gtex_rna":              { "do_aggregate_subnets": true },
+        "magnum_compendium_32":  { "do_aggregate_subnets": true },   
+        "magnum_compendium_ppi": { "do_aggregate_subnets": true },
+        "cellnet_human_Hg1332":  { "do_aggregate_subnets": true },
+        "cellnet_human_Hugene":  { "do_aggregate_subnets": true },
+        "MARA_FANTOM4":          { "do_aggregate_subnets": true },
+        "STRING":                { "do_aggregate_subnets": true },
+        "ANANSE_0.5":            { "do_aggregate_subnets": true },
+        "ANANSE_tissue_0.5":     { "do_aggregate_subnets": true },
+        "humanbase":             { "do_aggregate_subnets": true }
+    }
+}
+```
 
-Our experiments can be run via `./run_experiments.sh &`. Progress can be monitored by inspecting `stdout.txt` and `err.txt` in each experiment's folder. Once the experiments are done, figures can be produced using the R scripts in `make_figures`. 
 
-You are likely to encounter some difficulties.
+### How to add a new dataset or network
 
-- Experiments could take a long time (weeks to months on a typical laptop). We ran experiments bit by bit over a long period, and they are not currently set up to be dispatched to cloud or cluster resources in a massively parallel way. If it's worth the investment to you, a good option might be to convert `run_experiments.sh` into a SnakeMake or WDL pipeline.
-- The repo is under active development as of February 2024 and may not be entirely stable or may not exactly reproduce our preprint. A list of commit hashes used for version one of our preprint can be found in the `environment` folder, and we plan to make code releases for future preprint versions or journal submissions. Certain output may never be repeatable: notably, DCD-FG is not deterministic.
-- Making figures requires some commonly used R packages like ggplot2 that are not included/versioned in our environment setup. Please let us know if you have trouble installing them.
+See the perturbation data [repo](https://github.com/ekernf01/perturbation_data) or network collection [repo](https://github.com/ekernf01/network_collection).
+
+### How to evaluate a network structure with no fancy modeling
+
+Using our infrastructure, you can run an evaluation where instead of training machine learning models, you use networks to predicts positive regulation versus no regulation, similar to the evaluations in [BETS](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1008223) figure 6. Follow the general procedure at the top of this file using the metadata below. 
+
+The most important argument is that `regression_method` is set to `"regulon"`. For the `"regulon"` method, no models will be trained. The targets in the provided network will just exactly mirror the fold change of their regulators. For example, in `outputs/predictions/0.h5ad`, we use the `celloracle_human` network, so whenever log-scale FOXA1 expression goes up by 0.5 due to overexpression, expect to see FOXA1's targets in the `celloracle_human` network go up by 0.5 in the predictions. Evaluations compare the predicted targets against the remaining genes, looking for enrichment of changes in the expected direction. In the parquet file with per-perturbation output, look for the evaluation metric called `pvalue_targets_vs_non_targets`, which is the p-value from an ANOVA comparing observed fold change for genes predicted to change (targets) against observed fold change for genes predicted to stay the same (non-targets).
+
+```json
+{
+    "unique_id": "1.4.4_1",
+    "nickname": "network_only",
+    "readme": "Are network-connected genes enriched for perturbation responses? This experiment uses network structure alone for prediction, with no training data and all perturbations reserved for evaluation.",
+    "question": "1.4.4",
+    "factor_varied": "network_datasets",
+    "type_of_split": "interventional",
+    "desired_heldout_fraction": [1],
+    "color_by": null,
+    "facet_by": null,
+    "regression_method": "regulon",
+    "perturbation_dataset": "nakatake",
+    "num_genes": 10000,
+    "network_datasets": {
+        "celloracle_human":      { "do_aggregate_subnets": true },
+        "gtex_rna":              { "do_aggregate_subnets": true },
+        "magnum_compendium_32":  { "do_aggregate_subnets": true },   
+        "magnum_compendium_ppi": { "do_aggregate_subnets": true },
+        "cellnet_human_Hg1332":  { "do_aggregate_subnets": true },
+        "cellnet_human_Hugene":  { "do_aggregate_subnets": true },
+        "MARA_FANTOM4":          { "do_aggregate_subnets": true },
+        "STRING":                { "do_aggregate_subnets": true },
+        "ANANSE_0.5":            { "do_aggregate_subnets": true },
+        "ANANSE_tissue_0.5":     { "do_aggregate_subnets": true },
+        "humanbase":             { "do_aggregate_subnets": true }
+    }
+}
+```
 
 ### How to evaluate a new method
 
@@ -179,45 +247,6 @@ heatmap_all_metrics(X, facet1 = "data_split_seed", facet2 = "type_of_split", com
 ggsave('fig_data_splitting.pdf', width = 8, height = 8)
 ```
 
-### How to add a new dataset or network
-
-See the perturbation data [repo](https://github.com/ekernf01/perturbation_data) or network collection [repo](https://github.com/ekernf01/network_collection).
-
-### How to evaluate a network structure with no fancy modeling
-
-Using our infrastructure, you can run an evaluation where instead of training machine learning models, you use networks to predicts positive regulation versus no regulation, similar to the evaluations in [BETS](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1008223) figure 6. Follow the general procedure at the top of this file using the metadata below. 
-
-The most important argument is that `regression_method` is set to `"regulon"`. For the `"regulon"` method, no models will be trained. The targets in the provided network will just exactly mirror the fold change of their regulators. For example, in `outputs/predictions/0.h5ad`, we use the `celloracle_human` network, so whenever log-scale FOXA1 expression goes up by 0.5 due to overexpression, expect to see FOXA1's targets in the `celloracle_human` network go up by 0.5 in the predictions. Evaluations compare the predicted targets against the remaining genes, looking for enrichment of changes in the expected direction. In the parquet file with per-perturbation output, look for the evaluation metric called `pvalue_targets_vs_non_targets`, which is the p-value from an ANOVA comparing observed fold change for genes predicted to change (targets) against observed fold change for genes predicted to stay the same (non-targets).
-
-```json
-{
-    "unique_id": "1.4.4_1",
-    "nickname": "network_only",
-    "readme": "Are network-connected genes enriched for perturbation responses? This experiment uses network structure alone for prediction, with no training data and all perturbations reserved for evaluation.",
-    "question": "1.4.4",
-    "factor_varied": "network_datasets",
-    "type_of_split": "interventional",
-    "desired_heldout_fraction": [1],
-    "color_by": null,
-    "facet_by": null,
-    "regression_method": "regulon",
-    "perturbation_dataset": "nakatake",
-    "num_genes": 10000,
-    "network_datasets": {
-        "celloracle_human":      { "do_aggregate_subnets": true },
-        "gtex_rna":              { "do_aggregate_subnets": true },
-        "magnum_compendium_32":  { "do_aggregate_subnets": true },   
-        "magnum_compendium_ppi": { "do_aggregate_subnets": true },
-        "cellnet_human_Hg1332":  { "do_aggregate_subnets": true },
-        "cellnet_human_Hugene":  { "do_aggregate_subnets": true },
-        "MARA_FANTOM4":          { "do_aggregate_subnets": true },
-        "STRING":                { "do_aggregate_subnets": true },
-        "ANANSE_0.5":            { "do_aggregate_subnets": true },
-        "ANANSE_tissue_0.5":     { "do_aggregate_subnets": true },
-        "humanbase":             { "do_aggregate_subnets": true }
-    }
-}
-```
 
 ### How to add a new evaluation metric
 
@@ -260,3 +289,13 @@ from perturbation_benchmarking_package import evaluator
 import numpy as np
 evaluator.METRICS["mae"](np.array([1,2,3]), np.array([4,5,6]), np.array([7,8,9]))
 ```
+
+### How to repeat all of our experiments
+
+Our experiments can be run via `./run_experiments.sh &`. Progress can be monitored by inspecting `stdout.txt` and `err.txt` in each experiment's folder. Once the experiments are done, figures can be produced using the R scripts in `make_figures`. 
+
+You are likely to encounter some difficulties.
+
+- Experiments could take a long time (weeks to months on a typical laptop). We ran experiments bit by bit over a long period, and they are not currently set up to be dispatched to cloud or cluster resources in a massively parallel way. If it's worth the investment to you, a good option might be to convert `run_experiments.sh` into a SnakeMake or WDL pipeline.
+- The repo is under active development as of February 2024 and may not be entirely stable or may not exactly reproduce our preprint. A list of commit hashes used for version one of our preprint can be found in the `environment` folder, and we plan to make code releases for future preprint versions or journal submissions. Certain output may never be repeatable: notably, DCD-FG is not deterministic.
+- Making figures requires some commonly used R packages like ggplot2 that are not included/versioned in our environment setup. Please let us know if you have trouble installing them.
