@@ -25,7 +25,7 @@ python do_one_experiment.py --experiment_name my_experiment --amount_to_do missi
 ```python
 import pandas as pd
 import scanpy as sc
-experimental_conditions = pd.read_csv('experiments/my_experiment/outputs/conditions.csv')h5ad()
+experimental_conditions = pd.read_csv('experiments/my_experiment/outputs/conditions.csv')
 benchmark_results = pd.read_parquet('experiments/my_experiment/outputs/evaluationPerPert.parquet', engine='pyarrow')
 predictions = sc.read_h5ad('experiments/my_experiment/outputs/predictions/0.h5ad')
 ```
