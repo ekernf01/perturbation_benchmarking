@@ -221,7 +221,7 @@ The most important argument is that `regression_method` is set to `"regulon"`: f
 
 ### How to add a new evaluation metric
 
-To add your own evaluation metrics, you will need to make a fork of the `perturbation_benchmarking_package` [repo](https://github.com/ekernf01/perturbation_benchmarking_package), edit `evaluator.py`, and install your version prior to running your experiments. 
+To add your own evaluation metrics, you will need to make a fork of the [pereggrn repo](https://github.com/ekernf01/perturbation_benchmarking_package), edit `evaluator.py`, and install your version prior to running your experiments. 
 
 ##### Making the fork
 
