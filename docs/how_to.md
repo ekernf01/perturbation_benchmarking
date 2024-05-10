@@ -10,15 +10,15 @@ Once the software is installed, you will almost always need to:
 
 - Make a new folder inside `experiments` named after your experiment
 - Populate it with a json file `metadata.json`. We give examples below for specific use-cases.
-- Run it in the ggrn conda environment using `do_one_experiment.py`.
-- Find results in `experiments/my_experiment/outputs/evaluationPerPert.parquet`.
+- Run it in the ggrn conda environment using the `pereggrn` CLI.
+- Find results in `Experiments/my_experiment/outputs/evaluationPerPert.parquet`.
 
 ##### Code for the last two steps
 
 ```bash
 cd perturbation_benchmarking
 conda activate ggrn
-python do_one_experiment.py --experiment_name my_experiment --amount_to_do missing_models --save_trainset_predictions \
+pereggrn --experiment_name my_experiment --amount_to_do missing_models --save_trainset_predictions \
     > experiments/my_experiment/stdout.txt 2> experiments/my_experiment/err.txt
 ```
 
@@ -32,14 +32,14 @@ predictions = sc.read_h5ad('experiments/my_experiment/outputs/predictions/0.h5ad
 
 ##### Expected result 
 
-- `do_one_experiment.py` should populate `experiments/my_experiment/outputs` with gene expression predictions and evaluation results. 
+- `pereggrn` should populate `experiments/my_experiment/outputs` with gene expression predictions and evaluation results. 
 - `experimental_conditions` should be a small dataframe with one row per experimental condition.
 - `benchmark_results` should be a large dataframe with one row per pair (perturbation, experimental condition). The columns will contain performance metrics like mae and metadata. Consult `docs/reference.md` for comprehensive information.
 - `predictions` should be an AnnData object containing predicted expression. This will change in size depending on the data split. For most splits this is the same size as the test data. For "timeseries", though, it will contain separate predictions for each combination of perturbation, cell type, starting timepoint, and prediction timescale (number of iterations).
 
 ##### Troubleshooting
 
-The default behavior of `do_one_experiment.py` is optimized for performance, but several non-default options can help a lot with initial use and debugging. Run `python do_one_experiment.py -h` for usage instructions. In brief:
+The default behavior of `pereggrn` is optimized for performance, but several non-default options can help a lot with initial use and debugging. Run `pereggrn -h` for usage instructions. In brief:
 
 - If `conda` is not available, try the usual `source "${HOME}/mambaforge/etc/profile.d/conda.sh"` (unix only).
 - You can get error tracebacks by not skipping individual bad runs and not using Joblib parallelization. 
@@ -57,7 +57,7 @@ for experiment in `ls -1 experiments | grep '1.4.3_'"`
 
 do
     echo "Starting ${experiment}"
-    python do_one_experiment.py --experiment_name $experiment --amount_to_do missing_models \
+    pereggrn --experiment_name $experiment --amount_to_do missing_models \
         > experiments/$experiment/stdout.txt 2> experiments/$experiment/err.txt
 done
 ```

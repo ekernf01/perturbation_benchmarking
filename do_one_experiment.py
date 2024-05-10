@@ -16,6 +16,8 @@ import pereggrn.experimenter as experimenter
 import pereggrn_perturbations
 import pereggrn_networks
 
+print("WARNING: this script has been deprecated. Install pereggrn and run `pereggrn -h` to see the new command-line interface.", flush = True)
+
 # User input: name of experiment and whether to fully rerun or just remake plots. 
 parser = argparse.ArgumentParser("experimenter")
 parser.add_argument("--experiment_name", help="Unique id for the experiment.", type=str)
