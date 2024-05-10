@@ -8,10 +8,10 @@ We hope this documentation makes it easy for you to achieve any of the goals out
 
 Once the software is installed, you will almost always need to: 
 
-- Make a new folder inside `Experiments` named after your experiment
+- Make a new folder inside `experiments` named after your experiment
 - Populate it with a json file `metadata.json`. We give examples below for specific use-cases.
 - Run it in the ggrn conda environment using `do_one_experiment.py`.
-- Find results in `Experiments/my_experiment/outputs/evaluationPerPert.parquet`.
+- Find results in `experiments/my_experiment/outputs/evaluationPerPert.parquet`.
 
 ##### Code for the last two steps
 
