@@ -26,6 +26,9 @@ parser.add_argument('--no_skip_bad_runs', dest='skip_bad_runs', action='store_fa
 parser.add_argument('--networks', type=str, default='../network_collection/networks', help="Location of our network collection on your hard drive")
 parser.add_argument('--data', type=str, default='../perturbation_data/perturbations', help="Location of our perturbation data on your hard drive")
 parser.add_argument('--tf', type=str, default = "../accessory_data/humanTFs.csv",     help="Location of our list of TFs on your hard drive")
+parser.add_argument('--output', type=str, default = "experiments",     help="Folder to save the output in.")
+parser.add_argument('--input', type=str, default = "experiments",     help="Folder to read the metadata.json from.")
+
 parser.set_defaults(feature=True)
 parser.add_argument(
     "--amount_to_do",
@@ -70,9 +73,9 @@ if args.experiment_name is None:
     })
 # Additional bookkeeping
 print("Running experiment", flush = True)
-outputs = os.path.join("experiments", args.experiment_name, "outputs")
+outputs = os.path.join(args.output, args.experiment_name, "outputs")
 os.makedirs(outputs, exist_ok=True)
-metadata = experimenter.validate_metadata(experiment_name=args.experiment_name)
+metadata = experimenter.validate_metadata(experiment_name=args.experiment_name, input_folder=args.input)
 print("Starting at " + str(datetime.datetime.now()), flush = True)
 
 # Set up the perturbation and network data
