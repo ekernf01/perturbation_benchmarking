@@ -16,6 +16,8 @@ import pereggrn.experimenter as experimenter
 import pereggrn_perturbations
 import pereggrn_networks
 
+print("WARNING: this script has been deprecated. Install pereggrn and run `pereggrn -h` to see the new command-line interface.", flush = True)
+
 # User input: name of experiment and whether to fully rerun or just remake plots. 
 parser = argparse.ArgumentParser("experimenter")
 parser.add_argument("--experiment_name", help="Unique id for the experiment.", type=str)
@@ -26,6 +28,9 @@ parser.add_argument('--no_skip_bad_runs', dest='skip_bad_runs', action='store_fa
 parser.add_argument('--networks', type=str, default='../network_collection/networks', help="Location of our network collection on your hard drive")
 parser.add_argument('--data', type=str, default='../perturbation_data/perturbations', help="Location of our perturbation data on your hard drive")
 parser.add_argument('--tf', type=str, default = "../accessory_data/humanTFs.csv",     help="Location of our list of TFs on your hard drive")
+parser.add_argument('--output', type=str, default = "experiments",     help="Folder to save the output in.")
+parser.add_argument('--input', type=str, default = "experiments",     help="Folder to read the metadata.json from.")
+
 parser.set_defaults(feature=True)
 parser.add_argument(
     "--amount_to_do",
@@ -70,9 +75,9 @@ if args.experiment_name is None:
     })
 # Additional bookkeeping
 print("Running experiment", flush = True)
-outputs = os.path.join("experiments", args.experiment_name, "outputs")
+outputs = os.path.join(args.output, args.experiment_name, "outputs")
 os.makedirs(outputs, exist_ok=True)
-metadata = experimenter.validate_metadata(experiment_name=args.experiment_name)
+metadata = experimenter.validate_metadata(experiment_name=args.experiment_name, input_folder=args.input)
 print("Starting at " + str(datetime.datetime.now()), flush = True)
 
 # Set up the perturbation and network data
@@ -169,17 +174,15 @@ for i in conditions.index:
                     perturbed_expression_data_train_i.obs[c] = 0
 
             # Different defaults for timeseries versus non-timeseries benchmarks. 
-            # For timeseries, predict each combo of cell type, timepoint, and perturbation ONCE. No dupes.
+            # For timeseries, predict each combo of cell type, timepoint, and perturbation ONCE. No dupes. Use the average expression_level_after_perturbation. 
             # For non-timeseries, predict one value per test datapoint. There may be dupes. 
             # Predictions metadata will be in a dataframe or in the .obs of an AnnData; see docs for grn.predict().
             predictions       = None
             predictions_train = None
             if conditions.loc[i, "type_of_split"] == "timeseries":
                 tcp = ['timepoint', 'cell_type', 'perturbation']
-                predictions_metadata       = perturbed_expression_data_heldout_i.obs[tcp + ["expression_level_after_perturbation"]].groupby(tcp).mean()
-                predictions_train_metadata = perturbed_expression_data_train_i.obs[  tcp + ["expression_level_after_perturbation"]].groupby(tcp).mean()
-                predictions_metadata = predictions_metadata.reset_index()
-                predictions_train_metadata = predictions_train_metadata.reset_index()
+                predictions_metadata       = perturbed_expression_data_heldout_i.obs[tcp + ["expression_level_after_perturbation"]].groupby(tcp).mean().reset_index()
+                predictions_train_metadata = perturbed_expression_data_train_i.obs[  tcp + ["expression_level_after_perturbation"]].groupby(tcp).mean().reset_index()
                 assert conditions.loc[i, "starting_expression"] == "control", "cannot currently reveal test data when doing time-series benchmarks"
             else:
                 if conditions.loc[i, "starting_expression"] == "control":
@@ -202,22 +205,26 @@ for i in conditions.index:
                 prediction_timescale = conditions.loc[i,"prediction_timescale"] if metadata["expand_prediction_timescale"] else metadata["prediction_timescale"], 
                 do_parallel = not args.no_parallel,
             )
-            # We can't always do this given the new default prediction shape for timeseries experiments. For backwards compatibility we still try. 
-            try:
-                predictions.obs.index = perturbed_expression_data_heldout_i.obs.index.copy()
-            except ValueError as e:
-                pass
+            # Check output shape
+            if conditions.loc[i, "type_of_split"] == "timeseries":
+                assert predictions.shape == perturbed_expression_data_heldout_i.shape, f"There should be one prediction for each observation in the test data. Got {predictions.shape[0]}, expected {perturbed_expression_data_heldout_i.shape[0]}."
+            else:
+                tcp = ['timepoint', 'cell_type', 'perturbation']
+                expected_num_cells = perturbed_expression_data_heldout_i.obs[tcp + ["expression_level_after_perturbation"]].groupby(tcp).mean().reset_index().shape[0]
+                assert predictions.shape[0] == expected_num_cells, f"There should be one prediction per cell type, timepoint, and perturbation. Got {predictions.shape[0]}, expected {expected_num_cells}."
+
             # Sometimes AnnData has trouble saving pandas bool columns and sets, and they aren't needed here anyway.
             try:
                 del predictions.obs["is_control"] 
                 del predictions.obs["is_treatment"] 
-                predictions.uns["perturbed_and_measured_genes"] = list(predictions.uns["perturbed_and_measured_genes"])
+                predictions.uns["perturbed_and_measured_genes"]     = list(predictions.uns["perturbed_and_measured_genes"])
                 predictions.uns["perturbed_but_not_measured_genes"] = list(predictions.uns["perturbed_but_not_measured_genes"])
             except KeyError as e:
                 pass
             print("Saving predictions...")
             experimenter.safe_save_adata( predictions, h5ad )
             del predictions
+            
             if args.save_trainset_predictions:
                 fitted_values = grn.predict(
                     predictions_metadata = predictions_train_metadata,
@@ -227,7 +234,6 @@ for i in conditions.index:
                     do_parallel = not args.no_parallel,
                 )
                 fitted_values.obs.index = perturbed_expression_data_train_i.obs.index.copy()
-                # Sometimes AnnData has trouble saving pandas bool columns, and they aren't needed here anyway.
                 experimenter.safe_save_adata( fitted_values, h5ad_fitted )
             print("... done.", flush = True)
             del grn
@@ -242,22 +248,24 @@ if args.amount_to_do in {"models", "missing_models", "evaluations"}:
         fitted_values = {i:sc.read_h5ad( os.path.join(outputs, "fitted_values", str(i) + ".h5ad" ), backed='r' ) for i in conditions.index}
     except FileNotFoundError:
         fitted_values = None
-    print("Checking sizes: ", flush = True)
-    for i in conditions.index:
-        print(f"- {i}", flush=True)
-        perturbed_expression_data_train_i, perturbed_expression_data_heldout_i = get_current_data_split(i)
-        try:
-            assert predictions[i].shape[0]==perturbed_expression_data_heldout_i.shape[0]
-        except AssertionError:
-            print(f"Object shapes for condition {i}: (observed, predicted):", flush = True)
-            print((predictions[i].shape, perturbed_expression_data_heldout_i.shape), flush = True)
-            raise AssertionError("Predicted and observed anndata are different shapes.")
-        assert all(
-                    np.sort(predictions[i].obs_names) == np.sort(perturbed_expression_data_heldout_i.obs_names)
-                ), f"For condition {i}, set of observations is different between observed and predicted."        
-        del perturbed_expression_data_train_i
-        del perturbed_expression_data_heldout_i
-        gc.collect()
+    # Check sizes before running all evaluations because it helps catch errors sooner.
+    if conditions.loc[i, "type_of_split"] != "timeseries":
+        print("Checking sizes: ", flush = True)
+        for i in conditions.index:
+            print(f"- {i}", flush=True)
+            perturbed_expression_data_train_i, perturbed_expression_data_heldout_i = get_current_data_split(i)
+            try:
+                assert predictions[i].shape[0]==perturbed_expression_data_heldout_i.shape[0]
+            except AssertionError:
+                print(f"Object shapes for condition {i}: (observed, predicted):", flush = True)
+                print((predictions[i].shape, perturbed_expression_data_heldout_i.shape), flush = True)
+                raise AssertionError("Predicted and observed anndata are different shapes.")
+            assert all(
+                        np.sort(predictions[i].obs_names) == np.sort(perturbed_expression_data_heldout_i.obs_names)
+                    ), f"For condition {i}, set of observations is different between observed and predicted."        
+            del perturbed_expression_data_train_i
+            del perturbed_expression_data_heldout_i
+            gc.collect()
     
     print("(Re)doing evaluations")
     evaluationPerPert, evaluationPerTarget = evaluator.evaluateCausalModel(

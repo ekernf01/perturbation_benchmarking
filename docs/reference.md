@@ -15,11 +15,11 @@ To run the experiment specified by `experiments/1.0_0/metadata.json`, we would d
 ```bash
 cd perturbation_benchmarking
 conda activate ggrn
-python do_one_experiment.py --experiment_name 1.0_0 --amount_to_do missing_models --save_trainset_predictions \
+pereggrn --experiment_name 1.0_0 --amount_to_do missing_models --save_trainset_predictions \
     > experiments/1.0_0/stdout.txt 2> experiments/1.0_0/err.txt
 ```
 
-To see the reference manual describing the flags used in that call, run `python do_one_experiment.py -h`.
+To see the reference manual describing the flags used in that call, run `pereggrn -h`.
 
 ### Metadata specifying an experiment
 
