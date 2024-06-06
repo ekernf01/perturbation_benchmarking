@@ -18,9 +18,8 @@ source "${HOME}/mambaforge/etc/profile.d/conda.sh"
 # If you have a GPU, you can use conda_list_explicit_gpu.txt.
 mamba create --name ggrn --file perturbation_benchmarking/environment/conda_list_explicit.txt
 conda activate ggrn
-pip install vl-convert-python
-# Avoid interfering with gimmemotifs 0.17 or with the PyTorch install by using --no-deps
-# The deps should be taken care of by the above. 
+# Why --no-deps? Makes sure every version is pinned explicitly and is compatible with the other packages.
+pip install vl-convert-python==1.4.0 --no-deps
 pip install git+https://github.com/snap-stanford/GEARS@df09d7a --no-deps
 # PRESCIENT and CO are now used thru docker, but I am leaving this alone for backwards compatibiliy. 
 pip install celloracle==0.12.0 --no-deps
@@ -30,10 +29,10 @@ pip install git+https://huggingface.co/ctheodoris/Geneformer@50e921d --no-deps
 pip install git+https://github.com/bowang-lab/scFormer@2df344a --no-deps
 pip install 'scib>=1.0.3' --no-deps
 pip install biomart --no-deps
-pip install ray[tune]==2.6.2
-pip install scrublet --no-deps
-pip install pot --no-deps
-pip install wot --no-deps
+pip install ray[tune]==2.6.2 --no-deps
+pip install scrublet==0.2.3 --no-deps
+pip install pot==0.9.3 --no-deps
+pip install wot==1.0.8.post2 --no-deps
 
 # Install our packages
 for p in pereggrn_networks pereggrn_perturbations pereggrn ggrn ggrn_backend2 geneformer_embeddings 

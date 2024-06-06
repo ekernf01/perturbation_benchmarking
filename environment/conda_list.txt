@@ -143,7 +143,6 @@ gflags                    2.2.2             he1b5a44_1004    conda-forge
 gfortran_impl_linux-64    13.1.0               hd511a9b_0    conda-forge
 ggrn                      0.0.1                     dev_0    <develop>
 ggrn-backend2             0.0.1                     dev_0    <develop>
-ggrn-backend3             0.0.4                     dev_0    <develop>
 ghostscript               9.54.0               h27087fc_2    conda-forge
 giflib                    5.2.1                h0b41bf4_3    conda-forge
 gimmemotifs               0.18.0               h9ee0642_4    bioconda
@@ -305,8 +304,6 @@ libxslt                   1.1.37               h873f0b0_0    conda-forge
 libzlib                   1.2.13               hd590300_5    conda-forge
 lightning-utilities       0.9.0              pyhd8ed1ab_0    conda-forge
 llvmlite                  0.40.1           py39h174d805_0    conda-forge
-load-networks             0.0.1                     dev_0    <develop>
-load-perturbations        0.0.1                     dev_0    <develop>
 logomaker                 0.8                pyh864c0ab_1    bioconda
 loguru                    0.7.0            py39hf3d152e_0    conda-forge
 loompy                    3.0.6                      py_0    conda-forge
@@ -332,7 +329,6 @@ mpfr                      4.2.0                hb012696_0    conda-forge
 mpg123                    1.31.3               hcb278e6_0    conda-forge
 mpi                       1.0                     openmpi    conda-forge
 mpmath                    1.3.0              pyhd8ed1ab_0    conda-forge
-msgpack                   1.0.7                    pypi_0    pypi
 multidict                 6.0.4            py39h72bdee0_0    conda-forge
 multiprocess              0.70.15          py39hd1e30aa_0    conda-forge
 munkres                   1.1.4              pyh9f0ad1d_0    conda-forge
@@ -382,6 +378,9 @@ parso                     0.8.3              pyhd8ed1ab_0    conda-forge
 pathtools                 0.1.2                      py_1    conda-forge
 patsy                     0.5.3              pyhd8ed1ab_0    conda-forge
 pcre2                     10.40                hc3806b6_0    conda-forge
+pereggrn                  0.0.1                     dev_0    <develop>
+pereggrn-networks         0.0.1                     dev_0    <develop>
+pereggrn-perturbations    0.0.1                     dev_0    <develop>
 perl                      5.32.1          4_hd590300_perl5    conda-forge
 perl-algorithm-cluster    1.59            pl5321h031d066_3    bioconda
 perl-base                 2.23            pl5321hd8ed1ab_0    conda-forge
@@ -443,7 +442,6 @@ perl-xml-sax-base         1.09            pl5321hd8ed1ab_0    conda-forge
 perl-xml-sax-expat        0.51            pl5321hd8ed1ab_0    conda-forge
 perl-xml-simple           2.25            pl5321hdfd78af_2    bioconda
 perl-yaml                 1.30            pl5321hdfd78af_0    bioconda
-perturbation-benchmarking-package 0.0.1                     dev_0    <develop>
 pexpect                   4.8.0              pyh1a96a4e_2    conda-forge
 pickleshare               0.7.5                   py_1003    conda-forge
 pillow                    9.2.0            py39hf3a2cdf_3    conda-forge
@@ -454,6 +452,7 @@ platformdirs              3.10.0             pyhd8ed1ab_0    conda-forge
 ply                       3.11                       py_1    conda-forge
 pooch                     1.7.0              pyha770c72_3    conda-forge
 portpicker                1.5.2              pyhd8ed1ab_0    conda-forge
+pot                       0.9.3                    pypi_0    pypi
 prescient                 0.1.0                    pypi_0    pypi
 prometheus_client         0.17.1             pyhd8ed1ab_0    conda-forge
 prompt-toolkit            3.0.39             pyha770c72_0    conda-forge
@@ -535,11 +534,11 @@ safetensors               0.3.2            py39h9fdd4d6_0    conda-forge
 samtools                  1.17                 hd87286a_1    bioconda
 scanpy                    1.9.3              pyhd8ed1ab_0    conda-forge
 scformer                  0.1.0                    pypi_0    pypi
-scformer-perturb          0.0.1                     dev_0    <develop>
-scib                      1.1.4                    pypi_0    pypi
+scib                      1.1.5                    pypi_0    pypi
 scikit-learn              1.3.0            py39hc236052_0    conda-forge
 scikit-misc               0.1.4            py39hc77b598_4    conda-forge
 scipy                     1.11.1           py39h6183b62_0    conda-forge
+scrublet                  0.2.3                    pypi_0    pypi
 seaborn                   0.12.2               hd8ed1ab_0    conda-forge
 seaborn-base              0.12.2             pyhd8ed1ab_0    conda-forge
 sed                       4.8                  he412f7d_0    conda-forge
@@ -566,7 +565,6 @@ tbb                       2021.9.0             hf52228f_0    conda-forge
 tensorboard               2.4.0              pyhc547734_0  
 tensorboard-data-server   0.7.0            py39h52d8a92_0  
 tensorboard-plugin-wit    1.8.1              pyhd8ed1ab_0    conda-forge
-tensorboardx              2.6.2.2                  pypi_0    pypi
 terminado                 0.17.1             pyh41d4057_0    conda-forge
 texttable                 1.6.7              pyhd8ed1ab_0    conda-forge
 threadpoolctl             3.2.0              pyha21a80b_0    conda-forge
@@ -607,7 +605,7 @@ urllib3                   2.0.4              pyhd8ed1ab_0    conda-forge
 vega-cli                  5.22.1               h60ca588_1    conda-forge
 vega-lite-cli             5.6.0                he2f69ee_1    conda-forge
 velocyto.py               0.17.17          py39hec7c8de_6    bioconda
-vl-convert-python         0.11.2                   pypi_0    pypi
+vl-convert-python         1.4.0                    pypi_0    pypi
 wandb                     0.15.8             pyhd8ed1ab_0    conda-forge
 wcwidth                   0.2.6              pyhd8ed1ab_0    conda-forge
 webcolors                 1.13               pyhd8ed1ab_0    conda-forge
@@ -618,6 +616,7 @@ werkzeug                  2.3.6              pyhd8ed1ab_0    conda-forge
 wget                      1.20.3               ha56f1ee_1    conda-forge
 wheel                     0.41.1             pyhd8ed1ab_0    conda-forge
 widgetsnbextension        4.0.8              pyhd8ed1ab_0    conda-forge
+wot                       1.0.8.post2              pypi_0    pypi
 wrapt                     1.15.0           py39h72bdee0_0    conda-forge
 xcb-util                  0.4.0                h516909a_0    conda-forge
 xcb-util-image            0.4.0                h166bdaf_0    conda-forge
