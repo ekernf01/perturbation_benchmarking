@@ -28,7 +28,8 @@ pip install geomloss==0.2.3    --no-deps
 pip install git+https://huggingface.co/ctheodoris/Geneformer@50e921d --no-deps
 pip install git+https://github.com/bowang-lab/scFormer@2df344a --no-deps
 pip install 'scib>=1.0.3' --no-deps
-pip install biomart --no-deps
+pip install biomart==0.9.2 --no-deps
+pip install msgpack==1.0.8 --no-deps
 pip install ray[tune]==2.6.2 --no-deps
 pip install scrublet==0.2.3 --no-deps
 pip install pot==0.9.3 --no-deps
