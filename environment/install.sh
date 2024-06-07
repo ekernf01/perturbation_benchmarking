@@ -32,6 +32,8 @@ pip install 'scib>=1.0.3' --no-deps
 pip install biomart --no-deps
 pip install ray[tune]==2.6.2
 pip install scrublet --no-deps
+pip install pot --no-deps
+pip install wot --no-deps
 
 # Install our packages
 for p in pereggrn_networks pereggrn_perturbations pereggrn ggrn ggrn_backend2 geneformer_embeddings 

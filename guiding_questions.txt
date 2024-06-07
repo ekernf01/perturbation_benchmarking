@@ -4,7 +4,7 @@ We wanted experiment identifiers to be concise, stable, and informative. To help
     1.0. How important is the specific choice of ML method (e.g. ridge regression, LASSO, kernel regression, neural nets, boosted trees/random forests)?
     1.1. How dense are the network structures that best predict expression following new perturbations?
         1.1.1. How harshly should we prune features?
-        1.1.2 Should we allow non-TF regulators?
+        1.1.2. Should we allow non-TF regulators?
     1.2. How does handling of time affect performance? 
          1.2.1. For dynamic models, is RNA velocity better or worse than modeling based on sample collection time?
          1.2.2. Is it better to match each treatment to the nearest control (estimating total effects), or match each treatment to itself and assume steady state (estimating direct effects)? Is it better to predict results after a single iteration of the model, or a few, or many (steady state)? How do these decisions interact?
@@ -20,6 +20,8 @@ We wanted experiment identifiers to be concise, stable, and informative. To help
         1.4.4. Even if we can't get quantitative fold estimates, do networks predict which genes will change and which stay the same?
         1.4.5. Given gene expression, do existing networks predict which genes were perturbed (DoRothEA copycat)?
     1.5. How do existing methods compare on common tasks?
+        1.5.1. How do CellOracle, scKinetics, Dictys, PRESCIENT, RNAForecaster, and simple baselines compare?
+        1.5.2. How does OneSC perform in systematic tests?
     1.6. What method of imposing low-rank structure works best, if any?
         1.6.1. Does DCD-FG work?
         1.6.2. Leaving aside causal inference or held-out perturbations, does low-rank structure also help learn fold changes for perturbations, as in FR-Perturb?

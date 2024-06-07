@@ -9,18 +9,27 @@
     "factor_varied": "data_split_seed",
     "type_of_split": "timeseries",
     "eligible_regulators": "human_tfs",
-    "num_genes": 3000,
+    "num_genes": 2000,
     "expand": "ladder",
     "regression_method": [ 
         "median", 
         "mean", 
         "RidgeCV",
+        "timeseries_baseline",
         "docker____ekernf01/ggrn_docker_backend_celloracle",
-        "docker____ekernf01/ggrn_docker_backend_prescient"
+        "docker____ekernf01/ggrn_docker_backend_prescient",
+        "docker____ekernf01/ggrn_docker_backend_sckinetics",
+        "docker____ekernf01/ggrn_docker_backend_dictys"
     ],
-    "pruning_parameter": [null, null, null, 2000, null],
-    "network_datasets": {
+    "low_dimensional_structure": [null, null, null,  null,   null, null, null, null],
+    "low_dimensional_training":  [null, null, null,  null,   null, null, null, null],
+    "low_dimensional_value":     [null, null, null,  null,   null, null, null, null],
+    "prediction_timescale": [0,1,2,3,4],
+    "expand_predicion_timescale": false,
+    "network_datasets": { 
         "celloracle_human":{}
     },
     "perturbation_dataset": "fantom4"
 }
+
+

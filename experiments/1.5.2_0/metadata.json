@@ -1,0 +1,22 @@
+{
+    "unique_id": "1.5.2_0",
+    "nickname": "onesc",
+    "readme": "This experiment allows colleagues in the Cahan Lab to systematically test a new method called oneSC.",
+    "question": "1.8.1",
+    "is_active": true,
+    "facet_by": null,
+    "color_by": "regression_method",
+    "factor_varied": "regression_method",
+    "type_of_split": "timeseries",
+    "eligible_regulators": "all",
+    "matching_method": "optimal_transport",
+    "num_genes": 50,
+    "expand": "ladder",
+    "regression_method": [ 
+        "docker____ekernf01/ggrn_docker_backend_timeseries_baseline",
+        "docker____ekernf01/ggrn_docker_backend_onesc"
+    ],
+    "prediction_timescale": [1, 2, 3, 4, 5, 10, 100, 1000],
+    "expand_prediction_timescale": false,
+    "perturbation_dataset": "definitive_endoderm"
+}

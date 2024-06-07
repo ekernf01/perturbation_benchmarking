@@ -26,7 +26,7 @@
 In an ideal scenario, each method would make specific and literal predictions of the form, "Starting from cell type $A$ and timepoint $T_1$ in the training data, we alter the dosage of gene $G$ to a value of $E$, and then we run the model forward a number of steps $S$, yielding a prediction expression vector of $X$ at time $T_2$." Realistically, this will not happen for a few reasons. 
 
 - Modeling: 
-    - Among the models we test, only PRESCIENT's timescale can be interpreted so straightforwardly. scKINETICS and CellOracle's timescales are not calibrated, meaning it is unclear how long a single forward step of the model takes.
+    - Among the models we test, only PRESCIENT's timescale can be interpreted so straightforwardly. scKINETICS and CellOracle's timescales are not calibrated, meaning it is unclear how long a single forward step of the model takes. Dictys makes steady-state predictions.
     - Some models, notably CellOracle and PRESCIENT, are not meant to be interpreted gene by gene. They advertise only the ability to predict low-dimensional summaries of cell state, like cluster labels or PCA embeddings. 
 - Data:
     - Timeseries and perturbation datasets usually have batch effects, making the quantitative expression levels not comparable. Sometimes the source of the effect is known: for example, in the definitive endoderm data, the timeseries data are from methanol-fixed cells and the perturb-seq from live cells. Other times, e.g. BETS, the source is not known but unsupervised analysis raises red flags.
@@ -56,3 +56,15 @@ The default behavior should be to:
 - Evaluate predictions after different numbers of time-steps separately, even if they are returned inside the same AnnData object. 
 
 Special behavior should be allowed for scenarios where there is a block in differentiation, as in the SMAD2 knockdown endoderm data. A typical successful evaluation might show the largest TF activity or backwards velocity not in the final cell state that is never reached, but rather in some earlier intermediate. I do not know how to automate this right now, and I might resort to manually evaluating summary plots of the predictions.
+
+#### Baseline methods
+
+For the previous part of the project, an important component of the results came from using non-informative baselines, e.g. predicting the median of the training data or using the empty network for network-based feature selection. What are some simple or non-informative baselines for prediction of a knockout of gene $G$ at time $t+1$ starting the simulation from time $t$?
+
+- return $X_t$ (no development)
+    - We could probably implement this via the existing autoregressive backend. It roughly does X = X_0 + BX_0, and we can just set B=0 via an empty network, a high penalty param, or a rank-0 matrix. But does any of these options not choke the software???
+- return $X_{t+1}$ (development not affected by KO)
+    - Does this require a new backend, like a matching-only backend?? Does it assume matching has been done?? Do we need to redo the fantom4 or A549 preprocessing to include matching?
+- linear autoregressive models from the autoregressive backend
+
+These are implemented via the ggrn `timeseries_baseline` docker backend.
