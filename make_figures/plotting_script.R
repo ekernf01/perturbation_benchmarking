@@ -16,9 +16,15 @@ main_experiments = c("1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1.0
 
 
 {
-  X = collect_experiments(main_experiments[c(1,2,3,6, 10,11,12,15)]) %>% make_the_usual_labels_nice
+  X = collect_experiments(main_experiments[c(1:9)]) %>% make_the_usual_labels_nice
   plot_one_metric(X, compare_across_rows = T) 
-  ggsave('plots/ismb_app.pdf', width = 8, height = 10)
+  ggsave('plots/fig_ismb_poster1.svg', width = 4, height = 8)
+}
+
+{
+  X = collect_experiments(main_experiments[c(10:18)]) %>% make_the_usual_labels_nice
+  plot_one_metric(X, compare_across_rows = T) 
+  ggsave('plots/fig_ismb_poster2.svg', width = 4, height = 8)
 }
 
 {
@@ -185,8 +191,8 @@ main_experiments = c("1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1.0
 
 # DCD-FG
 {
-  X = collect_experiments(c("1.6.1_1", "1.6.1_3", "1.6.1_6",  "1.6.1_7", "1.6.1_16", "1.6.1_2",
-                            "1.6.1_10", "1.6.1_11", "1.6.1_12", "1.6.1_13", "1.6.1_14", "1.6.1_15", "1.6.1_16"))
+  X = collect_experiments(c("1.6.1_1", "1.6.1_3", "1.6.1_6",  "1.6.1_7", "1.6.1_2",
+                            "1.6.1_10",  "1.6.1_12", "1.6.1_13", "1.6.1_14", "1.6.1_15", "1.6.1_16"))
   X <- X %>% mutate(chart_x = paste(regression_method, starting_expression, sep = "_"))
   method_tidy = c(
     "DCDFG-spectral_radius-mlplr-False"="DCD-FG" ,
@@ -202,69 +208,7 @@ main_experiments = c("1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1.0
   X$x = X$regression_method
   heatmap_all_metrics(X, facet2 = "perturbation_dataset", facet1 = "starting_expression", compare_across_rows = F)
   dir.create("plots", showWarnings = FALSE)
-  ggsave(filename = paste0("plots/fig_dcdfg.pdf"), width = 12, height = 4)
-}
-
-# Exact repeat of a DCD-FG experiment
-{
-  X = collect_experiments(c("1.6.1_15", "1.6.1_19"))
-  X <- X %>% mutate(chart_x = paste(regression_method, starting_expression, sep = "_"))
-  method_tidy = c(
-    "DCDFG-spectral_radius-mlplr-False"="DCD-FG" ,
-    "median"  = "median",                              
-    "DCDFG-spectral_radius-linearlr-False"="NOTEARS-LR",
-    "mean"  = "mean"   
-  ) 
-  X$regression_method = method_tidy[X$regression_method] %>% factor(levels = c("median", "mean", "NOTEARS-LR", "DCD-FG"))
-  X$perturbation_dataset %<>% gsub("γ", "g", .)
-  X %<>% make_the_usual_labels_nice()
-  my_levels = unique(c("frangieh\nIFNg v1", "frangieh\nIFNg v2", "frangieh\nIFNg v3", "nakatake", "nakatake\nscrna\nsimulated", X$perturbation_dataset))
-  X$perturbation_dataset %<>% factor(levels = my_levels)
-  X$x = X$regression_method
-  heatmap_all_metrics(X, facet2 = "unique_id", facet1 = "starting_expression", compare_across_rows = F)
-  ggsave(filename = paste0("plots/fig_dcdfg_repeat.pdf"), width = 6, height = 3)
-}
-
-{
-  X = collect_experiments(c("1.6.1_17"))
-  X <- X %>% mutate(chart_x = paste(regression_method, starting_expression, sep = "_"))
-  method_tidy = c(
-    "DCDFG-spectral_radius-mlplr-False"="DCD-FG" ,
-    "median"  = "median",                              
-    "DCDFG-spectral_radius-linearlr-False"="NOTEARS-LR",
-    "mean"  = "mean"   
-  ) 
-  X$regression_method = method_tidy[X$regression_method] %>% factor(levels = c("median", "mean", "NOTEARS-LR", "DCD-FG"))
-  X$perturbation_dataset %<>% gsub("γ", "g", .)
-  X %<>% make_the_usual_labels_nice()
-  my_levels = unique(c("frangieh\nIFNg v1", "frangieh\nIFNg v2", "frangieh\nIFNg v3", "nakatake", "nakatake\nscrna\nsimulated", X$perturbation_dataset))
-  X$perturbation_dataset %<>% factor(levels = my_levels)
-  X$x = X$regression_method
-  heatmap_all_metrics(X, facet1 = "perturbation_dataset", facet2 = "data_split_seed", compare_across_rows = F)
-  dir.create("plots", showWarnings = FALSE)
-  ggsave(filename = paste0("plots/fig_dcdfg_followup.pdf"), width = 6, height = 3)
-}
-
-{
-  X = collect_experiments(c("1.6.1_18"))
-  X <- X %>% mutate(chart_x = paste(regression_method, starting_expression, sep = "_"))
-  method_tidy = c(
-    "DCDFG-spectral_radius-mlplr-False"="DCD-FG" ,
-    "median"  = "median",                              
-    "DCDFG-spectral_radius-linearlr-False"="NOTEARS-LR",
-    "mean"  = "mean"   
-  ) 
-  X$regression_method = method_tidy[X$regression_method]
-  X$regression_method %<>% paste(formatC(X$pruning_parameter, format = "e", digits = 0)) 
-  X$regression_method %<>% factor(levels = rev(gtools::mixedsort(unique(X$regression_method))))
-  X$perturbation_dataset %<>% gsub("γ", "g", .)
-  X %<>% make_the_usual_labels_nice()
-  my_levels = unique(c("frangieh\nIFNg v1", "frangieh\nIFNg v2", "frangieh\nIFNg v3", "nakatake", "nakatake\nscrna\nsimulated", X$perturbation_dataset))
-  X$perturbation_dataset %<>% factor(levels = my_levels)
-  X$x = X$regression_method
-  heatmap_all_metrics(X, facet1 = "perturbation_dataset", facet2 = "data_split_seed", compare_across_rows = F)
-  dir.create("plots", showWarnings = FALSE)
-  ggsave(filename = paste0("plots/fig_dcdfg_tuning.pdf"), width = 6, height = 3)
+  ggsave(filename = paste0("plots/fig_dcdfg.pdf"), width = 10, height = 4)
 }
 
 # networks-only

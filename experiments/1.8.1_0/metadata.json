@@ -15,17 +15,30 @@
         "median", 
         "mean", 
         "RidgeCV",
-        "timeseries_baseline",
-        "docker____ekernf01/ggrn_docker_backend_celloracle",
-        "docker____ekernf01/ggrn_docker_backend_prescient",
+
         "docker____ekernf01/ggrn_docker_backend_sckinetics",
-        "docker____ekernf01/ggrn_docker_backend_dictys"
+        "docker____ekernf01/ggrn_docker_backend_dictys",
+
+        "docker____ekernf01/ggrn_docker_backend_celloracle",
+        "docker____ekernf01/ggrn_docker_backend_celloracle",
+        "docker____ekernf01/ggrn_docker_backend_celloracle",
+        "docker____ekernf01/ggrn_docker_backend_celloracle",
+        "docker____ekernf01/ggrn_docker_backend_celloracle",
+
+        "docker____ekernf01/ggrn_docker_backend_prescient",
+        "docker____ekernf01/ggrn_docker_backend_prescient",
+        "docker____ekernf01/ggrn_docker_backend_prescient",
+        "docker____ekernf01/ggrn_docker_backend_prescient",
+        "docker____ekernf01/ggrn_docker_backend_prescient",
+
+        "timeseries_baseline",
+        "timeseries_baseline",
+        "timeseries_baseline",
+        "timeseries_baseline",
+        "timeseries_baseline"
     ],
-    "low_dimensional_structure": [null, null, null,  null,   null, null, null, null],
-    "low_dimensional_training":  [null, null, null,  null,   null, null, null, null],
-    "low_dimensional_value":     [null, null, null,  null,   null, null, null, null],
-    "prediction_timescale": [0,1,2,3,4],
-    "expand_predicion_timescale": false,
+    "prediction_timescale": [1,1,1,  1,1,  1,2,3,5,10,  1,2,3,4,5,  1,2,3,4,5],
+    "expand_prediction_timescale": true,
     "network_datasets": { 
         "celloracle_human":{}
     },
