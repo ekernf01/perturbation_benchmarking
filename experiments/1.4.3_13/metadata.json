@@ -1,0 +1,10 @@
+{
+    "unique_id": "1.4.3_12",
+    "nickname": "base_network",
+    "readme": "Network experiment but on joung",
+    "question": "1.4.3",
+    "is_active": true,
+    "refers_to": "1.4.3_1", 
+    "perturbation_dataset": "norman"
+}
+

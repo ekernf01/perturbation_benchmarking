@@ -9,9 +9,9 @@ source("plotting_functions.R")
 
 
 # Main experiments; all performance metrics 
-main_experiments = c("1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1.0_7",   "1.0_8",   "1.0_9",   "1.0_10",
-                     "1.4.3_1", "1.4.3_2", "1.4.3_3", "1.4.3_5", "1.4.3_6", "1.4.3_7", "1.4.3_8", "1.4.3_9", "1.4.3_10", 
-                     "1.2.2_1", "1.2.2_2", "1.2.2_3", "1.2.2_5", "1.2.2_6", "1.2.2_7", "1.2.2_8", "1.2.2_9", "1.2.2_10")
+main_experiments = c("1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1.0_7",   "1.0_8",   "1.0_9",   "1.0_10",   "1.0_11",   "1.0_12",
+                     "1.4.3_1", "1.4.3_2", "1.4.3_3", "1.4.3_5", "1.4.3_6", "1.4.3_7", "1.4.3_8", "1.4.3_9", "1.4.3_10", "1.4.3_11", "1.4.3_12", 
+                     "1.2.2_1", "1.2.2_2", "1.2.2_3", "1.2.2_5", "1.2.2_6", "1.2.2_7", "1.2.2_8", "1.2.2_9", "1.2.2_10", "1.2.2_11", "1.2.2_12")
 
 
 
@@ -22,7 +22,7 @@ main_experiments = c("1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1.0
 }
 
 {
-  X = collect_experiments(main_experiments[c(10:18)]) %>% make_the_usual_labels_nice
+  X = collect_experiments(main_experiments[c(12:20)]) %>% make_the_usual_labels_nice
   plot_one_metric(X, compare_across_rows = T) 
   ggsave('plots/fig_ismb_poster2.svg', width = 4, height = 8)
 }
@@ -58,12 +58,25 @@ main_experiments = c("1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1.0
     group_by(perturbation_dataset, property_of_gene, quintile) %>%
     dplyr::mutate(
       beats_baselines = check_if_beats_baselines(mae, x), 
-        mae_relative_reduction = percent_change_from_best(mae, x), 
+        mae_relative_reduction = percent_change_from_best(mae), 
     ) %>% 
     subset(beats_baselines) %>% 
     arrange(-mae_relative_reduction)
   long_data %>% write.csv("plots/fig_basics_stratify_targets.csv")
-  
+  long_data %>% 
+    extract(c("property_of_gene", "quintile")) %>% 
+    table %>% 
+    as.data.frame %>% 
+    arrange(-Freq) %>% 
+    subset(Freq>0) %>%
+    write.csv('plots/fig_basics_stratify_targets_summary.csv')
+  long_data %>%
+    extract(c("perturbation_dataset")) %>%
+    table %>%
+    as.data.frame %>%
+    arrange(-Freq) %>%
+    subset(Freq>0) %>%
+    write.csv('plots/fig_basics_stratify_targets_summary2.csv')
   # Breakdown by perturbed gene
   evaluationPerPert = collect_experiments(main_experiments, stratify_by_pert = T)
   long_data <- evaluationPerPert %>% 
@@ -89,18 +102,11 @@ main_experiments = c("1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1.0
     group_by(perturbation_dataset, property_of_gene, quintile) %>%
     dplyr::mutate(
       beats_baselines = check_if_beats_baselines(mae, x), 
-      mae_relative_reduction = percent_change_from_best(mae, x), 
+      mae_relative_reduction = percent_change_from_best(mae), 
     ) %>% 
     subset(mae_relative_reduction > 0.05) %>% 
     arrange(-mae_relative_reduction)                         
   long_data %>% write.csv('plots/fig_basics_stratify_perts.csv')
-  long_data %>% 
-    extract(c("property_of_gene", "quintile")) %>% 
-    table %>% 
-    as.data.frame %>% 
-    arrange(-Freq) %>% 
-    subset(Freq>0) %>%
-    write.csv('plots/fig_basics_stratify_perts_summary.csv')
 }
 
 # Simulations
