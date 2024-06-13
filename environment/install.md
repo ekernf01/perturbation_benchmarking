@@ -18,14 +18,14 @@ source perturbation_benchmarking/environment/install_minimal.sh
 Some notes:
 
 - If the data download doesn't work with `curl`, you can easily rephrase it to use `wget` instead, or you can download the data manually from a web browser.
-- We require git and mamba to be installed already. Install mamba using the [official instructions](https://mamba.readthedocs.io/en/latest/installation.html).
+- We require git and mamba to be installed already. Install mamba using the official instructions.
 - This install code is written in bash. On a Mac, the default shell is zsh, and you may need to run a bash shell (just type `bash`) for everything to work. On Windows, we are only beginning to test these instructions. Some of the major differences:
     - bash commands will not work in PowerShell. The Windows Subsystem for Linux may be a good alternative.
     - conda configuration may work differently. 
 
 ### Exact install
 
-To reproduce our computing environment exactly, you need a bash shell on a clean Ubuntu 20.04 box. We recommend using AWS. Use these commands. This will install mamba and many python packages, and they will download about 20Gb of data from Zenodo.
+To reproduce our computing environment exactly, you can start with a bash shell on a clean linux box (we have tested Rocky Linux release 8.8, Ubuntu 20.04, and Ubuntu 22.04). Use these commands. This will install mamba and many python packages, and they will download about 20Gb of data from Zenodo.
 
 ```bash
 git clone https://github.com/ekernf01/perturbation_benchmarking
@@ -34,7 +34,7 @@ source perturbation_benchmarking/environment/install.sh
 
 ### GPU install
 
-We recommend you use the exact or minimal install above; activate the `ggrn` environment; and then install a gpu version PyTorch `2.x.x`.
+We recommend you use the exact or minimal install above; activate the `ggrn` environment; and then install a gpu version of PyTorch `2.x.x`.
 
 ### How to check the installation
 
@@ -54,6 +54,6 @@ You can test your installation by running this.
 ```bash
 cd perturbation_benchmarking
 conda activate ggrn
-python do_one_experiment.py -h # see the help page
-python do_one_experiment.py --experiment_name "1.0_0" --amount_to_do models --no_skip_bad_runs # Run a simple benchmark
+pereggrn -h # see the help page
+pereggrn --experiment_name "1.0_0" --amount_to_do models --no_skip_bad_runs # Run a simple benchmark
 ```

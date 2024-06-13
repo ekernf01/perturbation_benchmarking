@@ -42,4 +42,8 @@ do
     pip install -e $p --no-deps 
 done
 
-echo "The package installation has finished, but the data download and unzip may still be running in the background."
+echo "The package installation has finished, but the data download and unzip may still be running in the background, so it may not work right away."
+echo "Test your installation:"
+echo "    conda activate ggrn"
+echo "    pereggrn -h # see the help page"
+echo "    pereggrn --experiment_name '1.0_0' --amount_to_do models --no_skip_bad_runs # Run a simple benchmark "
