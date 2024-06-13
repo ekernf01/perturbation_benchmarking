@@ -1,7 +1,7 @@
 {
     "unique_id": "1.4.3_13",
     "nickname": "base_network",
-    "readme": "Network experiment but on joung",
+    "readme": "Network experiment but on a different dataset",
     "question": "1.4.3",
     "is_active": true,
     "refers_to": "1.4.3_1", 
