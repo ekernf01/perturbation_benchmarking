@@ -7,7 +7,7 @@ pereggrn_perturbations.set_data_path('../../perturbation_data/perturbations')
 import sys 
 import altair as alt
 
-sys.path.append("../../perturbation_data/setup/")
+sys.path.append("../../perturbation_data/setup/") # access our reusable data ingestion code
 import ingestion
 import global_effects
 effects = []
@@ -22,6 +22,7 @@ for dataset in [
     'dixit',
     'adamson',
     'norman',
+    'joung',
 ]:    
     print(dataset)
     adata = pereggrn_perturbations.load_perturbation(dataset)
@@ -50,23 +51,28 @@ for dataset in [
 effects = pd.concat(effects)
 effects = effects.query("~is_control")
 effects = effects.query("logFC != -999")
-
-
+effects["guide"] = 0
+alt.data_transformers.disable_max_rows()
 chart = alt.Chart(effects).transform_density(
     density='logFC',  
-    groupby=['dataset'], 
+    groupby=['dataset', 'perturbation_type'], 
     as_=['logFC', 'density'],  
     extent=[effects['logFC'].min(), effects['logFC'].max()], 
     counts=False  
-).mark_area(opacity=0.5).encode(
+).mark_area(opacity=0.75).encode(
     x=alt.X('logFC:Q', title='logFC'), 
     y=alt.Y('density:Q', title='Density'),
     color='dataset:N'
 ).properties(
     width=280,
-    height=220
+    height=80
 )
-alt.data_transformers.disable_max_rows()
+vline = alt.Chart(effects).mark_rule(color='black').encode(
+    x='guide:Q'
+)
+chart = (chart + vline).facet(
+    row="perturbation_type:N",
+)
 chart.save('plots/fig_effects.svg')
 
 
