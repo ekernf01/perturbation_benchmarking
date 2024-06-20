@@ -27,14 +27,16 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
 
 {
   X = collect_experiments(main_experiments) %>% make_the_usual_labels_nice
-  heatmap_all_metrics(X, compare_across_rows = T) 
+  plot_one_metric(X, compare_across_rows = T, threshold_outliers_at = 1, metric = "mae") 
   ggsave('plots/fig_basics.pdf', width = 8, height = 10)
+  heatmap_all_metrics(X, compare_across_rows = T) 
+  ggsave('plots/fig_basics_supp.pdf', width = 8, height = 10)
 }
 
 # Supplemental tables: stratifying performance by target gene or by perturbed gene
 {
   evaluationPerTarget = collect_experiments(main_experiments, stratify_by_pert = FALSE)
-  long_data <- evaluationPerTarget %>% 
+  aggregated <- evaluationPerTarget %>% 
     subset(type_of_split == "interventional") %>%
     make_the_usual_labels_nice %>% 
     magrittr::extract(c("mae", "factor_varied", "x", "perturbation_dataset", "means", "variances", "variances_norm", 
@@ -53,7 +55,9 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
     group_by(property_of_gene, factor_varied, x, perturbation_dataset, quintile) %>%
     summarise(value = median(value), mae = mean(mae)) %>%
     ungroup() %>%
-    group_by(perturbation_dataset, property_of_gene, quintile) %>%
+    group_by(perturbation_dataset, property_of_gene, quintile) 
+  dim(aggregated) %>% write.csv('plots/fig_basics_stratify_targets_num_groups.csv')
+  long_data = aggregated %>%
     dplyr::mutate(
       beats_baselines = check_if_beats_baselines(mae, x), 
         mae_relative_reduction = percent_change_from_best(mae), 
@@ -77,7 +81,7 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
     write.csv('plots/fig_basics_stratify_targets_summary2.csv')
   # Breakdown by perturbed gene
   evaluationPerPert = collect_experiments(main_experiments, stratify_by_pert = T)
-  long_data <- evaluationPerPert %>% 
+  aggregated = evaluationPerPert %>% 
     subset(type_of_split == "interventional") %>%
     make_the_usual_labels_nice %>% 
     magrittr::extract(c("mae", "factor_varied", "x", "perturbation_dataset",
@@ -95,7 +99,9 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
     group_by(property_of_gene, factor_varied, x, perturbation_dataset) %>%
     mutate(quintile = as.integer(cut(rank(value), breaks = 5))) %>%
     group_by(property_of_gene, factor_varied, x, perturbation_dataset, quintile) %>%
-    summarise(value = median(value), mae = mean(mae)) %>%
+    summarise(value = median(value), mae = mean(mae))
+  dim(aggregated) %>% write.csv('plots/fig_basics_stratify_perts_num_groups.csv')
+  long_data <- aggregated %>%
     ungroup() %>%
     group_by(perturbation_dataset, property_of_gene, quintile) %>%
     dplyr::mutate(

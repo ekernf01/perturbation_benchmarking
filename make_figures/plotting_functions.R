@@ -151,6 +151,9 @@ plot_one_metric = function(
   X = X[ X[[metric]] < threshold_outliers_at, ]
   g = ggplot(X) +
     geom_point(aes_string(x = "x", y = metric)) + 
+    geom_hline(data = subset(X, x %in% c("mean", "median", "empty", "dense")), aes_string(yintercept=metric, color = "x")) +
+    labs(color = "Non-informative\nbaselines") + 
+    xlab("") +
     facet_grid(facet1~facet2, scales = "free") + 
     theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) 
   return(g)
