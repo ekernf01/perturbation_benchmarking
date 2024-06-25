@@ -14,7 +14,7 @@ git clone https://github.com/ekernf01/perturbation_benchmarking
 mamba env create --name ggrn --file perturbation_benchmarking/environment/conda_inputs_minimal.yaml
 conda activate ggrn
 pip install vl-convert-python
-for p in pereggrn_networks pereggrn_perturbations pereggrn ggrn ggrn_backend2 geneformer_embeddings
+for p in pereggrn_networks pereggrn_perturbations ggrn ggrn_backend2 geneformer_embeddings pereggrn
 do
     git clone "https://github.com/ekernf01/${p}"
     pip install -e "${p}" --no-deps 
