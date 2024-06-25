@@ -27,9 +27,12 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
 
 {
   X = collect_experiments(main_experiments) %>% make_the_usual_labels_nice
-  plot_one_metric(X, compare_across_rows = T, threshold_outliers_at = 1, metric = "mae") 
-  ggsave('plots/fig_basics.pdf', width = 8, height = 10)
-  heatmap_all_metrics(X, compare_across_rows = T) 
+  plot_one_metric(X, compare_across_rows = T, threshold_outliers_at = 1, metric = "mae") + 
+    ylab("Mean absolute error") + 
+    theme(legend.position = "bottom") + 
+    scale_y_continuous(breaks=scales::pretty_breaks(n=3))
+  ggsave('plots/fig_basics.svg', width = 8, height = 10)
+  heatmap_all_metrics(X, compare_across_rows = T) + viridis::scale_fill_viridis()
   ggsave('plots/fig_basics_supp.pdf', width = 8, height = 10)
 }
 

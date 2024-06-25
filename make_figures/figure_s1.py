@@ -64,8 +64,8 @@ chart = alt.Chart(effects).transform_density(
     y=alt.Y('density:Q', title='Density'),
     color='dataset:N'
 ).properties(
-    width=280,
-    height=80
+    width=200,
+    height=60
 )
 vline = alt.Chart(effects).mark_rule(color='black').encode(
     x='guide:Q'
@@ -81,7 +81,7 @@ chart = alt.Chart(effects).mark_circle(size=10).encode(
     y=alt.Y('logFCMean:Q', title='Mean absolute logFC, all genes'),
     color=alt.Color('dataset:N') 
 ).properties(
-    width=280,
-    height=220
+    width=200,
+    height=170
 )
 chart.save('plots/fig_effects2.svg')
