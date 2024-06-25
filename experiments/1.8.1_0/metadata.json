@@ -28,7 +28,6 @@
         "1", "1", 
         "1,2,3,5,10",  "1,2,3,4",  "1,2,3,4"
     ],
-    "expand_prediction_timescale": true,
     "network_datasets": { 
         "celloracle_human":{}
     },
