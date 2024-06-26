@@ -1,0 +1,34 @@
+{
+    "unique_id": "singularity_demo",
+    "nickname": "singularity_demo",
+    "readme": "Trying to get backends working with singularity",
+    "question": "1.8.1",
+    "is_active": true,
+    "facet_by": "type_of_split",
+    "color_by": "regression_method",
+    "factor_varied": "data_split_seed",
+    "type_of_split": "timeseries",
+    "eligible_regulators": "human_tfs",
+    "num_genes": 2000,
+    "expand": "ladder",
+    "regression_method": [ 
+
+        "singularity____ekernf01/ggrn_docker_backend_sckinetics",
+        "singularity____ekernf01/ggrn_docker_backend_dictys",
+
+        "singularity____ekernf01/ggrn_docker_backend_celloracle",
+        "singularity____ekernf01/ggrn_docker_backend_timeseries_baseline",
+        "singularity____ekernf01/ggrn_docker_backend_prescient"
+    ],
+    "prediction_timescale": [
+        "1", "1", 
+        "1,2,3,5,10",  "1,2,3,4",  "1,2,3,4"
+    ],
+    "network_datasets": { 
+        "celloracle_human":{}
+    },
+    "matching_method": "optimal_transport",
+    "perturbation_dataset": "definitive_endoderm"
+}
+
+
