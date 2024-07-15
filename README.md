@@ -17,8 +17,8 @@ This project is tightly coupled with our collections of data, our GGRN package f
 - Perturbation data, the network collection, and some accessory data (e.g. a list of TF's) are on Zenodo with DOI `10.5281/zenodo.10436339`.
     - Our code expects each of those three folders to be unzipped and placed adjacent to this repo.
     - Use our [perturbation loader](https://github.com/ekernf01/pereggrn_perturbations) and [network loader](https://github.com/ekernf01/pereggrn_networks) to easily access and validate data from Python.
-- [GGRN](https://github.com/ekernf01/ggrn) offers flexible combination of different features for regulatory network inference.
-- [PEREGGRN](https://github.com/ekernf01/pereggrn) helps conduct the experiments that are specified in this repo.
+- [GGRN](https://github.com/ekernf01/ggrn), the Grammar of Gene Regulatory Networks, offers flexible combination of different features for regulatory network inference.
+- [PEREGGRN](https://github.com/ekernf01/pereggrn), PErturbation Response Evaluation via a Grammar of Gene Regulatory Networks, helps conduct the experiments that are specified in this repo.
 - Certain additional experiments are implemented in [our fork of DCD-FG](https://github.com/ekernf01/dcdfg).
 
 
