@@ -1,4 +1,4 @@
- ## A systematic comparison of computational methods for expression forecasting
+ ## A systematic comparison of computational methods for expression forecasting via PEREGGRN (PErturbation Response Evaluation via a Grammar of Gene Regulatory Networks)
 
 This repo contains benchmark experiments to evaluate various strategies for predicting gene expression after knockout, knockdown, or overexpression. 
 
