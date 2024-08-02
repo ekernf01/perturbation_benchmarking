@@ -1,8 +1,8 @@
 {
-    "unique_id": "1.8.1_0",
+    "unique_id": "1.5.1_0",
     "nickname": "timeseries pilot",
-    "readme": "Our first time-series experiment",
-    "question": "1.8.1",
+    "readme": "Direct comparison of published timeseries methods",
+    "question": "1.5.1",
     "is_active": true,
     "facet_by": "type_of_split",
     "color_by": "regression_method",
@@ -29,7 +29,7 @@
         "1,2,3,5,10",  "1,2,3,4",  "1,2,3,4"
     ],
     "network_datasets": { 
-        "celloracle_human":{}
+        "endoderm":{}
     },
     "matching_method": "optimal_transport",
     "perturbation_dataset": "definitive_endoderm"

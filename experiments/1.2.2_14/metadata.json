@@ -1,0 +1,24 @@
+{
+    "unique_id": "1.2.2_14",
+    "nickname": "matching_and_timescale",
+    "readme": "Testing whether we should use the steady-state assumption or match to controls, and whether we should predict after one, a few, or many time-steps.",
+    "question": "1.2.2",
+    "is_active": true,
+    "eligible_regulators": "human_tfs",
+    "data_split_seed": [0],
+    "type_of_split": "timeseries",
+    "regression_method":[
+        "RidgeCV"
+    ],
+    "matching_method": ["steady_state", "closest", "optimal_transport", "random"],
+    "num_genes": 2000,
+    "prediction_timescale": "1,2,3,10",
+    "factor_varied": "matching_method", 
+    "color_by": "prediction_timescale", 
+    "facet_by": null, 
+    "perturbation_dataset": "definitive_endoderm", 
+    "network_prior": "restrictive",
+    "network_datasets": {
+        "endoderm": { "do_aggregate_subnets": true }
+    }
+}
