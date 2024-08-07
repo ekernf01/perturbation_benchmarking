@@ -1,0 +1,24 @@
+{
+    "unique_id": "1.6.3_0",
+    "nickname": "timeseries low rank",
+    "readme": "Comparison of linear models with full-rank and low-rank transition matrices",
+    "question": "1.6.3",
+    "is_active": true,
+    "facet_by": "type_of_split",
+    "color_by": "regression_method",
+    "factor_varied": "data_split_seed",
+    "type_of_split": "timeseries",
+    "eligible_regulators": "human_tfs",
+    "num_genes": 2000,
+    "expand": "ladder",
+    "regression_method": [ 
+        "autoregressive"
+    ],
+    "prediction_timescale": [
+        "1,2,3,4"
+    ],
+    "matching_method": "optimal_transport",
+    "perturbation_dataset": "definitive_endoderm"
+}
+
+

@@ -6,6 +6,8 @@
     "is_active": true,
     "refers_to": "1.2.2_14",
     "perturbation_dataset": "saunders_endoderm", 
+    "eligible_regulators": "tf",
+    "species": "zebrafish",
     "network_datasets": {
         "celloracle_zebrafish": { "do_aggregate_subnets": true }
     }

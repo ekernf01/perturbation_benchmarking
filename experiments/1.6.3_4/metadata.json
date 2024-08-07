@@ -1,0 +1,15 @@
+{
+    "unique_id": "1.6.3_4",
+    "nickname": "timeseries pilot",
+    "readme": "Direct comparison of published timeseries methods",
+    "question": "1.6.3",
+    "refers_to": "1.6.3_0",
+    "eligible_regulators": "tf",
+    "species": "zebrafish",
+    "perturbation_dataset": "saunders_axial_mesoderm",
+    "network_datasets": { 
+        "celloracle_zebrafish": { "do_aggregate_subnets": true }
+    }
+}
+
+

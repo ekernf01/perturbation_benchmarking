@@ -1,0 +1,14 @@
+{
+    "unique_id": "1.6.3_3",
+    "nickname": "timeseries pilot",
+    "readme": "Direct comparison of published timeseries methods",
+    "question": "1.6.3",
+    "refers_to": "1.6.3_0",
+    "eligible_regulators": "human_tf",
+    "perturbation_dataset": "BETS_A549",
+    "network_datasets": { 
+        "celloracle_human": { "do_aggregate_subnets": true }
+    }
+}
+
+

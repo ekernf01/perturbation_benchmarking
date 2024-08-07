@@ -6,6 +6,7 @@
     "is_active": true,
     "refers_to": "1.2.2_14",
     "perturbation_dataset": "BETS_A549", 
+    "eligible_regulators": "human_tfs",
     "network_datasets": {
         "celloracle_human": { "do_aggregate_subnets": true }
     }
