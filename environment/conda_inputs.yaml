@@ -55,3 +55,4 @@ dependencies:
   - hyperopt
   - grpcio[version'<=1.49']
   - memray
+  - fa2

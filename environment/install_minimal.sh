@@ -2,25 +2,28 @@ mkdir expression_forecasting_benchmarks
 cd expression_forecasting_benchmarks
 # Get data collections from Zenodo 
 # accessory data, e.g. pLI and list of TF names
-curl https://zenodo.org/record/10436339/files/accessory_data.zip -O -s  && unzip accessory_data.zip > accessory_data.log &
+wget https://zenodo.org/record/13255724/files/accessory_data.zip  && unzip accessory_data.zip &
 # perturbations 
-curl https://zenodo.org/record/10436339/files/perturbation_data.zip -O -s perturbation_data.log && unzip perturbation_data.zip > perturbation_data.log &
+wget https://zenodo.org/record/13255724/files/perturbation_data.zip && unzip perturbation_data.zip &
 # networks
-curl https://zenodo.org/record/10436339/files/network_collection.zip -O -s network_collection.log  && unzip network_collection.zip > network_collection.log &
+wget https://zenodo.org/record/13255724/files/network_collection.zip && unzip network_collection.zip &
 
-# Get experiment metadata and environment details
+# Get experiment metadata and project folder layout
 git clone https://github.com/ekernf01/perturbation_benchmarking
 # Install python packages
-mamba env create --name ggrn --file perturbation_benchmarking/environment/conda_inputs_minimal.yaml
-conda activate ggrn
+conda create -n ggrn_minimal
+conda activate ggrn_minimal
+conda install -y pip
 pip install vl-convert-python
+pip install ray[tune]
 for p in pereggrn_networks pereggrn_perturbations ggrn ggrn_backend2 geneformer_embeddings pereggrn
 do
     git clone "https://github.com/ekernf01/${p}"
-    pip install -e "${p}" --no-deps 
+    pip install -e "${p}"
 done
 echo "Installation has finished, but data downloads may continue in the background, so it may not work right away."
 echo "Test your installation:"
-echo "    conda activate ggrn"
+echo "    conda activate ggrn_minimal"
+echo "    cd perturbation_benchmarking"
 echo "    pereggrn -h # see the help page"
-echo "    pereggrn --experiment_name '1.0_0' --amount_to_do models --no_skip_bad_runs # Run a simple benchmark "
+echo "    pereggrn --input perturbation_benchmarking --output example_output --experiment_name '1.0_0' --networks network_collection --data perturbation_data --amount_to_do models --no_skip_bad_runs"
