@@ -19,6 +19,13 @@ collect_experiments = function(experiments, stratify_by_pert = T){
       X[[experiment]][["__index_level_0__"]] = NULL
       X[[experiment]][["__index_level_1__"]] = NULL
     })
+    keep = c()
+    for(i in seq_along(X[[experiment]])){
+      if(any(!is.na(X[[experiment]][[i]]))){
+        keep = c(keep, i)
+      }
+    }
+    X[[experiment]] = X[[experiment]][keep]
   }
   X <- bind_rows(X)
   return(X)
