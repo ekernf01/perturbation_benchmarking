@@ -31,7 +31,7 @@
     "matching_method": "optimal_transport",
     "perturbation_dataset": "definitive_endoderm",
     "network_datasets": { 
-        "endoderm":{}
+        "endoderm": { "do_aggregate_subnets": true }
     },
     "network_prior": "restrictive"
 }

@@ -1,11 +1,9 @@
 {
-    "unique_id": "1.6.3_1",
+    "unique_id": "1.6.3_8",
     "nickname": "timeseries pilot",
     "question": "1.6.3",
     "refers_to": "1.6.3_0",
     "eligible_regulators": "tf",
     "species": "mouse",
-    "perturbation_dataset": "paul1"
+    "perturbation_dataset": "paul2"
 }
-
-

@@ -8,17 +8,13 @@
     "color_by": "regression_method",
     "factor_varied": "data_split_seed",
     "type_of_split": "timeseries",
-    "eligible_regulators": "human_tfs",
     "num_genes": 2000,
-    "expand": "ladder",
-    "regression_method": [ 
-        "autoregressive"
-    ],
-    "prediction_timescale": [
-        "1,2,3,4"
-    ],
+    "regression_method": "autoregressive",
+    "prediction_timescale": "1",
+    "low_dimensional_structure" : "dynamics", 
+    "low_dimensional_training": ["pca", "supervised"], 
+    "low_dimensional_value": [2, 3, 5, 20, 100, 2000],
     "matching_method": "optimal_transport",
-    "perturbation_dataset": "definitive_endoderm"
+    "perturbation_dataset": "definitive_endoderm", 
+    "predict_self": true
 }
-
-
