@@ -13,6 +13,7 @@
     "matching_method": ["steady_state", "closest", "optimal_transport", "random"],
     "num_genes": 2000,
     "prediction_timescale": "1,2,3,10",
+    "cell_type_sharing_strategy": "distinct",
     "factor_varied": "matching_method", 
     "color_by": "prediction_timescale", 
     "facet_by": null, 
