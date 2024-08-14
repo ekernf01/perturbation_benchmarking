@@ -1,0 +1,6 @@
+{
+    "unique_id": "1.4.1_2",
+    "is_active": true,
+    "refers_to": "1.4.1_0",
+    "perturbation_dataset": "BETS_A549"
+}

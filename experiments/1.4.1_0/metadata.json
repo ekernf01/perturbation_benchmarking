@@ -1,0 +1,57 @@
+{
+    "unique_id": "1.4.1_0",
+    "nickname": "timeseries celltype networks",
+    "readme": "Comparing cell type specific versus universal networks for timeseries prediction",
+    "question": "1.4.1",
+    "is_active": true,
+    "facet_by": "type_of_split",
+    "color_by": "network_datasets",
+    "factor_varied": "data_split_seed",
+    "type_of_split": "timeseries",
+    "eligible_regulators": "tfs",
+    "num_genes": 2000,
+    "regression_method": "RidgeCV",
+    "prediction_timescale": ["1,2,3,10"],
+    "matching_method": "optimal_transport",
+    "network_prior": "restrictive",
+    "perturbation_dataset": "definitive_endoderm",
+    "network_datasets": { 
+        "endoderm":              { "do_aggregate_subnets": true },
+        "gtex_rna":              { "do_aggregate_subnets": false },
+        "cellnet_human_Hg1332":  { "do_aggregate_subnets": false },
+        "cellnet_human_Hugene":  { "do_aggregate_subnets": false },
+        "ANANSE_0.5":            { "do_aggregate_subnets": false },
+        "ANANSE_tissue_0.5":     { "do_aggregate_subnets": false },
+        "humanbase":             { "do_aggregate_subnets": false }, 
+        "magnum_compendium_394": { 
+            "subnets": [
+                "retinal_pigment_epithelial_cells.parquet",
+                "chronic_myelogenous_leukemia_cml_cell_line.parquet",
+                "teratocarcinoma_cell_line.parquet",
+                "lung_adenocarcinoma_cell_line.parquet",
+                "breast_carcinoma_cell_line.parquet",
+                "embryonic_kidney_cell_line.parquet",
+                "hepatocellular_carcinoma_cell_line.parquet",
+                "epitheloid_cancer_cell_line.parquet",
+                "acute_myeloid_leukemia_fab_m5_cell_line.parquet",
+                "cd8+_t_cells.parquet", 
+                "adult_t-cell_leukemia_cell_line.parquet",
+                "cd4+cd25-cd45ra-_memory_conventional_t_cells.parquet",
+                "cd4+cd25+cd45ra+_naive_regulatory_t_cells.parquet",
+                "cd4+_t_cells.parquet",
+                "chronic_lymphocytic_leukemia_t-cll_cell_line.parquet",
+                "cd4+cd25+cd45ra-_memory_regulatory_t_cells.parquet",
+                "cd4+cd25-cd45ra+_naive_conventional_t_cells.parquet",
+                "nk_t_cell_leukemia_cell_line.parquet",
+                "melanoma_cell_line.parquet", 
+                "melanocyte.parquet", 
+                "skin_fetal.parquet", 
+                "iris_pigment_epithelial_cells.parquet", 
+                "retina_adult.parquet"
+            ],
+            "do_aggregate_subnets": false  
+        }
+    }
+}
+
+
