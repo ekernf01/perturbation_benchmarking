@@ -79,6 +79,41 @@ percent_change_from_best = function(x){
   return(x)
 }
 
+#' Plot all of our metrics.
+#'
+#' @param X Data as if from collect_experiments.
+#' @param facet1 @param facet2 variables to facet the plot by.
+#'
+#' This function returns a ggplot object. This function produces a rigid plot format:
+#' the X axis will be X$x, y will be the performance, color will indicate the performance metric. 
+#' 
+plot_all_metrics = function(
+    X,
+    facet1 = "perturbation_dataset",
+    facet2 = "factor_varied",
+    compare_across_rows = FALSE,
+    metrics = c("spearman", "mse_top_20", "mse_top_100", "mse_top_200",
+                "mse", "mae", "proportion_correct_direction", "cell_label_accuracy"),
+    colorscale = NULL,
+    metrics_where_bigger_is_better = c("spearman", "proportion_correct_direction", "cell_label_accuracy", "proportion correct direction", "cell type correct")
+){
+  X[["facet1"]] = X[[facet1]]
+  X[["facet2"]] = X[[facet2]]
+  X %<>%
+    group_by(x, facet1, facet2) %>%
+    summarise(across(metrics, mean))
+  X %<>% tidyr::pivot_longer(cols = all_of(metrics), names_to = "metric")
+  X[["metric"]] %<>% gsub("_", " ", .)
+  X[["metric"]] %<>% factor(levels = gtools::mixedsort(unique(X[["metric"]])))
+  plot = ggplot(X) +
+    geom_bar(aes(x = x, y = value, fill = metric), position = "dodge", stat = "identity") + 
+    facet_grid(facet1~facet2, scales = "free") + 
+    scale_fill_manual( values = setNames( colorscale, metrics %>% gsub("_", " ", .) ) ) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))  + 
+    xlab("") + ylab("")
+  return (plot)
+}
+
 #' Plot all of our metrics in a heatmap, shifted and scaled so that best is 1 and worst is 0.
 #'
 #' @param X Data as if from collect_experiments.
