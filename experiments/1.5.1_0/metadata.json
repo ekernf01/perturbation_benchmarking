@@ -10,6 +10,11 @@
     "type_of_split": "timeseries",
     "eligible_regulators": "human_tfs",
     "num_genes": 2000,
+    "pruning_parameter": [
+        null, null, null, 
+        null, null, 
+        2000, null, null
+    ],
     "expand": "ladder",
     "regression_method": [ 
         "median", 
