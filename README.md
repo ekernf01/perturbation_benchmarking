@@ -1,5 +1,5 @@
- ## A systematic comparison of computational methods for expression forecasting via [PEREGGRN](https://github.com/ekernf01/pereggrn) (PErturbation Response Evaluation via a Grammar of Gene Regulatory Networks)
-
+ ## A systematic comparison of computational methods for expression forecasting with [PEREGGRN](https://github.com/ekernf01/pereggrn) 
+ 
 This repo contains benchmark experiments to evaluate various strategies for predicting gene expression after knockout, knockdown, or overexpression. 
 
 ![image](https://github.com/ekernf01/perturbation_benchmarking/assets/5271803/ae7a5c86-dca6-49be-b048-743f8e110a18)
