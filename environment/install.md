@@ -29,6 +29,26 @@ git clone https://github.com/ekernf01/perturbation_benchmarking
 source perturbation_benchmarking/environment/install.sh
 ```
 
+Now, install and configure docker. This is optional; you can run many but not all experiments without it. I cannot support you in this step; if it doesn't work, you will need to go to the official Docker instructions or another source. But this worked for me on an Amazon EC2 running Ubuntu 22.04.
+
+```bash
+sudo apt-get update
+sudo apt-get install ca-certificates curl
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+# Now configure it so you don't need sudo for every docker command.  
+# https://askubuntu.com/questions/477551/how-can-i-use-docker-without-sudo
+sudo usermod -aG docker $USER
+sg docker -c "bash" 
+```
+
 ### How to check the installation
 
 **Warning**: data download and unzip will still be running in the background after the installer finishes. It is a ~20GB download. This means **the experiments may not work immediately.** If you see no `network_collection` or `perturbation_data` folders, then you need to wait for the download+unzip to finish.
