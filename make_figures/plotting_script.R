@@ -7,7 +7,6 @@ library(rjson)
 setwd("/home/ekernf01/Desktop/jhu/research/projects/perturbation_prediction/cell_type_knowledge_transfer/perturbation_benchmarking/make_figures/")
 source("plotting_functions.R")
 
-
 # Main experiments; all performance metrics 
 main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1.0_7",   "1.0_8",   "1.0_9",   "1.0_10",   "1.0_11",   "1.0_12",   "1.0_13",
                      "1.4.3_1", "1.4.3_2", "1.4.3_3", "1.4.3_5", "1.4.3_6", "1.4.3_7", "1.4.3_8", "1.4.3_9", "1.4.3_10", "1.4.3_11", "1.4.3_12", "1.4.3_13", 
@@ -31,9 +30,22 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
     ylab("Mean absolute error") + 
     theme(legend.position = "bottom") + 
     scale_y_continuous(breaks=scales::pretty_breaks(n=3))
-  ggsave('plots/fig_basics.svg', width = 8, height = 10)
-  heatmap_all_metrics(X, compare_across_rows = T) + viridis::scale_fill_viridis()
-  ggsave('plots/fig_basics_supp.pdf', width = 8, height = 10)
+  ggsave('plots/fig_basics.svg', width = 8, height = 12)
+  heatmap_all_metrics(
+    X, 
+    compare_across_rows = T,
+    metrics = c(
+      "spearman",   
+      "mse",
+      "mae",
+      "proportion_correct_direction", 
+      "cell_label_accuracy",
+      # "overlap_top_100",
+      # "pearson_top_100",
+      "mse_top_100"
+    )
+  ) + viridis::scale_fill_viridis()
+  ggsave('plots/fig_basics_supp.pdf', width = 8, height = 12)
 }
 
 # Supplemental tables: stratifying performance by target gene or by perturbed gene
@@ -58,30 +70,66 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
     group_by(property_of_gene, factor_varied, x, perturbation_dataset, quintile) %>%
     summarise(value = median(value), mae = mean(mae)) %>%
     ungroup() %>%
-    group_by(perturbation_dataset, property_of_gene, quintile) 
-  dim(aggregated) %>% write.csv('plots/fig_basics_stratify_targets_num_groups.csv')
-  long_data = aggregated %>%
+    group_by(perturbation_dataset, property_of_gene, quintile)  %>%
     dplyr::mutate(
       beats_baselines = check_if_beats_baselines(mae, x), 
-        mae_relative_reduction = percent_change_from_best(mae), 
-    ) %>% 
+      mae_relative_reduction = percent_change_from_best_baseline(mae, x), 
+      best_method = best_method(mae, x)
+    ) %>%
+    subset(!(x %in% c("mean", "median")))
+  
+  ggplot(aggregated) +
+    geom_histogram(bins = 300, aes(x = pmax(-100, mae_relative_reduction), fill = beats_baselines)) + 
+    xlab("Percent improvement versus baseline \n(higher is better; capped at -100)") + 
+    ggtitle("Model performance on 64,563 overlapping subsets of target genes") + 
+    scale_fill_manual(values = c("gray60", "black")) + 
+    theme_minimal()
+  ggsave("plots/fig_basics_stratify_targets.pdf", width = 5, height = 5)
+  
+  dim(aggregated) %>% write.csv('plots/fig_basics_stratify_targets_num_groups.csv')
+  long_data = aggregated %>% 
     subset(beats_baselines) %>% 
     arrange(-mae_relative_reduction)
   long_data %>% write.csv("plots/fig_basics_stratify_targets.csv")
   long_data %>% 
     extract(c("property_of_gene", "quintile")) %>% 
+    mutate(property_of_gene = gsub("out-degree_", "o_", property_of_gene)) %>%
+    mutate(property_of_gene = gsub("in-degree_", "i_", property_of_gene)) %>%
     table %>% 
     as.data.frame %>% 
+    set_colnames(c("Stratified on", "quintile", "Freq")) %>%
     arrange(-Freq) %>% 
-    subset(Freq>0) %>%
-    write.csv('plots/fig_basics_stratify_targets_summary.csv')
+    ggplot() + geom_tile(aes(y = `Stratified on`, x = quintile, fill = Freq)) + 
+    ggtitle("Properties used to select subsets \nof target genes that are predictable") + 
+    coord_fixed() + 
+    labs(fill = "Number of \npredictable \n genesets")
+  ggsave("plots/fig_basics_stratify_targets_summary.pdf", width = 5, height = 7)
   long_data %>%
     extract(c("perturbation_dataset")) %>%
     table %>%
     as.data.frame %>%
+    set_colnames(c("Dataset", "Freq")) %>%
+    arrange(-Freq) %>%
+    mutate(Dataset = reorder_datasets(Dataset)) %>%
+    subset(Freq>0) %>%
+    ggplot() + geom_bar(stat = "identity", aes(x = Dataset, y = Freq)) + coord_flip() + ggtitle("Datasets in which subsets \nof target genes are predictable")
+  ggsave("plots/fig_basics_stratify_targets_summary_dataset.pdf", width = 3, height = 3)
+  
+  long_data %>%
+    extract(c("x", "factor_varied")) %>%
+    table %>%
+    as.data.frame %>%
+    set_colnames(c("Method", "factor_varied", "Freq")) %>%
     arrange(-Freq) %>%
     subset(Freq>0) %>%
-    write.csv('plots/fig_basics_stratify_targets_summary2.csv')
+    ggplot() + 
+    geom_bar(stat = "identity", aes(x = Method, y = Freq)) + 
+    ggtitle("Methods for which subsets of target genes are predictable") + 
+    facet_wrap(~factor_varied, scale = "free") + 
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+  ggsave("plots/fig_basics_stratify_targets_summary_model.pdf", width = 5, height = 5)
+}
+{
   # Breakdown by perturbed gene
   evaluationPerPert = collect_experiments(main_experiments, stratify_by_pert = T)
   aggregated = evaluationPerPert %>% 
@@ -101,15 +149,21 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
     na.omit() %>%
     group_by(property_of_gene, factor_varied, x, perturbation_dataset) %>%
     mutate(quintile = as.integer(cut(rank(value), breaks = 5))) %>%
+    ungroup %>%
     group_by(property_of_gene, factor_varied, x, perturbation_dataset, quintile) %>%
-    summarise(value = median(value), mae = mean(mae))
-  dim(aggregated) %>% write.csv('plots/fig_basics_stratify_perts_num_groups.csv')
-  long_data <- aggregated %>%
-    ungroup() %>%
-    group_by(perturbation_dataset, property_of_gene, quintile) %>%
+    summarise(value = median(value), mae = mean(mae)) %>% 
     dplyr::mutate(
       beats_baselines = check_if_beats_baselines(mae, x), 
-      mae_relative_reduction = percent_change_from_best(mae), 
+      mae_relative_reduction = percent_change_from_best_baseline(mae, x), 
+      best_method = best_method(mae, x)
+    ) %>%
+    subset(!(x %in% c("mean", "median")))
+  
+  dim(aggregated) %>% write.csv('plots/fig_basics_stratify_perts_num_groups.csv')
+  long_data <- aggregated %>%
+    dplyr::mutate(
+      beats_baselines = check_if_beats_baselines(mae, x), 
+      mae_relative_reduction = percent_change_from_best_baseline(mae, x), 
     ) %>% 
     subset(mae_relative_reduction > 0.05) %>% 
     arrange(-mae_relative_reduction)                         
@@ -133,8 +187,14 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
     dplyr::mutate(number_of_steps = paste0(number_of_steps, " steps")) %>%
     subset(perturbation_dataset != "MARA\nFANTOM4") 
   X$is_true_network = X$perturbation_dataset == X$x
-  X$cell_type_correct = NA
-  g = heatmap_all_metrics(X, facet2 = "data_split_seed", compare_across_rows = F) 
+  X$cell_label_accuracy = NA
+  g = heatmap_all_metrics(
+    X, 
+    facet2 = "data_split_seed", 
+    compare_across_rows = F, 
+    metrics = c("spearman", "mse_top_20", "mse_top_100", "mse_top_200",
+                "mse", "mae", "proportion_correct_direction"),
+  )
   g + geom_vline(data = g$data %>% subset(x==gsub("\\s", " ", facet1)), color = "green", aes(xintercept = x) )
   ggsave('plots/fig_basics_simulation.pdf', width = 8, height = 8)
 }

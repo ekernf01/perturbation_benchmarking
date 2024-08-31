@@ -1,3 +1,44 @@
+# Ordered by perturbation type, then by duration. See table 1. 
+DATASET_ORDER = c(
+  "nakatake",
+  "nakatake\nscrna\nsimulated",
+  "joung",
+  "norman",
+  "replogle1",
+  "replogle3",
+  "replogle4",
+  "adamson",
+  "replogle2",
+  "replogle2 large effect",
+  "replogle2 tf only",
+  "replogle2_large_effect",
+  "replogle2_tf_only",
+  "replogle2\nlarge effect",
+  "replogle2\ntf only",
+  "freimer",
+  "dixit", 
+  "frangieh_IFNg_v1",
+  "frangieh\nIFNg v1",
+  "frangieh IFNg v1",
+  "frangieh_IFNg_v2",
+  "frangieh\nIFNg v2",
+  "frangieh IFNg v2",
+  "frangieh_IFNg_v3",
+  "frangieh\nIFNg v3",
+  "frangieh IFNg v3"
+)
+
+reorder_datasets = function(datasets){
+  datasets = as.character(datasets)
+  missing_levels = setdiff(unique(datasets), DATASET_ORDER)
+  if(length(missing_levels)>0){
+    print("Reordering datasets, found some missing from the hardwired DATASET_ORDER:")
+  }
+  print(missing_levels)
+  datasets %<>% factor(levels = c(DATASET_ORDER, missing_levels))
+  return(datasets)
+}
+
 #' Load evaluation results from a list of benchmarking experiments.
 #'
 #' @param experiments
@@ -39,6 +80,12 @@ make_the_usual_labels_nice = function(X){
   try({X$factor_varied %<>% factor(levels = c("regression method", "network datasets", "matching method"))}, silent = T)
   try({X$perturbation_dataset %<>% gsub("_", " ", .) %>% sub(" ", "\n", .) %>% gsub("γ", "g" , .)}, silent = T)
   try({X$perturbation_dataset %<>% gsub("nakatake\nsimulated scrna", "nakatake\nscrna\nsimulated", .)}, silent = T) # Fits tighter
+  try({X$perturbation_dataset %<>% gsub("paul.", "paul", .)}, silent = T) # Paul1 and Paul2 are separate for evals but really go together
+  try({X$perturbation_dataset %<>% gsub("replogle", "replogle1", .)}, silent = T) # we renamed replogle to replogle1
+  try({X$perturbation_dataset %<>% gsub("replogle12", "replogle2", .)}, silent = T) # we renamed replogle to replogle1
+  try({X$perturbation_dataset %<>% gsub("replogle13", "replogle3", .)}, silent = T) # we renamed replogle to replogle1
+  try({X$perturbation_dataset %<>% gsub("replogle14", "replogle4", .)}, silent = T) # we renamed replogle to replogle1
+  try({X$perturbation_dataset %<>% reorder_datasets}, silent = T)
   try({X$network_datasets %<>% gsub("0$", "", .)})
   X$x = ifelse(X$factor_varied=="regression method", X[["regression_method"]], X[["network_datasets"]])
   X[["timescale handling"]] = paste0(X[["matching_method"]], " (", X[["prediction_timescale"]], "-step)")
@@ -70,49 +117,21 @@ check_if_beats_baselines = function(mae, x){
   }
 }
 
-#' Shift and scale vector to have min 0, max 1
-#' 
-percent_change_from_best = function(x){
-  m = max(x, na.rm = T)
-  x = -abs(100*((m - x) / m))
-  x = x %>% pmax(-10)
-  return(x)
+best_method = function(mae, x){
+  return(x[which.min(mae)])
+}
+  
+percent_change_from_best_baseline = function(mae, x){
+  m = min(mae[x %in% c("mean", "median")], na.rm = T)
+  return(100*((m - mae) / m))
 }
 
-#' Plot all of our metrics.
-#'
-#' @param X Data as if from collect_experiments.
-#' @param facet1 @param facet2 variables to facet the plot by.
-#'
-#' This function returns a ggplot object. This function produces a rigid plot format:
-#' the X axis will be X$x, y will be the performance, color will indicate the performance metric. 
-#' 
-plot_all_metrics = function(
-    X,
-    facet1 = "perturbation_dataset",
-    facet2 = "factor_varied",
-    compare_across_rows = FALSE,
-    metrics = c("spearman", "mse_top_20", "mse_top_100", "mse_top_200",
-                "mse", "mae", "proportion_correct_direction", "cell_label_accuracy"),
-    colorscale = NULL,
-    metrics_where_bigger_is_better = c("spearman", "proportion_correct_direction", "cell_label_accuracy", "proportion correct direction", "cell type correct")
-){
-  X[["facet1"]] = X[[facet1]]
-  X[["facet2"]] = X[[facet2]]
-  X %<>%
-    group_by(x, facet1, facet2) %>%
-    summarise(across(metrics, mean))
-  X %<>% tidyr::pivot_longer(cols = all_of(metrics), names_to = "metric")
-  X[["metric"]] %<>% gsub("_", " ", .)
-  X[["metric"]] %<>% factor(levels = gtools::mixedsort(unique(X[["metric"]])))
-  plot = ggplot(X) +
-    geom_bar(aes(x = x, y = value, fill = metric), position = "dodge", stat = "identity") + 
-    facet_grid(facet1~facet2, scales = "free") + 
-    scale_fill_manual( values = setNames( colorscale, metrics %>% gsub("_", " ", .) ) ) +
-    theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))  + 
-    xlab("") + ylab("")
-  return (plot)
+percent_change_from_best = function(x){
+  m = max(x, na.rm = T)
+  return(pmax(-10, 100*(( x-m ) / m)))
 }
+
+
 
 #' Plot all of our metrics in a heatmap, shifted and scaled so that best is 1 and worst is 0.
 #'
@@ -160,8 +179,8 @@ heatmap_all_metrics = function(
     # scale_color_manual(values = c("red")) +
     # labs(x = "", y = "", fill = "Scaled\nvalue", color = "Best\nperformer") +
     labs(x = "", y = "", fill = "Percent change\nfrom best \n(capped at 10%)", color = "Best\nperformer") +
-    
     facet_grid(facet1~facet2, scales = "free") + 
+    scale_fill_viridis_c() + 
     theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) 
   return(g)
 }
@@ -199,4 +218,86 @@ plot_one_metric = function(
     facet_grid(facet1~facet2, scales = "free") + 
     theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) 
   return(g)
+}
+
+
+do_subnetworks_match = function(
+    perturbation_dataset, 
+    network,
+    cell_type_matching = rjson::fromJSON(file = "../../accessory_data/cell_type_matching.json")
+){
+  networks_by_dataset = cell_type_matching$celltypes[perturbation_dataset]
+  networks_by_dataset %<>% unlist
+  # If x is from a network that does not include any relevant subnetwork, the key might be missing from cell_type_matching$networks.
+  # If x is from a network that does include a relevant subnetwork, this code runs as expected: check if this subnetwork is the relevant one.
+  try(
+    { 
+      networks_by_dataset = cell_type_matching$networks[networks_by_dataset][[1]]
+      # This incomprehensible one-liner converts a nested list of vectors to a tidy dataframe: {a:[1,2], b:2} becomes [[a,a,b], [1,2,2]].
+      networks_by_dataset = data.frame(network = Reduce(c, mapply(rep, names(networks_by_dataset), sapply(networks_by_dataset, length))), 
+                     subnetwork = Reduce(c, networks_by_dataset))
+      return( network %in% c(networks_by_dataset$network, paste(networks_by_dataset$network, networks_by_dataset$subnetwork)) )
+    }, 
+    silent = T
+  )
+  return(F)
+}
+
+add_network_cell_type_metadata = function(
+    X,   
+    single_networks = c("celloracle_human",  
+                        "magnum_compendium_ppi" ,
+                        "MARA_FANTOM4"     , 
+                        "STRING",   
+                        "magnum_compendium_32", 
+                        "dense", 
+                        "empty", 
+                        "endoderm" )
+){
+  X$network_cell_type_matches = mapply(
+    do_subnetworks_match, 
+    X$perturbation_dataset, 
+    X$network_datasets
+  )
+  X <- X %>% mutate(chart_x = paste(regression_method, starting_expression, sep = "_"))
+  X$perturbation_dataset %<>% gsub("γ", "g", .)
+  X %<>% make_the_usual_labels_nice()
+  X$network_datasets %<>% gsub(".parquet", "", .)
+  X$network_datasets %<>% gsub(".csv_converted", "", .)
+  X$network_datasets %<>% gsub("_top_filtered", "", .)
+  X$network_source = X$network_datasets %>% 
+    strsplit(" ") %>% 
+    sapply(extract2, 1) 
+  X$network_tissue = X$network_datasets %>% 
+    paste("all") %>%
+    strsplit(" ") %>%
+    sapply(extract2, 2) %>% 
+    tolower %>% 
+    gsub("_", " ", .) %>%
+    gsub("b lymphocyte", "bcell", .) %>%
+    gsub(" memory", "", .) %>%
+    gsub(" regulatory", "", .) %>%
+    gsub(" conventional", "", .) %>%
+    gsub(" naive", "", .) %>%
+    gsub("retinal pigment epithelial", "rpe", .) %>%
+    gsub("chronic lymphocytic leukemia", "", .) %>%
+    gsub("chronic myelogenous leukemia", "", .) %>%
+    gsub("multipotent", "", .) %>%
+    gsub("unrestricted", "", .) %>%
+    gsub("somatic", "", .) %>%
+    gsub("acute myeloid leukemia", "aml", .) %>%
+    gsub("peripheral blood mononuclear cells", "pbmc", .) %>%
+    gsub("suprapubic", "", .) %>%
+    gsub("lower leg", "", .) %>%
+    gsub("brain .*", "brain", .) %>%
+    gsub("cell line", "", .) %>%
+    gsub("muscleskel", "muscle", .) %>%
+    gsub("pancreatic", "pancreas", .) 
+  X$network_tissue[X$network_source %in% single_networks] = X$network_source[X$network_source %in% single_networks] 
+  X$network_source[X$network_source %in% single_networks] = "other"
+  X$network_pretty = paste(
+    as.integer(as.factor(X$network_source)),
+    X$network_tissue
+  )
+  return(X)
 }
