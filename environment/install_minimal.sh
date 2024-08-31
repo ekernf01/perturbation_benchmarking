@@ -2,11 +2,11 @@ mkdir expression_forecasting_benchmarks
 cd expression_forecasting_benchmarks
 # Get data collections from Zenodo 
 # accessory data, e.g. pLI and list of TF names
-wget https://zenodo.org/record/13255724/files/accessory_data.zip  && unzip accessory_data.zip &
+wget https://zenodo.org/record/13345104/files/accessory_data.zip  && unzip accessory_data.zip &
 # perturbations 
-wget https://zenodo.org/record/13255724/files/perturbation_data.zip && unzip perturbation_data.zip &
+wget https://zenodo.org/record/13345104/files/perturbation_data.zip && unzip perturbation_data.zip &
 # networks
-wget https://zenodo.org/record/13255724/files/network_collection.zip && unzip network_collection.zip &
+wget https://zenodo.org/record/13345104/files/network_collection.zip && unzip network_collection.zip &
 
 # Get experiment metadata and project folder layout
 git clone https://github.com/ekernf01/perturbation_benchmarking
