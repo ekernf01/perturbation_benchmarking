@@ -7,17 +7,67 @@
     "facet_by": "starting_expression",
     "color_by": null,
     "factor_varied": "regression_method",
+    "expand": "ladder", 
+    "kwargs": [
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {}
+    ],
     "regression_method":[
         "mean", 
+        "mean", 
+        "median",
         "median",
         "DCDFG-spectral_radius-linearlr-False",   
-        "DCDFG-spectral_radius-mlplr-False" 
+        "DCDFG-spectral_radius-linearlr-False",   
+        "DCDFG-spectral_radius-mlplr-False" ,
+        "DCDFG-spectral_radius-mlplr-False" , 
+        "RidgeCV", 
+        "GEARS"
+    ],
+    "feature_extraction": [
+        "mrna",
+        "mrna",
+        "mrna",
+        "mrna",
+        "mrna",
+        "mrna",
+        "mrna",
+        "mrna",
+        "geneformer_hyperparam_finetune",
+        "mrna"
+    ],
+    "predict_self": [
+        false, 
+        false, 
+        false, 
+        false, 
+        false, 
+        false, 
+        false, 
+        false, 
+        true, 
+        true
     ],
     "baseline_condition": 0,
     "merge_replicates": false,
     "perturbation_dataset": "frangieh_IFNg_v1",
     "num_genes": 1000,
-    "starting_expression": ["control", "heldout"],
+    "starting_expression": [
+        "control", "heldout", 
+        "control", "heldout", 
+        "control", "heldout", 
+        "control", "heldout", 
+        "control", 
+        "control"
+    ],
     "network_datasets": {
         "dense":{}
     }
