@@ -1,0 +1,15 @@
+{
+    "unique_id": "1.4.1_4",
+    "is_active": true,
+    "refers_to": "1.4.1_0",
+    "perturbation_dataset": "paul1", 
+    "visualization_embedding": "X_draw_graph_fa",
+    "eligible_regulators": "tfs",
+    "species"   : "mouse",
+    "network_datasets": { 
+        "cellnet_mouse_mogene":  { "do_aggregate_subnets": false },
+        "cellnet_mouse_4302":  { "do_aggregate_subnets": false },
+        "empty": { "do_aggregate_subnets": true }, 
+        "dense": { "do_aggregate_subnets": true }
+    }
+}

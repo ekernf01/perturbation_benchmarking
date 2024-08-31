@@ -1,10 +1,10 @@
 {
     "unique_id": "1.4.3_8",
     "nickname": "base_network",
-    "readme": "Network experiment but on replogle",
+    "readme": "Network experiment but on replogle1",
     "question": "1.4.3",
     "is_active": true,
     "refers_to": "1.4.3_1", 
-    "perturbation_dataset": "replogle"
+    "perturbation_dataset": "replogle1"
 }
 

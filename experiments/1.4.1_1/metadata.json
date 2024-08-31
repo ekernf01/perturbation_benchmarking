@@ -2,5 +2,6 @@
     "unique_id": "1.4.1_1",
     "is_active": true,
     "refers_to": "1.4.1_0",
-    "perturbation_dataset": "fantom4"
+    "perturbation_dataset": "fantom4", 
+    "visualization_embedding": "X_pca"
 }

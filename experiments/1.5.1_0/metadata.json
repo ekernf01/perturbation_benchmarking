@@ -10,11 +10,7 @@
     "type_of_split": "timeseries",
     "eligible_regulators": "human_tfs",
     "num_genes": 2000,
-    "pruning_parameter": [
-        null, null, null, 
-        null, null, 
-        2000, null, null
-    ],
+    "pruning_parameter": 2000,
     "expand": "ladder",
     "regression_method": [ 
         "median", 
@@ -31,7 +27,7 @@
     "prediction_timescale": [
         "1", "1", "1", 
         "1", "1", 
-        "1,2,3,5,10",  "1,2,3,4",  "1,2,3,4"
+        "1,2,3,5",  "1,2,3,4",  "1,2,3,4"
     ],
     "kwargs": [
         {}, {}, {}, 
