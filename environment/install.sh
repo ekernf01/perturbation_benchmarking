@@ -41,8 +41,9 @@ git lfs install
 git clone https://huggingface.co/ctheodoris/Geneformer
 cd Geneformer
 git checkout 50e921d
-pip install .
+pip install . --no-deps
 git lfs pull
+cd ..
 
 # Install our packages
 for p in pereggrn_networks pereggrn_perturbations pereggrn ggrn ggrn_backend2 ggrn_backend3 geneformer_embeddings 
