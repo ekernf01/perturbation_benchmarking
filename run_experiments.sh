@@ -1,6 +1,5 @@
 #!/bin/bash -l	
 #SBATCH --job-name="ericBenchmarking"
-#SBATCH --output="slurm.log"
 #SBATCH --partition=parallel
 #SBATCH --time=72:00:00
 #SBATCH --nodes=1
