@@ -1,3 +1,4 @@
+slurm*
 *.oracle
 *.parquet
 *.csv
