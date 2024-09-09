@@ -1,7 +1,8 @@
 {
     "unique_id": "1.5.1_2",
     "nickname": "timeseries pilot",
-    "readme": "Direct comparison of published timeseries methods",
+    "is_active": false,
+    "readme": "Accidental dupe of 1.5.1_3",
     "question": "1.5.1",
     "refers_to": "1.5.1_0",
     "perturbation_dataset": "saunders_axial_mesoderm",
