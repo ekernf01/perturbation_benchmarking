@@ -124,10 +124,10 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
     subset(Freq>0) %>%
     ggplot() + 
     geom_bar(stat = "identity", aes(x = Method, y = Freq)) + 
-    ggtitle("Methods for which subsets of target genes are predictable") + 
-    facet_wrap(~factor_varied, scale = "free") + 
-    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
-  ggsave("plots/fig_basics_stratify_targets_summary_model.pdf", width = 5, height = 5)
+    ggtitle("Methods for which subsets \nof target genes are predictable") + 
+    facet_grid(~factor_varied, scale = "free") + 
+    theme(axis_ti)
+  ggsave("plots/fig_basics_stratify_targets_summary_model.pdf", width = 3, height = 3)
 }
 {
   # Breakdown by perturbed gene
@@ -199,87 +199,33 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
   ggsave('plots/fig_basics_simulation.pdf', width = 8, height = 8)
 }
 
-# Runtime analysis
-{
-  conditions = read.csv("../experiments/5_0/outputs/conditions.csv")
-  X = list.files("../experiments/5_0/outputs/train_resources", full.names = T) %>% 
-    lapply(read.csv) %>% 
-    data.table::rbindlist() %>%
-    dplyr::rename(condition = X) %>%
-    merge(conditions, by = "condition") %>%
-    dplyr::mutate(method = ifelse(feature_extraction=="geneformer", feature_extraction, regression_method)) %>%
-    dplyr::mutate(peak.RAM = gsub("KB","E3", peak.RAM)) %>%
-    dplyr::mutate(peak.RAM = gsub("MB","E6", peak.RAM)) %>%
-    dplyr::mutate(peak.RAM = gsub("GB","E9", peak.RAM)) %>%
-    dplyr::mutate(peak.RAM = gsub("B","", peak.RAM))  %>%
-    dplyr::mutate(peak.RAM = as.numeric(peak.RAM)) 
-    
-  ggplot(X) + 
-    geom_point(aes(x = method, y = walltime..seconds., color = num_genes)) + 
-    scale_y_log10() + 
-    ylab("Walltime (seconds)") + 
-    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
-    ggtitle("Compute time on Nakatake with different numbers of genes predicted") 
-  ggplot(X) + 
-    geom_point(aes(x = method, y = peak.RAM, color = num_genes)) + 
-    scale_y_log10() + 
-    ylab("Peak RAM (bytes)") + 
-    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
-    ggtitle("Peak RAM consumption on Nakatake with different numbers of genes predicted") 
-  ggsave("plots/fig_ram.pdf", width = 5, height = 5)
-}
 
-# Geneformer
+# Published methods
 {
-  X = collect_experiments(c("1.3.3_1","1.3.3_2",
-                            "1.3.3_3","1.3.3_5", "1.3.3_6", "1.3.3_7", "1.3.3_8", "1.3.3_9", "1.3.3_10"))
-  X$regression_method %<>% gsub("0$", "", .)
-  X$regression_method %<>% gsub("RidgeCV", "Regress on\nGeneFormer embeddings", .)
-  X %<>% make_the_usual_labels_nice()
-  heatmap_all_metrics(X, facet2 = "perturbation_dataset", facet1 = "factor_varied")
-  ggsave(paste0('plots/fig_geneformer.pdf'), width = 10, height = 4)
-}
-
-# GEARS
-{
-  X = collect_experiments(c(
-    "1.4.2_1",
-    "1.4.2_2",
-    "1.4.2_3",
-    "1.4.2_4",
-    "1.4.2_12",
-    "1.4.2_13",
-    "1.4.2_14"
-  )
-  )
-  X %<>% make_the_usual_labels_nice()
-  X$regression_method %<>% gsub("0$", "", .)
-  the_usual_levels = unique(X$regression_method)
-  X$regression_method %<>% factor(levels = unique(c("empty", "dense", "median", "mean", "celloracle human", the_usual_levels)))
-  X$x = X$regression_method
-  X$facet2 = with(X, paste0(desired_heldout_fraction*100, "% heldout\nseed=", data_split_seed))
-  heatmap_all_metrics(X, facet2 = "perturbation_dataset", facet1 = "facet2")
-  ggsave(paste0('plots/fig_gears.pdf'), width = 8, height = 4)
-}
-
-# DCD-FG
-{
-  X = collect_experiments(c("1.6.1_1", "1.6.1_3", "1.6.1_6",  "1.6.1_7", "1.6.1_2",
+  X = collect_experiments(experiments = 
+                            c("1.6.1_1", "1.6.1_3", "1.6.1_6",  "1.6.1_7", "1.6.1_2", "1.6.1_9", "1.6.1_11",
                             "1.6.1_10",  "1.6.1_12", "1.6.1_13", "1.6.1_14", "1.6.1_15", "1.6.1_16"))
+  X %<>% make_the_usual_labels_nice()
   X <- X %>% mutate(chart_x = paste(regression_method, starting_expression, sep = "_"))
   method_tidy = c(
+    "RidgeCV" = "GeneFormer", 
+    "GEARS" = "GEARS",
     "DCDFG-spectral_radius-mlplr-False"="DCD-FG" ,
-    "median"  = "median",                              
     "DCDFG-spectral_radius-linearlr-False"="NOTEARS-LR",
+    "median"  = "median",                              
     "mean"  = "mean"   
-  ) 
-  X$regression_method = method_tidy[X$regression_method] %>% factor(levels = c("median", "mean", "NOTEARS-LR", "DCD-FG"))
-  X$perturbation_dataset %<>% gsub("γ", "g", .)
+  ) %>% rev
+  X$regression_method = method_tidy[X$regression_method] %>% factor(levels = method_tidy)
   X %<>% make_the_usual_labels_nice()
-  my_levels = unique(c("frangieh\nIFNg v1", "frangieh\nIFNg v2", "frangieh\nIFNg v3", "nakatake", "nakatake\nscrna\nsimulated", X$perturbation_dataset))
-  X$perturbation_dataset %<>% factor(levels = my_levels)
   X$x = X$regression_method
-  heatmap_all_metrics(X, facet2 = "perturbation_dataset", facet1 = "starting_expression", compare_across_rows = F)
+  X %<>% subset(starting_expression=="control")
+  heatmap_all_metrics(
+    X, 
+    facet2 = "perturbation_dataset", 
+    compare_across_rows = F, 
+    scales = "fixed", 
+    do_wrap = T
+  ) + coord_fixed()
   dir.create("plots", showWarnings = FALSE)
   ggsave(filename = paste0("plots/fig_dcdfg.pdf"), width = 10, height = 4)
 }

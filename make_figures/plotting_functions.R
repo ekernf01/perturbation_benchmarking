@@ -14,17 +14,21 @@ DATASET_ORDER = c(
   "replogle2_large_effect",
   "replogle2_tf_only",
   "replogle2\nlarge effect",
+  "replogle2\nlarge\neffect",
   "replogle2\ntf only",
   "freimer",
   "dixit", 
   "frangieh_IFNg_v1",
   "frangieh\nIFNg v1",
+  "frangieh\nIFNg\nv1",
   "frangieh IFNg v1",
   "frangieh_IFNg_v2",
   "frangieh\nIFNg v2",
+  "frangieh\nIFNg\nv2",
   "frangieh IFNg v2",
   "frangieh_IFNg_v3",
   "frangieh\nIFNg v3",
+  "frangieh\nIFNg\nv3",
   "frangieh IFNg v3"
 )
 
@@ -52,11 +56,16 @@ collect_experiments = function(experiments, stratify_by_pert = T){
     } else {
       filepath <- paste0("../experiments/", experiment, "/outputs/evaluationPerTarget.parquet")
     }
+   
     try({
       X[[experiment]] <- arrow::read_parquet(filepath)
       X[[experiment]]$question %<>% as.character
       X[[experiment]]$refers_to %<>% as.character
       X[[experiment]]$color_by %<>% as.character
+      if (is.null(X[[experiment]]$cell_type)){
+        X[[experiment]]$cell_type = 0
+      }
+      X[[experiment]]$cell_type %<>% as.character
       X[[experiment]][["__index_level_0__"]] = NULL
       X[[experiment]][["__index_level_1__"]] = NULL
     })
@@ -82,6 +91,7 @@ make_the_usual_labels_nice = function(X){
   try({X$perturbation_dataset %<>% gsub("nakatake\nsimulated scrna", "nakatake\nscrna\nsimulated", .)}, silent = T) # Fits tighter
   try({X$perturbation_dataset %<>% gsub("paul.", "paul", .)}, silent = T) # Paul1 and Paul2 are separate for evals but really go together
   try({X$perturbation_dataset %<>% gsub("replogle", "replogle1", .)}, silent = T) # we renamed replogle to replogle1
+  try({X$perturbation_dataset %<>% gsub("replogle11", "replogle1", .)}, silent = T) # we renamed replogle to replogle1
   try({X$perturbation_dataset %<>% gsub("replogle12", "replogle2", .)}, silent = T) # we renamed replogle to replogle1
   try({X$perturbation_dataset %<>% gsub("replogle13", "replogle3", .)}, silent = T) # we renamed replogle to replogle1
   try({X$perturbation_dataset %<>% gsub("replogle14", "replogle4", .)}, silent = T) # we renamed replogle to replogle1
@@ -128,9 +138,10 @@ percent_change_from_best_baseline = function(mae, x){
 
 percent_change_from_best = function(x){
   m = max(x, na.rm = T)
-  return(pmax(-10, 100*(( x-m ) / m)))
+  x = -abs(100*((m - x) / m))
+  x = x %>% pmax(-10)
+  return(x)
 }
-
 
 
 #' Plot all of our metrics in a heatmap, shifted and scaled so that best is 1 and worst is 0.
@@ -151,7 +162,9 @@ heatmap_all_metrics = function(
     compare_across_rows = FALSE,
     metrics = c("spearman", "mse_top_20", "mse_top_100", "mse_top_200",
                 "mse", "mae", "proportion_correct_direction", "cell_label_accuracy"),
-    metrics_where_bigger_is_better = c("spearman", "proportion_correct_direction", "cell_label_accuracy", "proportion correct direction", "cell type correct")
+    metrics_where_bigger_is_better = c("spearman", "proportion_correct_direction", "cell_label_accuracy", "proportion correct direction", "cell type correct"), 
+    scales = "free", 
+    do_wrap = F
 ){
   X[["facet1"]] = X[[facet1]]
   X[["facet2"]] = X[[facet2]]
@@ -179,9 +192,13 @@ heatmap_all_metrics = function(
     # scale_color_manual(values = c("red")) +
     # labs(x = "", y = "", fill = "Scaled\nvalue", color = "Best\nperformer") +
     labs(x = "", y = "", fill = "Percent change\nfrom best \n(capped at 10%)", color = "Best\nperformer") +
-    facet_grid(facet1~facet2, scales = "free") + 
     scale_fill_viridis_c() + 
     theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) 
+  if (do_wrap){
+    g = g + facet_wrap(~facet1, scales = scales) 
+  } else {
+    g = g + facet_grid(facet1~facet2, scales = scales) 
+  }
   return(g)
 }
 
