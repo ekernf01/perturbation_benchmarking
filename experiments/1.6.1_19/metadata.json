@@ -3,7 +3,7 @@
     "nickname": "dcdfg",
     "readme": "Exact repeat of 1.6.1_15, to check if the code is stochastic.",
     "refers_to": "1.6.1_1",
-    "is_active": true,
+    "is_active": false,
     "perturbation_dataset": "dixit",     
     "network_datasets": {
         "dense":{}
