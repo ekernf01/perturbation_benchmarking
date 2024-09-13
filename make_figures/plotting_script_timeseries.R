@@ -7,13 +7,11 @@ library(rjson)
 setwd("/home/ekernf01/Desktop/jhu/research/projects/perturbation_prediction/cell_type_knowledge_transfer/perturbation_benchmarking/make_figures/")
 source("plotting_functions.R")
 DEFAULT_METRICS = c(
-  "overlap_top_20",
   "overlap_top_100",
-  "overlap_top_200",
-  "pearson_top_20",
   "pearson_top_100",
-  "pearson_top_200",
-  "proportion_correct_direction"
+  "proportion_correct_direction", 
+  "spearman",
+  "cell label accuracy",
 )
 {
   X = collect_experiments(paste0("1.2.2_", 14:22)) %>% make_the_usual_labels_nice
@@ -25,7 +23,7 @@ DEFAULT_METRICS = c(
     summarise(across(DEFAULT_METRICS, mean))
   X %<>% tidyr::pivot_longer(cols = all_of(DEFAULT_METRICS), names_to = "metric")
   X[["metric"]] %<>% gsub("_", " ", .)
-  X[["metric"]] %<>% factor(levels = gtools::mixedsort(unique(X[["metric"]])))
+  X[["metric"]] %<>% factor(levels = DEFAULT_METRICS)
   X[["prediction_timescale"]] %<>% as.character()
   X[["prediction_timescale"]] %<>% factor(levels = gtools::mixedsort(unique(X[["prediction_timescale"]])))
   plot = ggplot(X) +

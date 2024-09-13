@@ -31,6 +31,107 @@ DATASET_ORDER = c(
   "frangieh\nIFNg\nv3",
   "frangieh IFNg v3"
 )
+DEGREE_COLUMNS = c(
+  "in-degree_ANANSE_0.5",
+  "in-degree_ANANSE_tissue_0.5",
+  "in-degree_MARA_FANTOM4",
+  "in-degree_STRING",
+  "in-degree_cellnet_human_Hg1332",
+  "in-degree_cellnet_human_Hugene",
+  "in-degree_cellnet_mouse_4302",
+  "in-degree_cellnet_mouse_mogene",
+  "in-degree_celloracle_human",
+  "in-degree_chea",
+  "in-degree_csnets",
+  "in-degree_encode-nets_human",
+  "in-degree_fntm",
+  "in-degree_gtex_rna",
+  "in-degree_humanbase",
+  "in-degree_magnum_compendium_32",
+  "in-degree_magnum_compendium_394",
+  "in-degree_magnum_compendium_ppi",
+  "in-degree_regulatorynetworks.org_human",
+  "in-degree_regulatorynetworks.org_mouse",
+  "out-degree_ANANSE_0.5",
+  "out-degree_ANANSE_tissue_0.5",
+  "out-degree_MARA_FANTOM4",
+  "out-degree_STRING",
+  "out-degree_cellnet_human_Hg1332",
+  "out-degree_cellnet_human_Hugene",
+  "out-degree_cellnet_mouse_4302",
+  "out-degree_cellnet_mouse_mogene",
+  "out-degree_celloracle_human",
+  "out-degree_chea",
+  "out-degree_csnets",
+  "out-degree_encode-nets_human",
+  "out-degree_fntm",
+  "out-degree_gtex_rna",
+  "out-degree_humanbase",
+  "out-degree_magnum_compendium_32",
+  "out-degree_magnum_compendium_394",
+  "out-degree_magnum_compendium_ppi",
+  "out-degree_regulatorynetworks.org_human",
+  "out-degree_regulatorynetworks.org_mouse"
+)
+EVAL_COLUMNS = c(
+  c(
+    "condition",
+    "group",
+    "num_observations_in_group",
+    "gene",
+    "n_exons",
+    "pLI",
+    "highly_variable",
+    "highly_variable_rank",
+    "means",
+    "variances",
+    "variances_norm",
+    "spearman",
+    "pearson",
+    "mae",
+    "mse",
+    "mse_top_20",
+    "mse_top_100",
+    "mse_top_200",
+    "overlap_top_20",
+    "overlap_top_100",
+    "overlap_top_200",
+    "pearson_top_20",
+    "pearson_top_100",
+    "pearson_top_200",
+    "proportion_correct_direction",
+    "pvalue_effect_direction",
+    "pvalue_targets_vs_non_targets",
+    "fc_targets_vs_non_targets",
+    "expression_level_after_perturbation",
+    "perturbation_type",
+    "prediction_timescale",
+    "is_control",
+    "timepoint",
+    "cell_type",
+    "cell_type_correct",
+    "distance_in_pca",
+    "is_timescale_strict",
+    "unique_id",
+    "factor_varied",
+    "regression_method",
+    "feature_extraction",
+    "predict_self",
+    "merge_replicates",
+    "perturbation_dataset",
+    "num_genes",
+    "starting_expression",
+    "network_datasets",
+    "network_prior",
+    "data_split_seed",
+    "eligible_regulators",
+    "cell_type_sharing_strategy",
+    "low_dimensional_structure",
+    "low_dimensional_training",
+    "low_dimensional_value",
+    "matching_method"
+  )
+)
 
 reorder_datasets = function(datasets){
   datasets = as.character(datasets)
@@ -48,7 +149,11 @@ reorder_datasets = function(datasets){
 #' @param experiments
 #' @param stratify_by_pert If true (default), collect results at per-perturbation resolution. Otherwise, collect results at per-target-gene resolution.
 #'
-collect_experiments = function(experiments, stratify_by_pert = T){
+collect_experiments = function(
+    experiments, 
+    stratify_by_pert = T, 
+    cols_to_keep = EVAL_COLUMNS
+){
   X <- list()
   for (experiment in experiments) {
     if (stratify_by_pert){
@@ -58,16 +163,17 @@ collect_experiments = function(experiments, stratify_by_pert = T){
     }
    
     try({
-      X[[experiment]] <- arrow::read_parquet(filepath)
-      X[[experiment]]$question %<>% as.character
-      X[[experiment]]$refers_to %<>% as.character
-      X[[experiment]]$color_by %<>% as.character
+      X[[experiment]] <- arrow::read_parquet(filepath, as_data_frame = T, mmap = T)
+      ctk = cols_to_keep[ cols_to_keep %in% colnames(X[[experiment]]) ]
+      X[[experiment]] = X[[experiment]][ctk]
       if (is.null(X[[experiment]]$cell_type)){
         X[[experiment]]$cell_type = 0
       }
       X[[experiment]]$cell_type %<>% as.character
-      X[[experiment]][["__index_level_0__"]] = NULL
-      X[[experiment]][["__index_level_1__"]] = NULL
+      if (is.null(X[[experiment]]$louvain)){
+        X[[experiment]]$louvain = 0
+      }
+      X[[experiment]]$louvain %<>% as.character
     })
     keep = c()
     for(i in seq_along(X[[experiment]])){
@@ -138,7 +244,7 @@ percent_change_from_best_baseline = function(mae, x){
 
 percent_change_from_best = function(x){
   m = max(x, na.rm = T)
-  x = -abs(100*((m - x) / m))
+  x = -abs( 100*( (m - x) / (m+0.00000001) ) )
   x = x %>% pmax(-10)
   return(x)
 }
@@ -160,9 +266,31 @@ heatmap_all_metrics = function(
     facet1 = "perturbation_dataset",
     facet2 = "factor_varied",
     compare_across_rows = FALSE,
-    metrics = c("spearman", "mse_top_20", "mse_top_100", "mse_top_200",
-                "mse", "mae", "proportion_correct_direction", "cell_label_accuracy"),
-    metrics_where_bigger_is_better = c("spearman", "proportion_correct_direction", "cell_label_accuracy", "proportion correct direction", "cell type correct"), 
+    metrics = c(# "pearson_top_20",
+                "pearson_top_100", 
+                # "pearson_top_200",
+                # "overlap_top_20",              
+                "overlap_top_100",                 
+                # "overlap_top_200",
+                # "mse_top_20",
+                "mse_top_100", 
+                # "mse_top_200",
+                "mse", 
+                "mae", 
+                "spearman", 
+                "proportion_correct_direction", 
+                "cell_label_accuracy"),
+    metrics_where_bigger_is_better = c(
+      "spearman", "proportion_correct_direction",                 
+      "pearson_top_20", 
+      "pearson_top_100", 
+      "pearson_top_200", 
+      "overlap_top_20",                 
+      "overlap_top_100",                 
+      "overlap_top_200",                 
+      "cell_label_accuracy", 
+      "proportion correct direction",
+      "cell type correct"), 
     scales = "free", 
     do_wrap = F
 ){
@@ -170,7 +298,7 @@ heatmap_all_metrics = function(
   X[["facet2"]] = X[[facet2]]
   X %<>%
     group_by(x, facet1, facet2) %>%
-    summarise(across(metrics, mean))
+    summarise(across(metrics, \(v) sum(v*num_observations_in_group)/sum(num_observations_in_group)))
   X %<>% tidyr::pivot_longer(cols = all_of(metrics), names_to = "metric")
   X[["metric"]] %<>% gsub("_", " ", .)
   # Rescale metrics
@@ -178,22 +306,33 @@ heatmap_all_metrics = function(
     X %<>% group_by(metric, facet1)
   } else {
     X %<>% group_by(metric, facet1, facet2)
-  }
+  }  
+
   X %<>%
     mutate(value = value*ifelse(metric %in% metrics_where_bigger_is_better, 1, -1)) %>%
     # mutate(metric = paste(metric, ifelse(metric %in% metrics_where_bigger_is_better, "", "(inverted)"))) %>%
-    mutate(scaled_value = percent_change_from_best(value))
+    mutate(scaled_value = percent_change_from_best(value)) %>%
+    mutate(rank_where_lower_is_better = rank(-scaled_value))
   X %<>% subset(!is.na(scaled_value))
+  mean_rank = X %>% 
+    group_by(x, facet1, facet2) %>%
+    summarize(metric = "MEAN ACROSS ALL METRICS", rank_where_lower_is_better = mean(rank_where_lower_is_better))
+  X = rbind(X, mean_rank)
+  X[["metric"]] %<>% factor(levels = gsub("_", " ", metrics) %>% c("MEAN ACROSS ALL METRICS")) #order y axis in plot
   # plawt
   g = ggplot(X) +
-    geom_tile(aes(x = x, y = metric, fill = scaled_value)) + 
+    geom_tile(aes(x = x, y = metric, fill = rank_where_lower_is_better)) + 
     # scale_fill_gradient( breaks=c(0,1),labels=c("min","max"), limits=c(0,1)) +
     # geom_point(data = subset(X, is_best), aes(x = x, y = metric, color = is_best)) + 
     # scale_color_manual(values = c("red")) +
     # labs(x = "", y = "", fill = "Scaled\nvalue", color = "Best\nperformer") +
-    labs(x = "", y = "", fill = "Percent change\nfrom best \n(capped at 10%)", color = "Best\nperformer") +
-    scale_fill_viridis_c() + 
-    theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) 
+    # labs(x = "", y = "", fill = "Percent change\nfrom best \n(capped at 10%)", color = "Best\nperformer") +
+    labs(x = "", y = "", fill = "Rank (lower is better)", color = "Best\nperformer") +
+    scale_fill_viridis_c(direction = -1) + 
+    theme(
+      axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, color = "black"),
+      axis.text.y = element_text(color = "black")
+      ) 
   if (do_wrap){
     g = g + facet_wrap(~facet1, scales = scales) 
   } else {

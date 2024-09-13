@@ -13,18 +13,6 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
                      "1.2.2_1", "1.2.2_2", "1.2.2_3", "1.2.2_5", "1.2.2_6", "1.2.2_7", "1.2.2_8", "1.2.2_9", "1.2.2_10", "1.2.2_11", "1.2.2_12", "1.2.2_13")
 
 {
-  X = collect_experiments(main_experiments[c(1:9)]) %>% make_the_usual_labels_nice
-  plot_one_metric(X, compare_across_rows = T) 
-  ggsave('plots/fig_ismb_poster1.svg', width = 4, height = 8)
-}
-
-{
-  X = collect_experiments(main_experiments[c(13:21)]) %>% make_the_usual_labels_nice
-  plot_one_metric(X, compare_across_rows = T) 
-  ggsave('plots/fig_ismb_poster2.svg', width = 4, height = 8)
-}
-
-{
   X = collect_experiments(main_experiments) %>% make_the_usual_labels_nice
   plot_one_metric(X, compare_across_rows = T, threshold_outliers_at = 1, metric = "mae") + 
     ylab("Mean absolute error") + 
@@ -34,17 +22,9 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
   heatmap_all_metrics(
     X, 
     compare_across_rows = T,
-    metrics = c(
-      "spearman",   
-      "mse",
-      "mae",
-      "proportion_correct_direction", 
-      "cell_label_accuracy",
-      # "overlap_top_100",
-      # "pearson_top_100",
-      "mse_top_100"
-    )
-  ) + viridis::scale_fill_viridis()
+    facet1 = "perturbation_dataset", 
+    facet2 = "factor_varied"
+  ) 
   ggsave('plots/fig_basics_supp.pdf', width = 8, height = 12)
 }
 
@@ -187,24 +167,42 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
     dplyr::mutate(number_of_steps = paste0(number_of_steps, " steps")) %>%
     subset(perturbation_dataset != "MARA\nFANTOM4") 
   X$is_true_network = X$perturbation_dataset == X$x
+  X$num_observations_in_group = 1
   X$cell_label_accuracy = NA
+  X$data_split_seed %<>% paste0("Data split: ", .)
   g = heatmap_all_metrics(
     X, 
     facet2 = "data_split_seed", 
     compare_across_rows = F, 
-    metrics = c("spearman", "mse_top_20", "mse_top_100", "mse_top_200",
-                "mse", "mae", "proportion_correct_direction"),
+    scales = "fixed"
   )
-  g + geom_vline(data = g$data %>% subset(x==gsub("\\s", " ", facet1)), color = "green", aes(xintercept = x) )
-  ggsave('plots/fig_basics_simulation.pdf', width = 8, height = 8)
+  g +
+    geom_vline(data = g$data %>% subset(x==gsub("\\s", " ", facet1)), color = "red", aes(xintercept = x) ) + 
+    coord_fixed()
+  ggsave('plots/fig_basics_simulation.pdf', width = 10, height = 8)
 }
-
 
 # Published methods
 {
-  X = collect_experiments(experiments = 
-                            c("1.6.1_1", "1.6.1_3", "1.6.1_6",  "1.6.1_7", "1.6.1_2", "1.6.1_9", "1.6.1_11",
-                            "1.6.1_10",  "1.6.1_12", "1.6.1_13", "1.6.1_14", "1.6.1_15", "1.6.1_16"))
+  X = collect_experiments(
+    experiments = 
+      c(
+        "1.6.1_1",
+        "1.6.1_2",
+        "1.6.1_3",
+        "1.6.1_6",
+        "1.6.1_7",
+        "1.6.1_8",
+        "1.6.1_9",
+        "1.6.1_10",
+        "1.6.1_11",
+        "1.6.1_12",
+        "1.6.1_13",
+        "1.6.1_14",
+        "1.6.1_15",
+        "1.6.1_16"
+      )
+  )
   X %<>% make_the_usual_labels_nice()
   X <- X %>% mutate(chart_x = paste(regression_method, starting_expression, sep = "_"))
   method_tidy = c(
@@ -216,18 +214,47 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
     "mean"  = "mean"   
   ) %>% rev
   X$regression_method = method_tidy[X$regression_method] %>% factor(levels = method_tidy)
-  X %<>% make_the_usual_labels_nice()
+  bulk_datasets = c(
+    "nakatake", 
+    "replogle2",
+    "replogle2\ntf only",
+    "replogle2\n large effect",
+    "replogle3", 
+    "replogle4", 
+    "freimer",
+    "frangieh\nIFNg v3"
+  )
+  no_raw_counts = c("dixit", "adamson", "norman")
+  X %<>% subset(!((perturbation_dataset %in% bulk_datasets) & regression_method == "GEARS"))
+  X %<>% subset(!((perturbation_dataset %in% no_raw_counts) & regression_method == "GeneFormer"))
   X$x = X$regression_method
-  X %<>% subset(starting_expression=="control")
-  heatmap_all_metrics(
-    X, 
-    facet2 = "perturbation_dataset", 
-    compare_across_rows = F, 
-    scales = "fixed", 
-    do_wrap = T
-  ) + coord_fixed()
   dir.create("plots", showWarnings = FALSE)
-  ggsave(filename = paste0("plots/fig_dcdfg.pdf"), width = 10, height = 4)
+  X %>% 
+    subset(starting_expression=="control") %>%
+    heatmap_all_metrics(
+      ., 
+      facet2 = "perturbation_dataset", 
+      compare_across_rows = F, 
+      scales = "fixed", 
+      do_wrap = T
+    ) + coord_fixed()
+  ggsave(filename = paste0("plots/fig_all_published.pdf"), width = 7, height = 8)
+  X %>% 
+    subset(regression_method!="GEARS") %>%
+    subset(regression_method!="GeneFormer") %>%
+    subset(unique_id!="1.6.1_11") %>%
+    subset(unique_id!="1.6.1_8") %>%
+    subset(unique_id!="1.6.1_9") %>%
+    heatmap_all_metrics(
+      ., 
+      facet1 = "starting_expression",
+      facet2 = "perturbation_dataset", 
+      compare_across_rows = F, 
+      scales = "fixed", 
+      do_wrap = F
+    ) + 
+    coord_fixed() 
+  ggsave(filename = paste0("plots/fig_dcdfg.svg"), width = 12, height = 5)
 }
 
 # networks-only
