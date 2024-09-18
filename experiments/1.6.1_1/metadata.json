@@ -1,7 +1,7 @@
 {
     "unique_id": "1.6.1_1",
-    "nickname": "dcdfg",
-    "readme": "Do DCD-FG and/or its variants beat simple baselines on their or our test data?",
+    "nickname": "published methods",
+    "readme": "Comparison of several published methods (originally focused on DCD-FG, hence the numbering after Q1.6).",
     "question": "1.6",
     "is_active": true,
     "facet_by": "starting_expression",
