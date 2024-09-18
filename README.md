@@ -6,7 +6,7 @@ This repo contains benchmark experiments to evaluate various strategies for pred
 
 - For context and key results, see our [preprint](https://www.biorxiv.org/content/10.1101/2023.07.28.551039v1). NOTE: we hope to update this soon, with new results and substantially improved quality.
 - To set up the data and code environment used in this project, see [`environment/install.md`](https://github.com/ekernf01/perturbation_benchmarking/blob/main/environment/install.md).
-- To conduct your own experiments, see the [pereggrn](https://github.com/ekernf01/pereggrn) benchmarking software and its documentation.
+- To repeat our experiments or run your own, see the [pereggrn](https://github.com/ekernf01/pereggrn) benchmarking software and its documentation.
 - For a list of our experiments and guiding questions, see `all_experiments.tsv` and `guiding_questions.txt`. 
 - If there's something you cannot find, go ahead and file a github issue -- with your input, we hope to improve the project.
 
