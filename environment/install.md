@@ -10,11 +10,11 @@ Certain models nominally require GPU's, but we have been able to run most experi
 
 ### Minimal install
 
-In case of different operating systems and environments, exactly reproducing results is infeasible. However, you should be able to carry out many of our experiments, or your own new experiments, even without all dependencies. Use the commands in `install_minimal.sh`. They will install python packages in a new conda environment, and they will download about 20Gb of data from Zenodo.
+In case of different operating systems and environments, exactly reproducing results is infeasible. However, you should be able to carry out many of our experiments, or your own new experiments, even without all dependencies. Use the commands in `install_minimal.sh`. They will install python packages in a new conda environment, and they will download about 1Gb of example data from Zenodo.
 
 Some notes:
 
-- Data download and unzip will still be running in the background after the installer finishes. It is a ~20GB download. This means the experiments may not work immediately. If you see no `network_collection` or `perturbation_data` folders, then you need to wait for the download+unzip to finish.
+- For this minimal installation, we do not download all the data or networks. We only include a couple of examples. You can download the full network and data collections from Zenodo [DOI: 10.5281/zenodo.8071808](https://doi.org/10.5281/zenodo.8071808).
 - We require wget, git, and conda to be installed already. If the data download doesn't work with `wget`, you can easily rephrase it to use `curl` instead, or you can download the data manually using a web browser.
 - This doesn't try to install all dependencies, so some backends may be unavailable.
 - This doesn't try to install docker or singularity. If you want access to containerized methods via ggrn, you need to install Docker yourself.
@@ -22,14 +22,14 @@ Some notes:
 
 ### Exact install
 
-To reproduce our computing environment exactly, you can start with a bash shell on a clean linux box (we have tested Rocky Linux release 8.8, Ubuntu 20.04, and Ubuntu 22.04). Use these commands. This will install mamba and many python packages, and they will download about 20Gb of data from Zenodo. The one missing piece is that this doesn't try to install docker or singularity. If you want access to containerized methods via ggrn, you need to install Docker yourself.
+To reproduce our computing environment exactly, you can start with a bash shell on a clean linux box (we have tested Rocky Linux release 8.8, Ubuntu 20.04, and Ubuntu 22.04). Use these commands. This will install mamba and many python packages, and they will download all our data (20Gb) from Zenodo. The one missing piece is that this doesn't try to install docker or singularity. If you want access to containerized methods via ggrn, you need to install Docker yourself.
 
 ```bash
 git clone https://github.com/ekernf01/perturbation_benchmarking
 source perturbation_benchmarking/environment/install.sh
 ```
 
-Now, install and configure docker. This is optional; you can run many but not all experiments without it. I cannot support you in this step; if it doesn't work, you will need to go to the official Docker instructions or another source. But this worked for me on an Amazon EC2 running Ubuntu 22.04.
+Now, install and configure docker. This is optional; you can run many of our experiments without it. I cannot support you in this step; if it doesn't work, you will need to go to the official Docker instructions or another source. But this worked for me on an Amazon EC2 running Ubuntu 22.04.
 
 ```bash
 sudo apt-get update

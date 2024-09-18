@@ -2,11 +2,11 @@ mkdir expression_forecasting_benchmarks
 cd expression_forecasting_benchmarks
 # Get data collections from Zenodo 
 # accessory data, e.g. pLI and list of TF names
-wget https://zenodo.org/record/13345104/files/accessory_data.zip  && unzip accessory_data.zip &
+wget https://zenodo.org/record/13345104/files/accessory_data.zip  && unzip accessory_data.zip 
 # perturbations 
-wget https://zenodo.org/record/13345104/files/perturbation_data.zip && unzip perturbation_data.zip &
+wget https://zenodo.org/records/13785607/files/perturbation_data_minimal.zip && unzip perturbation_data_minimal.zip && mv perturbation_data_minimal perturbation_data
 # networks
-wget https://zenodo.org/record/13345104/files/network_collection.zip && unzip network_collection.zip &
+wget https://zenodo.org/records/13785607/files/network_collection_minimal.zip && unzip network_collection_minimal.zip && mv network_collection_minimal network_collection
 
 # Get experiment metadata and project folder layout
 git clone https://github.com/ekernf01/perturbation_benchmarking
@@ -21,8 +21,7 @@ do
     git clone "https://github.com/ekernf01/${p}"
     pip install -e "${p}"
 done
-echo "Installation has finished, but data downloads may continue in the background, so it may not work right away."
-echo "Test your installation:"
+echo "Installation has finished. Test your installation:"
 echo "    conda activate ggrn_minimal"
 echo "    cd perturbation_benchmarking"
 echo "    pereggrn -h # see the help page"
