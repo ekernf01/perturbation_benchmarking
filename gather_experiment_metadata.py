@@ -1,14 +1,16 @@
 import os
 import pandas as pd
-import importlib
-import sys
 import pereggrn.experimenter as experimenter
+import pereggrn_networks
+import pereggrn_perturbations
+pereggrn_networks.set_grn_location("../network_collection/networks")
+pereggrn_perturbations.set_data_path("../perturbation_data/perturbations")
 all_active_experiments = []
 for experiment in os.listdir("experiments"):
     try:
         all_active_experiments.append(pd.DataFrame(
             {
-                k:experimenter.validate_metadata(experiment, permissive = True)[k]
+                k:experimenter.validate_metadata(experiment, input_folder = "experiments")[k]
                 for k in ["nickname", "refers_to", "readme"]
             }, 
             index = [experiment]
