@@ -9,11 +9,12 @@ source("plotting_functions.R")
 
 # Main experiments; all performance metrics 
 main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1.0_7",   "1.0_8",   "1.0_9",   "1.0_10",   "1.0_11",   "1.0_12",   "1.0_13",
-                     "1.4.3_1", "1.4.3_2", "1.4.3_3", "1.4.3_5", "1.4.3_6", "1.4.3_7", "1.4.3_8", "1.4.3_9", "1.4.3_10", "1.4.3_11", "1.4.3_12", "1.4.3_13", 
-                     "1.2.2_1", "1.2.2_2", "1.2.2_3", "1.2.2_5", "1.2.2_6", "1.2.2_7", "1.2.2_8", "1.2.2_9", "1.2.2_10", "1.2.2_11", "1.2.2_12", "1.2.2_13")
+                       "1.2.2_1", "1.2.2_2", "1.2.2_3", "1.2.2_5", "1.2.2_6", "1.2.2_7", "1.2.2_8", "1.2.2_9", "1.2.2_10", "1.2.2_11", "1.2.2_12", "1.2.2_13",
+                       "1.4.3_1", "1.4.3_2", "1.4.3_3", "1.4.3_5", "1.4.3_6", "1.4.3_7", "1.4.3_8", "1.4.3_9", "1.4.3_10", "1.4.3_11", "1.4.3_12", "1.4.3_13" )
 
 {
-  X = collect_experiments(main_experiments) %>% make_the_usual_labels_nice
+  X = collect_experiments(main_experiments)
+  X %<>% make_the_usual_labels_nice
   plot_one_metric(X, compare_across_rows = T, threshold_outliers_at = 1, metric = "mae") + 
     ylab("Mean absolute error") + 
     theme(legend.position = "bottom") + 
@@ -25,7 +26,7 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
     facet1 = "perturbation_dataset", 
     facet2 = "factor_varied"
   ) 
-  ggsave('plots/fig_basics_supp.pdf', width = 8, height = 12)
+  ggsave('plots/fig_basics_supp.pdf', width = 9, height = 14)
 }
 
 # Supplemental tables: stratifying performance by target gene or by perturbed gene
@@ -58,57 +59,31 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
     ) %>%
     subset(!(x %in% c("mean", "median")))
   
-  ggplot(aggregated) +
-    geom_histogram(bins = 300, aes(x = pmax(-100, mae_relative_reduction), fill = beats_baselines)) + 
-    xlab("Percent improvement versus baseline \n(higher is better; capped at -100)") + 
-    ggtitle("Model performance on 64,563 overlapping subsets of target genes") + 
-    scale_fill_manual(values = c("gray60", "black")) + 
-    theme_minimal()
-  ggsave("plots/fig_basics_stratify_targets.pdf", width = 5, height = 5)
-  
+  aggregated %>% 
+    subset(
+      grepl("in-degree.*Hugene", property_of_gene, ignore.case = T) |
+        !grepl("degree", property_of_gene)
+    ) %>%
+    mutate(property_of_gene = gsub("in-degree_cellnet_human_Hugene", "degree", property_of_gene)) %>% 
+    mutate(property_of_gene = gsub("variances_norm", "dispersion", property_of_gene)) %>%
+    mutate(property_of_gene = gsub("means", "mean", property_of_gene)) %>%
+    ggplot() +
+    geom_boxplot(aes(x = property_of_gene, 
+                     y = pmax(-25, mae_relative_reduction), 
+                     group = interaction(quintile, property_of_gene), 
+                     color = as.character(quintile)),
+                 position = "dodge") + 
+    facet_grid(perturbation_dataset~factor_varied, scales = "free") + 
+    scale_color_viridis_d() +
+    ylab("Percent improvement versus baseline MAE \n(higher is better; capped at -25)") + 
+    ggtitle("Model performance on subsets of target genes") + 
+    theme(axis.text.x = element_text(color = "black", angle = 90, vjust = 0.5, hjust = 1)) + 
+    geom_hline(yintercept=0, color = "red") + 
+    labs(color = "Quintile")
+  ggsave("plots/fig_basics_stratify_targets.pdf", width = 10, height = 10)
   dim(aggregated) %>% write.csv('plots/fig_basics_stratify_targets_num_groups.csv')
-  long_data = aggregated %>% 
-    subset(beats_baselines) %>% 
-    arrange(-mae_relative_reduction)
-  long_data %>% write.csv("plots/fig_basics_stratify_targets.csv")
-  long_data %>% 
-    extract(c("property_of_gene", "quintile")) %>% 
-    mutate(property_of_gene = gsub("out-degree_", "o_", property_of_gene)) %>%
-    mutate(property_of_gene = gsub("in-degree_", "i_", property_of_gene)) %>%
-    table %>% 
-    as.data.frame %>% 
-    set_colnames(c("Stratified on", "quintile", "Freq")) %>%
-    arrange(-Freq) %>% 
-    ggplot() + geom_tile(aes(y = `Stratified on`, x = quintile, fill = Freq)) + 
-    ggtitle("Properties used to select subsets \nof target genes that are predictable") + 
-    coord_fixed() + 
-    labs(fill = "Number of \npredictable \n genesets")
-  ggsave("plots/fig_basics_stratify_targets_summary.pdf", width = 5, height = 7)
-  long_data %>%
-    extract(c("perturbation_dataset")) %>%
-    table %>%
-    as.data.frame %>%
-    set_colnames(c("Dataset", "Freq")) %>%
-    arrange(-Freq) %>%
-    mutate(Dataset = reorder_datasets(Dataset)) %>%
-    subset(Freq>0) %>%
-    ggplot() + geom_bar(stat = "identity", aes(x = Dataset, y = Freq)) + coord_flip() + ggtitle("Datasets in which subsets \nof target genes are predictable")
-  ggsave("plots/fig_basics_stratify_targets_summary_dataset.pdf", width = 3, height = 3)
-  
-  long_data %>%
-    extract(c("x", "factor_varied")) %>%
-    table %>%
-    as.data.frame %>%
-    set_colnames(c("Method", "factor_varied", "Freq")) %>%
-    arrange(-Freq) %>%
-    subset(Freq>0) %>%
-    ggplot() + 
-    geom_bar(stat = "identity", aes(x = Method, y = Freq)) + 
-    ggtitle("Methods for which subsets \nof target genes are predictable") + 
-    facet_grid(~factor_varied, scale = "free") + 
-    theme(axis_ti)
-  ggsave("plots/fig_basics_stratify_targets_summary_model.pdf", width = 3, height = 3)
 }
+
 {
   # Breakdown by perturbed gene
   evaluationPerPert = collect_experiments(main_experiments, stratify_by_pert = T)
@@ -190,6 +165,7 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
         "1.6.1_1",
         "1.6.1_2",
         "1.6.1_3",
+        "1.6.1_4",
         "1.6.1_6",
         "1.6.1_7",
         "1.6.1_8",
@@ -200,6 +176,7 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
         "1.6.1_13",
         "1.6.1_14",
         "1.6.1_15",
+        # "1.6.1_17",
         "1.6.1_16"
       )
   )
@@ -216,6 +193,7 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
   X$regression_method = method_tidy[X$regression_method] %>% factor(levels = method_tidy)
   bulk_datasets = c(
     "nakatake", 
+    "joung",
     "replogle2",
     "replogle2\ntf only",
     "replogle2\n large effect",

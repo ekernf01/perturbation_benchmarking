@@ -110,6 +110,7 @@ EVAL_COLUMNS = c(
     "timepoint",
     "cell_type",
     "cell_type_correct",
+    "cell_label_accuracy",
     "distance_in_pca",
     "is_timescale_strict",
     "unique_id",
@@ -151,8 +152,7 @@ reorder_datasets = function(datasets){
 #'
 collect_experiments = function(
     experiments, 
-    stratify_by_pert = T, 
-    cols_to_keep = EVAL_COLUMNS
+    stratify_by_pert = T
 ){
   X <- list()
   for (experiment in experiments) {
@@ -164,24 +164,17 @@ collect_experiments = function(
    
     try({
       X[[experiment]] <- arrow::read_parquet(filepath, as_data_frame = T, mmap = T)
-      ctk = cols_to_keep[ cols_to_keep %in% colnames(X[[experiment]]) ]
-      X[[experiment]] = X[[experiment]][ctk]
-      if (is.null(X[[experiment]]$cell_type)){
-        X[[experiment]]$cell_type = 0
+      if (is.null(X[[experiment]][["cell_type"]])){
+        X[[experiment]][["cell_type"]] = 0
       }
-      X[[experiment]]$cell_type %<>% as.character
-      if (is.null(X[[experiment]]$louvain)){
-        X[[experiment]]$louvain = 0
+      X[[experiment]][["cell_type"]] %<>% as.character
+      if (is.null(X[[experiment]][["louvain"]])){
+        X[[experiment]][["louvain"]] = 0
       }
-      X[[experiment]]$louvain %<>% as.character
+      X[[experiment]][["refers_to"]] %<>% as.character
+      X[[experiment]][["question"]] %<>% as.character
+      X[[experiment]][["louvain"]] %<>% as.character
     })
-    keep = c()
-    for(i in seq_along(X[[experiment]])){
-      if(any(!is.na(X[[experiment]][[i]]))){
-        keep = c(keep, i)
-      }
-    }
-    X[[experiment]] = X[[experiment]][keep]
   }
   X <- bind_rows(X)
   return(X)
@@ -245,7 +238,6 @@ percent_change_from_best_baseline = function(mae, x){
 percent_change_from_best = function(x){
   m = max(x, na.rm = T)
   x = -abs( 100*( (m - x) / (m+0.00000001) ) )
-  x = x %>% pmax(-10)
   return(x)
 }
 
