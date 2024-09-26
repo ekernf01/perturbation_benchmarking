@@ -16,7 +16,8 @@
         "LassoCV",
         "ElasticNetCV",
         "OrthogonalMatchingPursuitCV",
-        "BayesianRidge"
+        "BayesianRidge",         
+        "docker____ekernf01/ggrn_docker_backend_ahlmann_eltze"
     ],
     "num_genes": 10000,
     "eligible_regulators": "human_tfs",

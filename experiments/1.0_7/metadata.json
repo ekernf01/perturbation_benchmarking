@@ -4,6 +4,23 @@
     "readme": "Like 1.0_1 but freimer instead of nakatake.",
     "refers_to": "1.0_1",
     "is_active": true,
-    "perturbation_dataset": "freimer"
+    "perturbation_dataset": "freimer", 
+    "expand": "ladder", 
+    "kwargs": [
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {
+            "pca_dim": 3
+        }
+    ]
 }
 
