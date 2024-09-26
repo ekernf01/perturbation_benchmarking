@@ -15,18 +15,57 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
 {
   X = collect_experiments(main_experiments)
   X %<>% make_the_usual_labels_nice
-  plot_one_metric(X, compare_across_rows = T, threshold_outliers_at = 1, metric = "mae") + 
-    ylab("Mean absolute error") + 
-    theme(legend.position = "bottom") + 
-    scale_y_continuous(breaks=scales::pretty_breaks(n=3))
-  ggsave('plots/fig_basics.svg', width = 8, height = 12)
+  X %>% 
+    subset( x=="mean") %>% 
+    ggplot() + 
+    # geom_jitter(aes(y = spearman, x = perturbation_dataset), alpha = 0.2) + 
+    geom_boxplot(aes(y = spearman, x = perturbation_dataset), alpha = 1,
+                 color = "black",
+                 fill = NA,
+                 outlier.shape = 'o') + 
+    geom_hline(yintercept = 0, color = "red") + 
+    ylab("Spearman correlation between\npredicted and observed fold change") + 
+    ggtitle("Performance of 'mean' baseline") + 
+    theme_minimal()    +
+    theme(
+      axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, color = "black"),
+      axis.text.y = element_text(color = "black")
+    )  + 
+    xlab("")
+  ggsave('plots/fig_basics_correlation.pdf', width = 5, height = 4) 
+  X %<>% distill_results(    
+    facet1 = "perturbation_dataset", 
+    facet2 = "factor_varied", 
+    compare_across_rows = T
+  )
+  # stratified by dataset
   heatmap_all_metrics(
     X, 
-    compare_across_rows = T,
     facet1 = "perturbation_dataset", 
     facet2 = "factor_varied"
-  ) 
+  )  + 
+    geom_vline(aes(xintercept = x), data = data.frame(x = 3.5, facet2 = factor("regression method", levels = levels(X$factor_varied)))) + 
+    geom_vline(aes(xintercept = x), data = data.frame(x = 2.5, facet2 = factor("network datasets", levels = levels(X$factor_varied))))
+  
   ggsave('plots/fig_basics_supp.pdf', width = 9, height = 14)
+  # not stratified by dataset
+  X %>% 
+    # group_by(x, factor_varied, metric) %>%
+    # summarize(scaled_value = median(scaled_value)) %>%
+    mutate(metric = factor(metric, levels = gsub("_", " ", METRICS))) %>%
+    ggplot() +
+    geom_boxplot(aes(x = x, y = pmin(pmax(scaled_value, -100), 100))) + 
+    labs(
+      x = "", 
+      y = "Percent change vs 'mean' baseline\nOriented so higher is better\nCapped at ±100%",
+    ) +
+    geom_hline(aes(yintercept = 0), colour = "red") +
+    theme(
+      axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, color = "black"),
+      axis.text.y = element_text(color = "black")
+    ) + 
+    facet_grid(metric~factor_varied, scales = "free")
+  ggsave('plots/fig_basics.pdf', width = 8, height = 14)
 }
 
 # Supplemental tables: stratifying performance by target gene or by perturbed gene
@@ -75,7 +114,7 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
                  position = "dodge") + 
     facet_grid(perturbation_dataset~factor_varied, scales = "free") + 
     scale_color_viridis_d() +
-    ylab("Percent improvement versus baseline MAE \n(higher is better; capped at -25)") + 
+    ylab("Percent improvement versus baseline MAE \n(higher is better\nCapped at -25)") + 
     ggtitle("Model performance on subsets of target genes") + 
     theme(axis.text.x = element_text(color = "black", angle = 90, vjust = 0.5, hjust = 1)) + 
     geom_hline(yintercept=0, color = "red") + 
@@ -86,12 +125,11 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
 
 {
   # Breakdown by perturbed gene
-  evaluationPerPert = collect_experiments(main_experiments, stratify_by_pert = T)
+  evaluationPerPert = collect_experiments(main_experiments, stratify_by_pert = T, )
   aggregated = evaluationPerPert %>% 
     subset(type_of_split == "interventional") %>%
     make_the_usual_labels_nice %>% 
     magrittr::extract(c("mae", "factor_varied", "x", "perturbation_dataset",
-                        "logFC", "logFCNorm2", "pearsonCorr", "spearmanCorr",
                         grep("degree", colnames(evaluationPerTarget), value = T),
                         "n_exons", "pLI")) %>%
     tidyr::pivot_longer(
@@ -120,7 +158,7 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
       beats_baselines = check_if_beats_baselines(mae, x), 
       mae_relative_reduction = percent_change_from_best_baseline(mae, x), 
     ) %>% 
-    subset(mae_relative_reduction > 0.05) %>% 
+    subset(beats_baselines) %>% #nothing passes this filter LOLOLOL
     arrange(-mae_relative_reduction)                         
   long_data %>% write.csv('plots/fig_basics_stratify_perts.csv')
 }
@@ -145,12 +183,14 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
   X$num_observations_in_group = 1
   X$cell_label_accuracy = NA
   X$data_split_seed %<>% paste0("Data split: ", .)
-  g = heatmap_all_metrics(
-    X, 
-    facet2 = "data_split_seed", 
-    compare_across_rows = F, 
-    scales = "fixed"
-  )
+  g = X %>%
+    distill_results( facet2 = "data_split_seed",  compare_across_rows = F, baseline_condition = "dense" ) %>%
+    heatmap_all_metrics(
+      facet2 = "data_split_seed", 
+      scales = "fixed", 
+      cap = 5, 
+      baseline_condition = "dense"
+    )
   g +
     geom_vline(data = g$data %>% subset(x==gsub("\\s", " ", facet1)), color = "red", aes(xintercept = x) ) + 
     coord_fixed()
@@ -209,25 +249,60 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
   dir.create("plots", showWarnings = FALSE)
   X %>% 
     subset(starting_expression=="control") %>%
-    heatmap_all_metrics(
-      ., 
+    distill_results(
       facet2 = "perturbation_dataset", 
-      compare_across_rows = F, 
+      compare_across_rows = F 
+    ) %>%
+    heatmap_all_metrics(
+      facet2 = "perturbation_dataset", 
       scales = "fixed", 
       do_wrap = T
     ) + coord_fixed()
   ggsave(filename = paste0("plots/fig_all_published.pdf"), width = 7, height = 8)
+  # Not grouped by dataset
+  X %>% 
+    subset(starting_expression=="control") %>%
+    distill_results(
+      facet2 = "perturbation_dataset", 
+      compare_across_rows = F 
+    ) %>%
+    # group_by(x, metric) %>%
+    # summarize(scaled_value = median(scaled_value)) %>%
+    mutate(metric = factor(metric, levels = gsub("_", " ", METRICS))) %>%
+    ggplot() +
+    geom_tile(aes(
+      x = x, 
+      y = perturbation_dataset %>% gsub("\n", " ", .),
+      fill = pmin(pmax(scaled_value, -100), 100))) + 
+    labs(
+      x = "", 
+      y = "",
+      fill = "Percent change vs 'mean' baseline\nOriented so higher is better\nCapped at ±100%", 
+    ) +
+    geom_hline(aes(yintercept = 0), color = "red") +
+    theme(
+      axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, color = "black"),
+      axis.text.y = element_text(color = "black")
+    ) + 
+    scale_fill_gradient2() +
+    facet_wrap(~metric)
+  ggsave(filename = paste0("plots/fig_all_published_simple.pdf"), width = 6, height = 4)
+  
   X %>% 
     subset(regression_method!="GEARS") %>%
     subset(regression_method!="GeneFormer") %>%
     subset(unique_id!="1.6.1_11") %>%
     subset(unique_id!="1.6.1_8") %>%
     subset(unique_id!="1.6.1_9") %>%
+    distill_results(
+      facet1 = "starting_expression",
+      facet2 = "perturbation_dataset", 
+      compare_across_rows = F 
+    ) %>%
     heatmap_all_metrics(
       ., 
       facet1 = "starting_expression",
       facet2 = "perturbation_dataset", 
-      compare_across_rows = F, 
       scales = "fixed", 
       do_wrap = F
     ) + 

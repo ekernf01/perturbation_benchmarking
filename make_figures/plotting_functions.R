@@ -133,6 +133,35 @@ EVAL_COLUMNS = c(
     "matching_method"
   )
 )
+METRICS = c(
+  # "pearson_top_20",
+  "pearson_top_100", 
+  # "pearson_top_200",
+  # "overlap_top_20",              
+  "overlap_top_100",                 
+  # "overlap_top_200",
+  # "mse_top_20",
+  "mse_top_100", 
+  # "mse_top_200",
+  "mse", 
+  "mae", 
+  "spearman", 
+  "proportion_correct_direction", 
+  "cell_label_accuracy")
+
+METRICS_WHERE_BIGGER_IS_BETTER = c(
+  "spearman", 
+  "proportion_correct_direction",                 
+  "pearson_top_20", 
+  "pearson_top_100", 
+  "pearson_top_200", 
+  "overlap_top_20",                 
+  "overlap_top_100",                 
+  "overlap_top_200",                 
+  "cell_label_accuracy", 
+  "proportion correct direction",
+  "cell type correct")
+METRICS_WHERE_BIGGER_IS_BETTER %<>% c(gsub("_", " ", METRICS_WHERE_BIGGER_IS_BETTER))
 
 reorder_datasets = function(datasets){
   datasets = as.character(datasets)
@@ -184,6 +213,9 @@ collect_experiments = function(
 #' 
 make_the_usual_labels_nice = function(X){
   try({colnames(X) %<>% gsub("cell_type_correct", "cell_label_accuracy", .)}, silent = T)
+  try(X$regression_method %<>% gsub("docker____","", .))
+  try(X$regression_method %<>% gsub("ekernf01/","", .))
+  try(X$regression_method %<>% gsub("ggrn_docker_backend_ahlmann_eltze","linear embedding", .))
   try({X$factor_varied %<>% gsub("_", " ", .)}, silent = T)
   try({X$factor_varied %<>% factor(levels = c("regression method", "network datasets", "matching method"))}, silent = T)
   try({X$perturbation_dataset %<>% gsub("_", " ", .) %>% sub(" ", "\n", .) %>% gsub("γ", "g" , .)}, silent = T)
@@ -201,7 +233,7 @@ make_the_usual_labels_nice = function(X){
   X$x = ifelse(X$factor_varied=="matching method", X[["timescale handling"]], X$x)
   X$x %<>% gsub("_", " ", .)
   the_usual_levels = gtools::mixedsort(unique(X$x))
-  X %<>% mutate(x = factor(x, levels = unique(c("empty", "dense", "median", "mean", the_usual_levels))))
+  X %<>% mutate(x = factor(x, levels = unique(c( "empty", "dense", "mean", "median", "ggrn_docker_backend_ahlmann_eltze", "linear embedding", the_usual_levels))))
   return(X)
 }
 
@@ -229,7 +261,12 @@ check_if_beats_baselines = function(mae, x){
 best_method = function(mae, x){
   return(x[which.min(mae)])
 }
-  
+
+percent_change_from_baseline = function(value, method, baseline_condition = "mean"){
+  baseline_performance = value[method==baseline_condition]
+  return( 100*(value - baseline_performance) / (abs(baseline_performance)+0.000001) )
+}
+
 percent_change_from_best_baseline = function(mae, x){
   m = min(mae[x %in% c("mean", "median")], na.rm = T)
   return(100*((m - mae) / m))
@@ -257,80 +294,59 @@ heatmap_all_metrics = function(
     X,
     facet1 = "perturbation_dataset",
     facet2 = "factor_varied",
-    compare_across_rows = FALSE,
-    metrics = c(# "pearson_top_20",
-                "pearson_top_100", 
-                # "pearson_top_200",
-                # "overlap_top_20",              
-                "overlap_top_100",                 
-                # "overlap_top_200",
-                # "mse_top_20",
-                "mse_top_100", 
-                # "mse_top_200",
-                "mse", 
-                "mae", 
-                "spearman", 
-                "proportion_correct_direction", 
-                "cell_label_accuracy"),
-    metrics_where_bigger_is_better = c(
-      "spearman", "proportion_correct_direction",                 
-      "pearson_top_20", 
-      "pearson_top_100", 
-      "pearson_top_200", 
-      "overlap_top_20",                 
-      "overlap_top_100",                 
-      "overlap_top_200",                 
-      "cell_label_accuracy", 
-      "proportion correct direction",
-      "cell type correct"), 
     scales = "free", 
-    do_wrap = F
+    do_wrap = FALSE, 
+    cap = 100,
+    baseline_condition = "mean"
 ){
-  X[["facet1"]] = X[[facet1]]
-  X[["facet2"]] = X[[facet2]]
-  X %<>%
-    group_by(x, facet1, facet2) %>%
-    summarise(across(metrics, \(v) sum(v*num_observations_in_group)/sum(num_observations_in_group)))
-  X %<>% tidyr::pivot_longer(cols = all_of(metrics), names_to = "metric")
-  X[["metric"]] %<>% gsub("_", " ", .)
-  # Rescale metrics
-  if (compare_across_rows) {
-    X %<>% group_by(metric, facet1)
-  } else {
-    X %<>% group_by(metric, facet1, facet2)
-  }  
-
-  X %<>%
-    mutate(value = value*ifelse(metric %in% metrics_where_bigger_is_better, 1, -1)) %>%
-    # mutate(metric = paste(metric, ifelse(metric %in% metrics_where_bigger_is_better, "", "(inverted)"))) %>%
-    mutate(scaled_value = percent_change_from_best(value)) %>%
-    mutate(rank_where_lower_is_better = rank(-scaled_value))
-  X %<>% subset(!is.na(scaled_value))
-  mean_rank = X %>% 
-    group_by(x, facet1, facet2) %>%
-    summarize(metric = "MEAN ACROSS ALL METRICS", rank_where_lower_is_better = mean(rank_where_lower_is_better))
-  X = rbind(X, mean_rank)
-  X[["metric"]] %<>% factor(levels = gsub("_", " ", metrics) %>% c("MEAN ACROSS ALL METRICS")) #order y axis in plot
-  # plawt
   g = ggplot(X) +
-    geom_tile(aes(x = x, y = metric, fill = rank_where_lower_is_better)) + 
-    # scale_fill_gradient( breaks=c(0,1),labels=c("min","max"), limits=c(0,1)) +
-    # geom_point(data = subset(X, is_best), aes(x = x, y = metric, color = is_best)) + 
-    # scale_color_manual(values = c("red")) +
-    # labs(x = "", y = "", fill = "Scaled\nvalue", color = "Best\nperformer") +
-    # labs(x = "", y = "", fill = "Percent change\nfrom best \n(capped at 10%)", color = "Best\nperformer") +
-    labs(x = "", y = "", fill = "Rank (lower is better)", color = "Best\nperformer") +
-    scale_fill_viridis_c(direction = -1) + 
+    geom_tile(aes(x = x, y = metric, fill = pmin(pmax(scaled_value, -cap), cap))) + 
+    labs(
+      x = "",
+      y = "", 
+      fill = paste0("Percent change vs '", baseline_condition, "'\nOriented so higher is better\nCapped at ±", cap, "%")
+    ) +
+    scale_fill_gradient2() +
     theme(
       axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, color = "black"),
       axis.text.y = element_text(color = "black")
-      ) 
+    ) 
   if (do_wrap){
     g = g + facet_wrap(~facet1, scales = scales) 
   } else {
     g = g + facet_grid(facet1~facet2, scales = scales) 
   }
   return(g)
+}
+
+distill_results = function(
+    X,
+    facet1 = "perturbation_dataset", 
+    facet2 = "factor_varied",
+    compare_across_rows = FALSE, 
+    baseline_condition = "mean"
+){
+  X[["facet1"]] = X[[facet1]]
+  X[["facet2"]] = X[[facet2]]
+  X %<>%
+    group_by(x, facet1, facet2) %>%
+    summarise(across(all_of(METRICS), \(v) sum(v*num_observations_in_group)/sum(num_observations_in_group)))
+  X %<>% tidyr::pivot_longer(cols = all_of(METRICS), names_to = "metric")
+  X[["metric"]] %<>% gsub("_", " ", .)
+  X[["metric"]] %<>% factor(levels = gsub("_", " ", METRICS))
+  # Rescale metrics
+  if (compare_across_rows) {
+    X %<>% group_by(metric, facet1)
+  } else {
+    X %<>% group_by(metric, facet1, facet2)
+  }  
+  X %<>%
+    mutate(value = value*ifelse(metric %in% METRICS_WHERE_BIGGER_IS_BETTER, 1, -1)) %>%
+    mutate(scaled_value = percent_change_from_baseline(value, x, baseline_condition))
+  X %<>% subset(!is.na(scaled_value))
+  X[[facet1]] = X[["facet1"]]
+  X[[facet2]] = X[["facet2"]]
+  X
 }
 
 #' Plot all of our metrics in a heatmap, shifted and scaled so that best is 1 and worst is 0.
