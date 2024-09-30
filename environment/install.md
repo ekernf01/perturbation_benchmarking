@@ -10,7 +10,7 @@ Certain models nominally require GPU's, but we have been able to run most experi
 
 ### Minimal install
 
-In case of different operating systems and environments, exactly reproducing results is infeasible. However, you should be able to carry out many of our experiments, or your own new experiments, even without all dependencies. Use the commands in `install_minimal.sh`. They will install python packages in a new conda environment, and they will download about 1Gb of example data from Zenodo.
+In case of different operating systems and environments, exactly reproducing results is infeasible. However, you should be able to carry out many of our experiments, or your own new experiments, even without all dependencies. Use the commands in [`install_minimal.sh`](https://github.com/ekernf01/perturbation_benchmarking/blob/main/environment/install_minimal.sh). They will install python packages in a new conda environment, and they will download about 1Gb of example data from Zenodo.
 
 Some notes:
 
@@ -22,7 +22,7 @@ Some notes:
 
 ### Exact install
 
-To reproduce our computing environment exactly, you can start with a bash shell on a clean linux box (we have tested Rocky Linux release 8.8, Ubuntu 20.04, and Ubuntu 22.04). Use these commands. This will install mamba and many python packages, and they will download all our data (20Gb) from Zenodo. The one missing piece is that this doesn't try to install docker or singularity. If you want access to containerized methods via ggrn, you need to install Docker yourself.
+To reproduce our computing environment exactly, you can start with a bash shell on a clean linux box (we have tested Rocky Linux release 8.8, Ubuntu 20.04, and Ubuntu 22.04). Use the commands in [install.sh](https://github.com/ekernf01/perturbation_benchmarking/blob/main/environment/install.sh). This will install mamba and many python packages, and it will download all our data (20Gb) from Zenodo. The one missing piece is that this doesn't try to install docker or singularity. If you want access to containerized methods via ggrn, you need to install Docker yourself.
 
 ```bash
 git clone https://github.com/ekernf01/perturbation_benchmarking
