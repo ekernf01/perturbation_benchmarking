@@ -4,7 +4,7 @@ This repo contains benchmark experiments to evaluate various strategies for pred
 
 ![image](https://github.com/ekernf01/perturbation_benchmarking/assets/5271803/ae7a5c86-dca6-49be-b048-743f8e110a18)
 
-- For context and key results, see our [preprint](https://www.biorxiv.org/content/10.1101/2023.07.28.551039v1). NOTE: we hope to update this soon, with new results and substantially improved quality.
+- For context and key results, see our [preprint](https://www.biorxiv.org/content/10.1101/2023.07.28.551039v1). 
 - To interact with the evaluation results and see the source data for our figures, [download (300MB)](https://zenodo.org/records/13785280/files/evaluation_results.zip?download=1) them from zenodo (DOI: 10.5281/zenodo.13785280). 
 - To repeat our experiments or run your own, see the [pereggrn](https://github.com/ekernf01/pereggrn) benchmarking software and [tutorial](https://github.com/ekernf01/pereggrn/blob/main/docs/tutorial.md).
 - If there's something you cannot find, go ahead and file a github issue -- with your input, we hope to improve the project.
