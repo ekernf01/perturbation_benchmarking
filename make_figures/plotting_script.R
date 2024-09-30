@@ -216,8 +216,8 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
         "1.6.1_13",
         "1.6.1_14",
         "1.6.1_15",
-        # "1.6.1_17",
-        "1.6.1_16"
+        "1.6.1_16",
+        "1.6.1_17"
       )
   )
   X %<>% make_the_usual_labels_nice()
@@ -270,14 +270,12 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
     # summarize(scaled_value = median(scaled_value)) %>%
     mutate(metric = factor(metric, levels = gsub("_", " ", METRICS))) %>%
     ggplot() +
-    geom_tile(aes(
-      x = x, 
-      y = perturbation_dataset %>% gsub("\n", " ", .),
-      fill = pmin(pmax(scaled_value, -100), 100))) + 
+    geom_boxplot(aes(
+      x = x,
+      y = pmin(pmax(scaled_value, -100), 100))) + 
     labs(
       x = "", 
-      y = "",
-      fill = "Percent change vs 'mean' baseline\nOriented so higher is better\nCapped at ±100%", 
+      y = "Percent change vs 'mean' baseline\nOriented so higher is better\nCapped at ±100%", 
     ) +
     geom_hline(aes(yintercept = 0), color = "red") +
     theme(
@@ -286,11 +284,12 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
     ) + 
     scale_fill_gradient2() +
     facet_wrap(~metric)
-  ggsave(filename = paste0("plots/fig_all_published_simple.pdf"), width = 6, height = 4)
+  ggsave(filename = paste0("plots/fig_all_published_simple.pdf"), width = 6, height = 5)
   
   X %>% 
     subset(regression_method!="GEARS") %>%
     subset(regression_method!="GeneFormer") %>%
+    subset(unique_id!="1.6.1_17") %>%
     subset(unique_id!="1.6.1_11") %>%
     subset(unique_id!="1.6.1_8") %>%
     subset(unique_id!="1.6.1_9") %>%
