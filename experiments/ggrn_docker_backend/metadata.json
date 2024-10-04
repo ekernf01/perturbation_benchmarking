@@ -13,6 +13,6 @@
         "my_constant_hyperparameter": 0
     },
     "kwargs_to_expand": ["my_sweepy_hyperparameter"],
-    "regression_method":"docker____ekernf01/ggrn_docker_backend" 
+    "regression_method":"docker____ekernf01/ggrn_docker_backend_template" 
 }
 
