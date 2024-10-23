@@ -6,7 +6,7 @@ This repo contains benchmark experiments to evaluate various strategies for pred
 
 - For context and key results, see our [preprint](https://www.biorxiv.org/content/10.1101/2023.07.28.551039v2). 
 - To interact with the evaluation results and see the source data for our figures, [download (300MB)](https://zenodo.org/records/13785280/files/evaluation_results.zip?download=1) them from zenodo (DOI: 10.5281/zenodo.13785280). 
-- To repeat our experiments or run your own, see the [pereggrn](https://github.com/ekernf01/pereggrn) benchmarking software and [tutorial](https://github.com/ekernf01/pereggrn/blob/main/docs/tutorial.md).
+- To repeat our experiments or run your own, see the [pereggrn](https://github.com/ekernf01/pereggrn) benchmarking software ([tutorial](https://github.com/ekernf01/pereggrn/blob/main/docs/tutorial.md), how to [add your own method](https://github.com/ekernf01/pereggrn/blob/main/docs/how_to.md#how-to-evaluate-a-new-method)).
 - If there's something you cannot find, go ahead and file a github issue -- with your input, we hope to improve the project.
 
 ### Related infrastructure
