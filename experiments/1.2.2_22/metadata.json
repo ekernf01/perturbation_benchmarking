@@ -5,7 +5,8 @@
     "question": "1.2.2",
     "is_active": true,
     "refers_to": "1.2.2_14",
-    "perturbation_dataset": "paul2", 
+    "perturbation_dataset": "paul2",
+    "visualization_embedding": "X_draw_graph_fa", 
     "eligible_regulators": "tf",
     "species": "mouse",
     "network_datasets": {

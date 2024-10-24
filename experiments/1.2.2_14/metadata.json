@@ -18,6 +18,7 @@
     "color_by": "prediction_timescale", 
     "facet_by": null, 
     "perturbation_dataset": "definitive_endoderm", 
+    "visualization_embedding": "X_pca",
     "network_prior": "restrictive",
     "network_datasets": {
         "endoderm": { "do_aggregate_subnets": true }
