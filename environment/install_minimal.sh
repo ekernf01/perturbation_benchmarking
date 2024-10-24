@@ -11,7 +11,7 @@ wget https://zenodo.org/records/13785607/files/network_collection_minimal.zip &&
 # Get experiment metadata and project folder layout
 git clone https://github.com/ekernf01/perturbation_benchmarking
 # Install python packages
-conda create -n ggrn_minimal
+conda create -n ggrn_minimal python=3.9
 conda activate ggrn_minimal
 conda install -y pip
 pip install vl-convert-python
