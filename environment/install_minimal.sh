@@ -22,6 +22,5 @@ do
 done
 echo "Installation has finished. Test your installation:"
 echo "    conda activate ggrn_minimal"
-echo "    cd perturbation_benchmarking"
 echo "    pereggrn -h # see the help page"
-echo "    pereggrn --input perturbation_benchmarking --output example_output --experiment_name '1.0_0' --networks network_collection --data perturbation_data --amount_to_do models --no_skip_bad_runs"
+echo "    pereggrn --input perturbation_benchmarking --output example_output --experiment_name '1.0_0' --networks network_collection/networks --data perturbation_data/perturbations --amount_to_do models --no_skip_bad_runs"
