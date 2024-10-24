@@ -16,7 +16,8 @@ conda activate ggrn_minimal
 conda install -y pip
 pip install vl-convert-python
 pip install ray[tune]
-for p in pereggrn_networks pereggrn_perturbations ggrn geneformer_embeddings pereggrn
+pip install pyarrow
+for p in pereggrn_networks pereggrn_perturbations ggrn pereggrn
 do
     pip install git+https://github.com/ekernf01/${p}@v2
 done
