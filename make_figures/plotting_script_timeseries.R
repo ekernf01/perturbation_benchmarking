@@ -1,23 +1,85 @@
-library(ggplot2)
-library(dplyr)
-library(stringr)
-library(arrow)
-library(magrittr)
-library(rjson)
+library("ggplot2")
+library("dplyr")
+library("stringr")
+library("arrow")
+library("magrittr")
+library("rjson")
+library("hdf5r")
+# # Versions of AnnDataR and hdf5r we used:
+# remotes::install_version("hdf5r", "1.3.11")
+# devtools::install_github("scverse/anndataR", ref = "dbc6897")
+
 setwd("/home/ekernf01/Desktop/jhu/research/projects/perturbation_prediction/cell_type_knowledge_transfer/perturbation_benchmarking/make_figures/")
 source("plotting_functions.R")
-DEFAULT_METRICS = c(
-  "overlap_top_100",
-  "pearson_top_100",
-  "proportion_correct_direction", 
-  "spearman",
-  "cell label accuracy",
-)
+
+# 1.2.2_14 is endoderm and it's complicated enough that the default evaluation code doesn't make biological sense. 
 {
-  X = collect_experiments(paste0("1.2.2_", 14:22)) %>% make_the_usual_labels_nice
-  X$perturbation_dataset %<>% gsub("paul.", "paul", .)
-  X %<>% subset(is_timescale_strict)
+  X = collect_experiments(paste0("1.2.2_", c(14))) 
+  X %<>% make_the_usual_labels_nice
+  train = anndataR::read_h5ad(paste0("../../perturbation_data/perturbations/definitive_endoderm/train.h5ad"))
+  train$obs[c("viz1", "viz2")] = train$obsm[["X_pca"]][,1:2]
+  test  = anndataR::read_h5ad(paste0("../../perturbation_data/perturbations/definitive_endoderm/test.h5ad"))
+  test$obs[c("viz1", "viz2")] = read.csv(paste0("../experiments/1.2.2_14/outputs/test_data_projection/0.csv"), row.names = 1)
+  assertthat::are_equal(test$obs_names, rownames(test$obsm[["X_pca"]]))
+  predictions  = anndataR::read_h5ad(paste0("../experiments/1.2.2_14/outputs/predictions/0.h5ad"))
+  predictions$obs[c("viz1", "viz2")] = read.csv(paste0("../experiments/1.2.2_14/outputs/predictions_projection/0.csv"), row.names = 1)
+  assertthat::are_equal(predictions$obs_names, rownames(predictions$obsm[["X_pca"]]))
+
+  ggplot() +
+    ggtitle("Train, test, and predicted data") +
+    geom_point(aes(x=viz1, y=viz2), data = train$obs, color = "gray") +
+    geom_point(aes(x=viz1, y=viz2), data = test$obs, color = "black") +
+    geom_point(aes(x=viz1, y=viz2), data = predictions$obs, color = "red") + 
+    theme_minimal()
   
+  test$obs %<>% mutate(perturbation_simple = ifelse(perturbation %in% c("FOXH1", "SOX17", "SMAD2", "SMAD4"), as.character(perturbation), "other"))
+  predictions$obs %<>% mutate(perturbation_simple = ifelse(perturbation %in% c("FOXH1", "SOX17", "SMAD2", "SMAD4"), as.character(perturbation), "other"))
+  ggplot() +
+    ggtitle("Test data distribution with train data backdrop") + 
+    geom_point(aes(x=viz1, y=viz2), data = train$obs, color = "gray") +
+    stat_bin_hex(aes(x=viz1, y=viz2, color = perturbation_simple, size = ..density..), geom = "point", data = test$obs) + 
+    theme_minimal() 
+  
+  predictions$obs %>%
+    merge(
+      predictions$obs %>%
+        subset(
+          perturbation=="Scramble", 
+          select = c("viz1", "viz2", "cell_type", "perturbation_type", "prediction_timescale"),
+        ) %>% 
+        rename(control_viz1 = viz1, control_viz2 = viz2) %>%
+        unique,
+      by = c("cell_type", "perturbation_type", "prediction_timescale"), 
+      all.x = T, 
+      all.y = F
+    ) %>%
+    ggplot() +
+    ggtitle("One set of predictions (arrows point from simulated controls to simulated treatments)") + 
+    geom_point(aes(x=viz1, y=viz2), data = train$obs, color = "gray") +
+    geom_segment(aes(x = control_viz1, y = control_viz2,
+                     xend = viz1, yend = viz2, 
+                     color = perturbation_simple),
+                 arrow = arrow(length=unit(0.30,"cm"), ends="last", type = "closed")) +
+  theme_minimal() 
+    
+  
+  ggrepel::geom_label_repel(
+    aes( x = viz1_test, y = viz2_test, label = perturbation_x), 
+    data = X %>%
+        subset(
+          cell_type != "endoderm", 
+          select = c("cell_type", "viz1_test", "viz2_test", "perturbation_x")
+        ) %>% 
+        group_by(cell_type, perturbation_x) %>%
+        summarize(viz1_test = mean(viz1_test), viz2_test = mean(viz2_test))
+    ) +
+    # facet_wrap(~perturbation_x) +
+    ggtitle(paste0("All ", X$perturbation_dataset[500], " predictions"))
+}
+
+# Numbers 16-21 are other datasets that are simpler to deal with. 
+{
+  X = collect_experiments(paste0("1.2.2_", 16:21)) %>% make_the_usual_labels_nice
   X %<>%
     group_by(prediction_timescale, perturbation_dataset, matching_method) %>%
     summarise(across(DEFAULT_METRICS, mean))

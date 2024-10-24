@@ -29,7 +29,17 @@ DATASET_ORDER = c(
   "frangieh_IFNg_v3",
   "frangieh\nIFNg v3",
   "frangieh\nIFNg\nv3",
-  "frangieh IFNg v3"
+  "frangieh IFNg v3",
+  # Ordered by species
+  "definitive_endoderm",
+  "definitive\nendoderm",
+  "definitive endoderm",
+  "paul",
+  "saunders",
+  "saunders_endoderm",
+  "saunders_blood",
+  "saunders_neural_crest_and_pigment_cells",
+  "saunders_axial_mesoderm"
 )
 DEGREE_COLUMNS = c(
   "in-degree_ANANSE_0.5",
@@ -202,6 +212,8 @@ collect_experiments = function(
       }
       X[[experiment]][["refers_to"]] %<>% as.character
       X[[experiment]][["question"]] %<>% as.character
+      X[[experiment]][["chr"]] %<>% as.character
+      X[[experiment]][["transcript"]] %<>% as.character
       X[[experiment]][["louvain"]] %<>% as.character
     })
   }
