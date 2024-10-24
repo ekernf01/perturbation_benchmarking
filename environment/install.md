@@ -14,6 +14,7 @@ In case of different operating systems and environments, exactly reproducing res
 
 Some notes:
 
+- If you want the development version of our packages, you can remove the tag `@v2` from the end of the pip install commands.
 - For this minimal installation, we do not download all the data or networks. We only include a couple of examples. You can download the full network and data collections from Zenodo [DOI: 10.5281/zenodo.8071808](https://doi.org/10.5281/zenodo.8071808).
 - We require wget, git, and conda to be installed already. If the data download doesn't work with `wget`, you can easily rephrase it to use `curl` instead, or you can download the data manually using a web browser.
 - This doesn't try to install all dependencies, so some backends may be unavailable.
