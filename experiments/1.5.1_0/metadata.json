@@ -22,17 +22,21 @@
 
         "docker____ekernf01/ggrn_docker_backend_celloracle",
         "docker____ekernf01/ggrn_docker_backend_timeseries_baseline",
-        "docker____ekernf01/ggrn_docker_backend_prescient"
+        "docker____ekernf01/ggrn_docker_backend_prescient", 
+        
+        "geneformer"
     ],
     "prediction_timescale": [
         "1", "1", "1", 
         "1", "1", 
-        "1,2,3,5",  "1,2,3,4",  "1,2,3,4"
+        "1,2,3,5",  "1,2,3,4",  "1,2,3,4", 
+        "1"
     ],
     "kwargs": [
         {}, {}, {}, 
         {}, { "minimum_expression": 0.05 }, 
-        {}, {}, {}
+        {}, {}, {}, 
+        {}
     ],
     "matching_method": "optimal_transport",
     "perturbation_dataset": "definitive_endoderm",
