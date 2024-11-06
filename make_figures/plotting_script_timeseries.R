@@ -4,7 +4,6 @@ library("stringr")
 library("arrow")
 library("magrittr")
 library("rjson")
-library("hdf5r")
 # # Versions of AnnDataR and hdf5r we used:
 # remotes::install_version("hdf5r", "1.3.11")
 # devtools::install_github("scverse/anndataR", ref = "dbc6897")
@@ -14,67 +13,82 @@ source("plotting_functions.R")
 
 # 1.2.2_14 is endoderm and it's complicated enough that the default evaluation code doesn't make biological sense. 
 {
-  X = collect_experiments(paste0("1.2.2_", c(14))) 
   X %<>% make_the_usual_labels_nice
-  train = anndataR::read_h5ad(paste0("../../perturbation_data/perturbations/definitive_endoderm/train.h5ad"))
-  train$obs[c("viz1", "viz2")] = train$obsm[["X_pca"]][,1:2]
-  test  = anndataR::read_h5ad(paste0("../../perturbation_data/perturbations/definitive_endoderm/test.h5ad"))
-  test$obs[c("viz1", "viz2")] = read.csv(paste0("../experiments/1.2.2_14/outputs/test_data_projection/0.csv"), row.names = 1)
-  assertthat::are_equal(test$obs_names, rownames(test$obsm[["X_pca"]]))
-  predictions  = anndataR::read_h5ad(paste0("../experiments/1.2.2_14/outputs/predictions/0.h5ad"))
-  predictions$obs[c("viz1", "viz2")] = read.csv(paste0("../experiments/1.2.2_14/outputs/predictions_projection/0.csv"), row.names = 1)
-  assertthat::are_equal(predictions$obs_names, rownames(predictions$obsm[["X_pca"]]))
+  embeddings = load_embeddings("1.2.2_14")
 
-  ggplot() +
-    ggtitle("Train, test, and predicted data") +
-    geom_point(aes(x=viz1, y=viz2), data = train$obs, color = "gray") +
-    geom_point(aes(x=viz1, y=viz2), data = test$obs, color = "black") +
-    geom_point(aes(x=viz1, y=viz2), data = predictions$obs, color = "red") + 
-    theme_minimal()
-  
-  test$obs %<>% mutate(perturbation_simple = ifelse(perturbation %in% c("FOXH1", "SOX17", "SMAD2", "SMAD4"), as.character(perturbation), "other"))
-  predictions$obs %<>% mutate(perturbation_simple = ifelse(perturbation %in% c("FOXH1", "SOX17", "SMAD2", "SMAD4"), as.character(perturbation), "other"))
-  ggplot() +
-    ggtitle("Test data distribution with train data backdrop") + 
-    geom_point(aes(x=viz1, y=viz2), data = train$obs, color = "gray") +
-    stat_bin_hex(aes(x=viz1, y=viz2, color = perturbation_simple, size = ..density..), geom = "point", data = test$obs) + 
-    theme_minimal() 
-  
-  predictions$obs %>%
-    merge(
-      predictions$obs %>%
-        subset(
-          perturbation=="Scramble", 
-          select = c("viz1", "viz2", "cell_type", "perturbation_type", "prediction_timescale"),
-        ) %>% 
-        rename(control_viz1 = viz1, control_viz2 = viz2) %>%
-        unique,
-      by = c("cell_type", "perturbation_type", "prediction_timescale"), 
-      all.x = T, 
-      all.y = F
-    ) %>%
-    ggplot() +
-    ggtitle("One set of predictions (arrows point from simulated controls to simulated treatments)") + 
-    geom_point(aes(x=viz1, y=viz2), data = train$obs, color = "gray") +
-    geom_segment(aes(x = control_viz1, y = control_viz2,
-                     xend = viz1, yend = viz2, 
-                     color = perturbation_simple),
+  ggplot(embeddings %>% subset(perturbation=="SOX17" & matching_method=="optimal_transport")) +
+    ggtitle("Lineage relationships predicted by optimal transport") +
+    geom_point(aes(x = train_viz1, y = train_viz2),
+               color = "gray") + 
+    geom_segment(aes(x = progenitor_viz1 , y = progenitor_viz2,
+                     xend = train_viz1, yend = train_viz2),
+                 color = "blue",
+                 alpha = 0.01,
                  arrow = arrow(length=unit(0.30,"cm"), ends="last", type = "closed")) +
-  theme_minimal() 
-    
+    theme_minimal() 
+  ggsave("timeseries_plots/endoderm_viz_example_velocity.pdf", width = 8, height = 8)
   
-  ggrepel::geom_label_repel(
-    aes( x = viz1_test, y = viz2_test, label = perturbation_x), 
-    data = X %>%
-        subset(
-          cell_type != "endoderm", 
-          select = c("cell_type", "viz1_test", "viz2_test", "perturbation_x")
-        ) %>% 
-        group_by(cell_type, perturbation_x) %>%
-        summarize(viz1_test = mean(viz1_test), viz2_test = mean(viz2_test))
-    ) +
-    # facet_wrap(~perturbation_x) +
-    ggtitle(paste0("All ", X$perturbation_dataset[500], " predictions"))
+  ggplot() +
+    ggtitle("Predicted perturbation effects (SOX17 knockdown)") +
+    geom_point(
+      aes(x = train_viz1, y = train_viz2),
+      color = "gray", 
+      data = embeddings %>% subset( (perturbation == "SOX17") & prediction_timescale==1 ),
+      ) + 
+    geom_segment(
+      aes(x = train_viz1 , y = train_viz2,
+          xend = train_viz1 + predicted_delta_viz1, 
+          yend = train_viz2 + predicted_delta_viz2),
+      color = "red",
+      alpha = 0.1,
+      data = embeddings %>% subset( abs(predicted_delta_viz1) + abs(predicted_delta_viz2) >= 0.5 ),
+      arrow = arrow(length=unit(0.30,"cm"), ends="last", type = "closed")) +
+    theme_minimal() + 
+    facet_wrap(~matching_method)
+  ggsave("timeseries_plots/endoderm_viz_example_SOX17.pdf", width = 8, height = 8)
+  
+  maxabs = function(x) {x[which.max(abs(x))]}
+  overall_scores = embeddings %>%
+    group_by(cell_type, timepoint, perturbation, prediction_timescale, matching_method) %>%
+    summarize(
+      perturbation_score = mean(perturbation_score), 
+      li_et_al_biggest_effect = maxabs(c(
+        mean(brunello.neg.lfc),
+        mean(brunello.pos.lfc),
+        mean(gecko.neg.lfc),
+        mean(gecko.pos.lfc)
+      ))
+    ) %>%
+    subset(cell_type != "pluripotent")
+  outliers = overall_scores %>% 
+    subset(prediction_timescale==10) %>%
+    group_by(cell_type, perturbation, matching_method) %>%
+    summarize(
+      perturbation_score = maxabs(perturbation_score),
+      li_et_al_biggest_effect = maxabs(li_et_al_biggest_effect),
+    ) %>% 
+    group_by(cell_type, matching_method) %>%
+    mutate(is_outlier = 
+      rank(-abs(perturbation_score)) <= 10 
+    ) %>% 
+    subset(is_outlier)
+    
+  ggplot() + 
+    geom_hline(yintercept = 0) + 
+    geom_vline(xintercept = 0) +
+    geom_point(aes(x = perturbation_score, y = li_et_al_biggest_effect, color = prediction_timescale), data = overall_scores) + 
+    ggrepel::geom_label_repel(aes(x = perturbation_score, y = li_et_al_biggest_effect, label = perturbation), data = outliers) + 
+    facet_grid(cell_type~matching_method) + 
+    xlab("Cell type-specific perturbation score") +
+    ylab("Log fold change in gRNA abundance \n(Largest magnitude from Li et al. 2019 genome-wide screen)") + 
+    ggtitle("Predicted and observed effects on endoderm differentiation",
+            subtitle = "Labels are shown for the largest absolute values on the x axis.")
+  ggsave("timeseries_plots/endoderm_ps_vs_screen.pdf", width = 12, height = 8)
+}
+
+{
+  embeddings = load_embeddings("1.2.2_18")
+  ggsave("timeseries_plots/axial_mesoderm_ps_vs_screen.pdf", width = 12, height = 8)
 }
 
 # Numbers 16-21 are other datasets that are simpler to deal with. 

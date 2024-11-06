@@ -125,7 +125,7 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
 
 {
   # Breakdown by perturbed gene
-  evaluationPerPert = collect_experiments(main_experiments, stratify_by_pert = T, )
+  evaluationPerPert = collect_experiments(main_experiments, stratify_by_pert = T)
   aggregated = evaluationPerPert %>% 
     subset(type_of_split == "interventional") %>%
     make_the_usual_labels_nice %>% 

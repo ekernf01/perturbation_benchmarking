@@ -184,6 +184,25 @@ reorder_datasets = function(datasets){
   return(datasets)
 }
 
+
+#' Load 2d embeddings of predictions, which are saved alongside screen results.
+#' 
+#' @param experiment_name
+#' 
+load_embeddings = function(experiment_name){
+  conditions = read.csv(paste0("../experiments/", experiment_name, "/outputs/conditions.csv"))
+  embeddings = as.list(conditions$condition) %>% setNames(conditions$condition)
+  for (i in conditions$condition){
+    embeddings[[as.character(i)]] = 
+      conditions %>% 
+      subset(condition==i) %>%
+      select(-prediction_timescale) %>%
+      cbind(read.csv(paste0("../experiments/", experiment_name, "/outputs/screen/projection_train/", i, ".csv")))
+  }
+  embeddings %<>% data.table::rbindlist()
+  return(embeddings)
+}
+
 #' Load evaluation results from a list of benchmarking experiments.
 #'
 #' @param experiments
