@@ -48,7 +48,7 @@ cd ..
 # Install our packages
 for p in pereggrn_networks pereggrn_perturbations pereggrn ggrn ggrn_backend2 ggrn_backend3 geneformer_embeddings 
 do
-    git clone http://github.com/ekernf01/${p}@v2
+    git clone http://github.com/ekernf01/${p} --branch v2
     pip install -e $p --no-deps 
 done
 
