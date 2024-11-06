@@ -19,7 +19,7 @@ pip install ray[tune]
 pip install pyarrow
 for p in pereggrn_networks pereggrn_perturbations ggrn pereggrn
 do
-    pip install git+https://github.com/ekernf01/${p}@v2
+    pip install git+https://github.com/ekernf01/${p} --branch v2
 done
 echo "Installation has finished. Test your installation:"
 echo "    conda activate ggrn_minimal"
