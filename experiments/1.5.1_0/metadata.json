@@ -38,6 +38,12 @@
         "mrna", "mrna", "mrna",
         "geneformer_hyperparam_finetune"
     ],
+    "predict_self": [
+        false, false, false, 
+        false, false, 
+        false, false, false, 
+        true
+    ],
     "kwargs": [
         {}, {}, {}, 
         {}, { "minimum_expression": 0.05 }, 
