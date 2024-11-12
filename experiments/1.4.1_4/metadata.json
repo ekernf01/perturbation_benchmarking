@@ -4,6 +4,8 @@
     "refers_to": "1.4.1_0",
     "perturbation_dataset": "paul1", 
     "visualization_embedding": "X_draw_graph_fa",
+    "matching_method": "user",
+    "matching_method_for_evaluation": "user",
     "eligible_regulators": "tfs",
     "species"   : "mouse",
     "network_datasets": { 

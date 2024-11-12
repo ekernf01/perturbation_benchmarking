@@ -5,6 +5,8 @@
     "question": "1.5.1",
     "refers_to": "1.5.1_0",
     "perturbation_dataset": "paul1",
+    "matching_method": "user",
+    "matching_method_for_evaluation": "user",
     "eligible_regulators": "tf",
     "species": "mouse",
     "network_datasets": { 

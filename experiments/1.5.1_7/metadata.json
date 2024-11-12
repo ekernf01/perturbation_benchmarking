@@ -7,6 +7,8 @@
     "perturbation_dataset": "paul2",
     "eligible_regulators": "tf",
     "species": "mouse",
+    "matching_method": "user",
+    "matching_method_for_evaluation": "user",
     "network_datasets": { 
         "celloracle_mouse_atac_atlas": { "do_aggregate_subnets": true }
     }
