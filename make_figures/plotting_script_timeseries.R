@@ -13,9 +13,7 @@ source("plotting_functions.R")
 
 # 1.2.2_14 is endoderm and it's complicated enough that the default evaluation code doesn't make biological sense. 
 {
-  X %<>% make_the_usual_labels_nice
   embeddings = load_embeddings("1.2.2_14")
-
   ggplot(embeddings %>% subset(perturbation=="SOX17" & matching_method=="optimal_transport")) +
     ggtitle("Lineage relationships predicted by optimal transport") +
     geom_point(aes(x = train_viz1, y = train_viz2),
@@ -47,7 +45,6 @@ source("plotting_functions.R")
     facet_wrap(~matching_method)
   ggsave("timeseries_plots/endoderm_viz_example_SOX17.pdf", width = 8, height = 8)
   
-  maxabs = function(x) {x[which.max(abs(x))]}
   overall_scores = embeddings %>%
     group_by(cell_type, timepoint, perturbation, prediction_timescale, matching_method) %>%
     summarize(
@@ -78,7 +75,7 @@ source("plotting_functions.R")
     geom_vline(xintercept = 0) +
     geom_point(aes(x = perturbation_score, y = li_et_al_biggest_effect, color = prediction_timescale), data = overall_scores) + 
     ggrepel::geom_label_repel(aes(x = perturbation_score, y = li_et_al_biggest_effect, label = perturbation), data = outliers) + 
-    facet_grid(cell_type~matching_method) + 
+    facet_grid(cell_type~matching_method, scales = "free") + 
     xlab("Cell type-specific perturbation score") +
     ylab("Log fold change in gRNA abundance \n(Largest magnitude from Li et al. 2019 genome-wide screen)") + 
     ggtitle("Predicted and observed effects on endoderm differentiation",
@@ -87,7 +84,61 @@ source("plotting_functions.R")
 }
 
 {
+  embeddings = load_embeddings("1.2.2_15")
+  embeddings[embeddings$perturbation=="control","Annotation_summary"] = "Simulated control" 
+  ggplot(embeddings %>% subset(perturbation=='control' & prediction_timescale==1 & matching_method=="steady_state")) +
+    geom_point(aes(x = train_viz1, y = train_viz2, color = cell_type)) + 
+    geom_segment(aes(x = progenitor_viz1 , y = progenitor_viz2,
+                     xend = train_viz1, yend = train_viz2),
+                 color = "blue",
+                 alpha = 0.2,
+                 arrow = arrow(length=unit(0.30,"cm"), ends="last", type = "open")) +
+    theme_minimal() 
+  
+  overall_scores = embeddings %>% 
+    group_by(cell_type, timepoint, perturbation, prediction_timescale, matching_method) %>%
+    summarize(
+      perturbation_score = mean(perturbation_score), 
+      lit_review = unique(Annotation_summary)
+    ) 
+  outliers = overall_scores %>% 
+    group_by(cell_type, matching_method) %>%
+    mutate(is_outlier = 
+             rank(-abs(perturbation_score)) <= 10 
+    ) %>% 
+    subset(is_outlier) %>% 
+    tidyr::pivot_wider(names_from = "cell_type", values_from = "perturbation_score")
+  
+  overall_scores %>% 
+    tidyr::pivot_wider(names_from = "cell_type", values_from = "perturbation_score") %>%
+    subset(!is.na(GMP)) %>%
+    subset(!is.na(MEP)) %>%
+    subset(!is.na(lit_review)) %>%
+    ggplot() + 
+    geom_point(aes(x = GMP, y = MEP, color = lit_review)) + 
+    ggrepel::geom_label_repel(aes(x = GMP, y = MEP, label = perturbation), data = outliers) 
+  ggsave("timeseries_plots/mouse_blood_ps_vs_screen.pdf", width = 12, height = 8)
+}
+
+{
   embeddings = load_embeddings("1.2.2_18")
+  ggplot(embeddings %>% subset(perturbation=='control' & prediction_timescale==1)) +
+    geom_point(aes(x = train_viz1, y = train_viz2, color = cell_type)) + 
+    geom_segment(aes(x = progenitor_viz1 , y = progenitor_viz2,
+                     xend = train_viz1, yend = train_viz2),
+                 color = "blue",
+                 alpha = 0.05,
+                 arrow = arrow(length=unit(0.30,"cm"), ends="last", type = "closed")) +
+    theme_minimal()
+  overall_scores = embeddings %>% 
+    group_by(cell_type, timepoint, perturbation, prediction_timescale, matching_method) %>%
+    summarize(
+      perturbation_score = mean(perturbation_score), 
+      lit_review = unique(Reference..Pubmed.ID.)
+    ) %>%
+    tidyr::pivot_wider(names_from = "cell_type", values_from = "perturbation_score")
+  ggplot(overall_scores) + 
+    geom_point(aes(x = notochord, y = `mesodermal progenitor cells (contains PSM)`, color = timepoint))
   ggsave("timeseries_plots/axial_mesoderm_ps_vs_screen.pdf", width = 12, height = 8)
 }
 

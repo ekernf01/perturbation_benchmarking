@@ -173,6 +173,8 @@ METRICS_WHERE_BIGGER_IS_BETTER = c(
   "cell type correct")
 METRICS_WHERE_BIGGER_IS_BETTER %<>% c(gsub("_", " ", METRICS_WHERE_BIGGER_IS_BETTER))
 
+maxabs = function(x) {x[which.max(abs(x))]}
+
 reorder_datasets = function(datasets){
   datasets = as.character(datasets)
   missing_levels = setdiff(unique(datasets), DATASET_ORDER)
@@ -197,7 +199,7 @@ load_embeddings = function(experiment_name){
       conditions %>% 
       subset(condition==i) %>%
       select(-prediction_timescale) %>%
-      cbind(read.csv(paste0("../experiments/", experiment_name, "/outputs/screen/projection_train/", i, ".csv")))
+      cbind(read.csv(paste0("../experiments/", experiment_name, "/outputs/screen/projection_train/", i, ".csv.gz")))
   }
   embeddings %<>% data.table::rbindlist()
   return(embeddings)
