@@ -6,6 +6,7 @@
     "refers_to": "1.5.1_0",
     "perturbation_dataset": "saunders_pigment_cells",
     "eligible_regulators": "tf",
+    "visualization_embedding": "X_umap", 
     "species": "zebrafish",
     "network_datasets": { 
         "celloracle_zebrafish": { "do_aggregate_subnets": true }

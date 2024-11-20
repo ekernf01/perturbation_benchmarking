@@ -5,6 +5,7 @@
     "question": "1.5.1",
     "refers_to": "1.5.1_0",
     "perturbation_dataset": "saunders_blood",
+    "visualization_embedding": "X_umap", 
     "eligible_regulators": "tf",
     "species": "zebrafish",
     "network_datasets": { 

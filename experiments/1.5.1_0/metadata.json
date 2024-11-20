@@ -52,6 +52,7 @@
     ],
     "matching_method": "steady_state",
     "perturbation_dataset": "definitive_endoderm",
+    "visualization_embedding": "X_pca", 
     "network_datasets": { 
         "endoderm": { "do_aggregate_subnets": true }
     },

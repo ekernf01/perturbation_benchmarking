@@ -6,6 +6,7 @@
     "is_active": true,
     "refers_to": "1.2.2_14",
     "perturbation_dataset": "saunders_pigment_cells", 
+    "visualization_embedding": "X_umap", 
     "eligible_regulators": "tf",
     "species": "zebrafish",
     "network_datasets": {
