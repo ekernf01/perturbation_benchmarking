@@ -1,0 +1,124 @@
+cell_type,timepoint,perturbation,prediction_timescale,matching_method,perturbation_score,li_et_al_biggest_effect,Cell type affected,PMID,Notes
+endoderm,3,ARNT,10,random,1.01423036755423,0.019971,No known role,,
+endoderm,3,ATF5,10,steady_state,1.01975062434277,-0.34714,No known role,,
+endoderm,3,ATF7,10,optimal_transport,1.00938237832576,0.26393,No known role,,
+endoderm,3,ATF7,10,random,1.01115497724328,0.26393,No known role,,
+endoderm,3,CEBPD,10,random,1.00838208467328,-0.50049,No known role,,
+endoderm,3,CEBPD,10,steady_state,1.00871882765272,-0.50049,No known role,,
+endoderm,3,CRX,10,random,1.00821652770087,0.058948,No known role,,
+endoderm,3,CTCF,10,closest,2.02335363739805,0.17695,Endoderm,PMID22879976 PMID33581110 PMID38099296,"Generally important insulator affecting pluripotency exit, with some evidence that CTCF KO PSC’s are endoderm-biased."
+endoderm,3,CTCF,10,optimal_transport,1.03673692796089,0.17695,Endoderm,PMID22879976 PMID33581110 PMID38099297,"Generally important insulator affecting pluripotency exit, with some evidence that CTCF KO PSC’s are endoderm-biased."
+endoderm,3,CTCF,10,steady_state,1.07708632408577,0.17695,Endoderm,PMID22879976 PMID33581110 PMID38099298,"Generally important insulator affecting pluripotency exit, with some evidence that CTCF KO PSC’s are endoderm-biased."
+endoderm,3,E2F6,10,steady_state,1.04011652016352,0.14649,No known role,,
+endoderm,3,EGR1,10,optimal_transport,1.01246352689282,-0.20768,Endoderm,"PMID32634182
+PMID30995470","siRNA KD lead to increased SOX17 expression in a definitive endoderm directed differetiation protocol. Overexpression led to decreased SOX17. However, CRISPRi yielded minimal effect on abundance or expression."
+endoderm,3,EGR1,10,steady_state,1.01182068758233,-0.20768,Endoderm,"PMID32634182
+PMID30995470","siRNA KD lead to increased SOX17 expression in a definitive endoderm directed differetiation protocol. Overexpression led to decreased SOX17. However, CRISPRi yielded minimal effect on abundance or expression."
+endoderm,3,ELF3,10,steady_state,1.01864221745043,0.074422,Endoderm,"PMID34168324
+PMID30995470","Circumstantial evidence: ELF3 suppresses EMT and is upregulated in definitive endoderm relative to mesoderm. In a CRISPRi screen, ELF3 KD cells reached an endoderm-like state but showed perturbed expression."
+endoderm,3,EOMES,10,optimal_transport,1.08451587337618,2.3701,Primitive streak,PMID18171685 PMID21245162 PMID30995470,Essential for primitive streak (mesendoderm) formation in mouse embryos and human PSC differentiation in vitro.
+endoderm,3,EOMES,10,random,1.10309669212321,2.3701,Primitive streak,PMID18171685 PMID21245162 PMID30995470,Essential for primitive streak (mesendoderm) formation in mouse embryos and human PSC differentiation in vitro.
+endoderm,3,ESRRA,10,random,1.01997926906393,-0.84561,No known role,,
+endoderm,3,ESRRG,10,closest,1.01074887163898,0.16728,No known role,,
+endoderm,3,ESRRG,10,random,1.00821142862572,0.16728,No known role,,
+endoderm,3,ETV5,10,optimal_transport,1.04177780854202,0.11968,No known role,PMID26224636,"In mouse PSC’s, Etv4/5 dKO suppresses ectoderm differentiation but without an effect on endoderm."
+endoderm,3,FOXA2,10,closest,1.16694980803917,-0.46312,Endoderm,PMID34168324 PMID30995470,"FOXA2 is not essential for endoderm formation, but LoF strongly affects gene expression in either human or mouse directed differentiation. Important affected genes include endoderm markers Cer1 and Hhex."
+endoderm,3,FOXA2,10,steady_state,1.01466087848332,-0.46312,Endoderm,PMID34168324 PMID30995470,"FOXA2 is not essential for endoderm formation, but LoF strongly affects gene expression in either human or mouse directed differentiation. Important affected genes include endoderm markers Cer1 and Hhex."
+endoderm,3,FOXH1,10,optimal_transport,1.03667731743323,5.5237,Primitive streak,PMID11358869 PMID30995470,Essential for endoderm formation in mouse embryos and human PSC directed differentiation.
+endoderm,3,FOXH1,10,random,1.01536725271636,5.5237,Primitive streak,PMID11358869 PMID30995470,Essential for endoderm formation in mouse embryos and human PSC directed differentiation.
+endoderm,3,FOXH1,10,steady_state,1.06215918571207,5.5237,Primitive streak,PMID11358869 PMID30995470,Essential for endoderm formation in mouse embryos and human PSC directed differentiation.
+endoderm,3,FOXJ3,10,closest,1.08246929951982,0.10481,No known role,,
+endoderm,3,FOXJ3,10,steady_state,1.00950007669578,0.10481,No known role,,
+endoderm,3,FOXM1,10,optimal_transport,1.01948374632776,-0.64247,No known role,PMID27062359 PMID20702419,"FOXM1 is a cell cycle regulator with effects on maintenance of pluripotency, but it does not affect definitive endoderm differentiation."
+endoderm,3,FOXM1,10,steady_state,1.02332123978703,-0.64247,No known role,PMID27062359 PMID20702419,"FOXM1 is a cell cycle regulator with effects on maintenance of pluripotency, but it does not affect definitive endoderm differentiation."
+endoderm,3,GATA4,10,closest,1.04435867954797,0.6584,Primitive streak,PMID32140468 PMID30995470 PMID9136932 PMID9136933  PMID19850025,"LoF does not prevent endoderm formation and has minimal effects on gene expression in human in vitro directed differentiation, but GoF can induce (primitive-streak-like?) cells to form definitive endoderm. Specifically, the induced endoderm arises from GATA4 overexpression 48h after removing PSC’s from mouse fibroblasts that were used to maintain them. "
+endoderm,3,GLIS2,10,steady_state,1.01333890183826,-0.084474,No known role,,
+endoderm,3,GSC,10,closest,1.01002145889062,1.0674,Endoderm,PMID22178155,Knockout drastically reduces differentiation of SOX17+ endoderm
+endoderm,3,HBP1,10,closest,1.01367257659481,0.068403,No known role,,
+endoderm,3,HBP1,10,random,1.00906615249777,0.068403,No known role,,
+endoderm,3,HIVEP3,10,random,1.00821046923448,0.083445,No known role,,
+endoderm,3,HMGA1,10,closest,1.02456197045716,-0.60751,No known role,PMID23166588,Maintains pluripotency
+endoderm,3,HMGA1,10,optimal_transport,1.01251999185105,-0.60751,No known role,,
+endoderm,3,HMGA1,10,random,1.01396212544254,-0.60751,No known role,,
+endoderm,3,HMGA2,10,closest,1.02091808793181,-0.26205,Endoderm,PMID 17624332,LoF during human PSC differentiation increases SOX17 and MIXL1 expression.
+endoderm,3,HMGA2,10,optimal_transport,1.0112978986411,-0.26205,Endoderm,PMID 17624332,LoF during human PSC differentiation increases SOX17 and MIXL1 expression.
+endoderm,3,HMGA2,10,random,1.01248562476147,-0.26205,Endoderm,PMID 17624332,LoF during human PSC differentiation increases SOX17 and MIXL1 expression.
+endoderm,3,HMGA2,10,steady_state,1.01165542408631,-0.26205,Endoderm,PMID 17624332,LoF during human PSC differentiation increases SOX17 and MIXL1 expression.
+endoderm,3,HNF4A,10,closest,1.0336233765007,0.23513,No known role,,
+endoderm,3,HSF2,10,optimal_transport,1.01284276112379,0.082763,No known role,,
+endoderm,3,HSF2,10,random,1.01160719226854,0.082763,No known role,,
+endoderm,3,IRX3,10,closest,1.00911054995848,-0.40029,No known role,,
+endoderm,3,IRX3,10,random,1.0082795701178,-0.40029,No known role,,
+endoderm,3,JUN,10,steady_state,1.03959540722159,-1.3805,Primitive streak,PMID 31110351,Inhibits exit from pluripotency towards endoderm
+endoderm,3,JUND,10,steady_state,1.01839880529335,0.11115,No known role,,
+endoderm,3,LHX1,10,closest,1.03376333182558,0.6636,Primitive streak,PMID26494787 PMID26190893 PMID25977363 PMID15355796,"In mouse embryos, LoF allows formation of some endoderm derivatives, but also results in lack of Sox17 and Foxa2 expression. N P19 teraticarcinoma cells, overexpression of Lhx1 yields endoderm-like cells expressing Sox17, Cer1, Gsc, Gata6, Foxa2"
+endoderm,3,LHX1,10,optimal_transport,1.0299863037208,0.6636,Primitive streak,PMID26494787 PMID26190893 PMID25977363 PMID15355796,"In mouse embryos, LoF allows formation of some endoderm derivatives, but also results in lack of Sox17 and Foxa2 expression. N P19 teraticarcinoma cells, overexpression of Lhx1 yields endoderm-like cells expressing Sox17, Cer1, Gsc, Gata6, Foxa2"
+endoderm,3,LHX1,10,random,1.03808238272532,0.6636,Primitive streak,PMID26494787 PMID26190893 PMID25977363 PMID15355796,"In mouse embryos, LoF allows formation of some endoderm derivatives, but also results in lack of Sox17 and Foxa2 expression. N P19 teraticarcinoma cells, overexpression of Lhx1 yields endoderm-like cells expressing Sox17, Cer1, Gsc, Gata6, Foxa2"
+endoderm,3,MLXIP,10,closest,1.03509228710347,0.17629,No known role,PMID32969791,"In zebrafish, MIXL1 LoF severely disrupts epiboly, but endoderm still forms."
+endoderm,3,MLXIP,10,optimal_transport,1.0103408650038,0.17629,No known role,PMID32969791,"In zebrafish, MIXL1 LoF severely disrupts epiboly, but endoderm still forms."
+endoderm,3,NFE2L2,10,steady_state,1.06702118217417,-0.23785,Primitive streak,PMID37104932 PMID27020754,Dispensable for endoderm differentiation and promotes neuroectoderm at the expense of mesendoderm
+endoderm,3,NFYB,10,closest,1.28647298231307,0.57945,,,
+endoderm,3,NFYB,10,optimal_transport,1.16626178627295,0.57945,,,
+endoderm,3,NFYB,10,steady_state,1.15868734003314,0.57945,,,
+endoderm,3,OTX2,10,optimal_transport,1.04413612201622,0.86495,No known role,,
+endoderm,3,OTX2,10,random,1.00847504311123,0.86495,No known role,,
+endoderm,3,PBX2,10,optimal_transport,1.01200925209273,0.26275,No known role,,
+endoderm,3,PBX2,10,steady_state,1.00955036515515,0.26275,No known role,,
+endoderm,3,POU5F1,10,closest,1.30417627465705,-0.70209,Endoderm,PMID21245162,"Key pluripotency regulator, but expression is not specific to pluripotent cells. In human cells in vitro, suppresses expression of genes characteristic of endoderm, including EOMES, GSC, SOX17, GATA4, and GATA6"
+endoderm,3,POU5F1,10,optimal_transport,1.32527868732617,-0.70209,Endoderm,PMID21245162,"Key pluripotency regulator, but expression is not specific to pluripotent cells. In human cells in vitro, suppresses expression of genes characteristic of endoderm, including EOMES, GSC, SOX17, GATA4, and GATA6"
+endoderm,3,POU5F1,10,random,1.35418419269205,-0.70209,Endoderm,PMID21245162,"Key pluripotency regulator, but expression is not specific to pluripotent cells. In human cells in vitro, suppresses expression of genes characteristic of endoderm, including EOMES, GSC, SOX17, GATA4, and GATA6"
+endoderm,3,POU5F1,10,steady_state,1.19674727076946,-0.70209,Endoderm,PMID21245162,"Key pluripotency regulator, but expression is not specific to pluripotent cells. In human cells in vitro, suppresses expression of genes characteristic of endoderm, including EOMES, GSC, SOX17, GATA4, and GATA6"
+endoderm,3,POU6F2,10,random,1.00820656048227,0.34554,No known role,,
+endoderm,3,PPARG,10,steady_state,1.00862420624571,-0.079487,No known role,,
+endoderm,3,PRDM1,10,optimal_transport,1.15766889013837,0.333,No known role,,
+endoderm,3,PRDM1,10,random,1.01544452979015,0.333,No known role,,
+endoderm,3,RARA,10,optimal_transport,1.01561166070667,0.87536,No known role,,
+endoderm,3,RARA,10,random,1.01336142823023,0.87536,No known role,,
+endoderm,3,SMAD4,10,optimal_transport,1.01323995615834,3.6931,Primitive streak,PMID30995470 PMID15215210 PMID9520423,Essential for primitive streak and endoderm formation in mouse embryos and human PSC directed differentiation.
+endoderm,3,SMAD4,10,steady_state,1.01184792445572,3.6931,Primitive streak,PMID30995470 PMID15215210 PMID9520423,Essential for primitive streak and endoderm formation in mouse embryos and human PSC directed differentiation.
+endoderm,3,SOX11,10,optimal_transport,1.00859831020151,-0.309,No known role,,
+endoderm,3,SOX11,10,steady_state,1.00936006708889,-0.309,No known role,,
+endoderm,3,SOX15,10,closest,1.02102618335086,0.065543,No known role,PMID36764520,"Maintains pluripotency and activates neurogenic factors, similar to SOX2, but no known role in endoderm or primitive streak"
+endoderm,3,SOX17,10,closest,1.17763047695086,2.5695,Endoderm,PMID11973269 PMID30995470 PMID18682240,Essential for endoderm formation in mouse embryos and human PSC directed differentiation. Ectopic expression is sufficient to direct PSC’s to endoderm without morphogens.
+endoderm,3,SOX17,10,steady_state,1.01238911947082,2.5695,Endoderm,PMID11973269 PMID30995470 PMID18682240,Essential for endoderm formation in mouse embryos and human PSC directed differentiation. Ectopic expression is sufficient to direct PSC’s to endoderm without morphogens.
+endoderm,3,SOX18,10,random,1.00864162671158,-0.41401,No known role,,
+endoderm,3,SOX21,10,closest,1.01140201699658,-0.32449,No known role,,
+endoderm,3,SOX21,10,steady_state,1.00895271668767,-0.32449,No known role,,
+endoderm,3,SP1,10,closest,1.08679364178782,-1.8727,No known role,,
+endoderm,3,SP1,10,optimal_transport,1.01154591721378,-1.8727,No known role,,
+endoderm,3,SP1,10,random,1.00994237015307,-1.8727,No known role,,
+endoderm,3,SRY,10,optimal_transport,1.01156432615336,0.28614,No known role,,
+endoderm,3,SRY,10,random,1.01410827771462,0.28614,No known role,,
+endoderm,3,SRY,10,steady_state,1.01413360095798,0.28614,No known role,,
+endoderm,3,T,10,random,1.0086932208082,0.029852,Primitive streak,PMID14699590 PMID26015544,"T is not essential for endoderm formation but affects endoderm and related lineages. Homozygous LoF mouse and chick mutants have abnormal primitive streak morphology, cell migration defects, and missing mesodermal derivatives. LoF in human PSC directed differentiation causes decreased expression of endoderm markers including GSC, HHEX, LEFTY1, and GATA6."
+endoderm,3,TGIF2,10,optimal_transport,1.01366696156346,-0.32252,No known role,PMID20040491,"TGIF1/2 double knockout affects germ layer organization and mitosis, but definitive endoderm still forms. These genes repress response to Nodal, so overexpression could affect endoderm, but this is speculation."
+endoderm,3,YBX2,10,closest,1.01464842720371,-0.46391,No known role,,
+endoderm,3,YY1,10,closest,1.57802781476502,0.5435,No known role,PMID23554936,Affects visceral endoderm but not definitive endoderm
+endoderm,3,YY1,10,optimal_transport,1.1711780801003,0.5435,No known role,PMID23554936,Affects visceral endoderm but not definitive endoderm
+endoderm,3,YY1,10,random,1.03662077013658,0.5435,No known role,PMID23554936,Affects visceral endoderm but not definitive endoderm
+endoderm,3,YY1,10,steady_state,1.05139540314561,0.5435,No known role,PMID23554936,Affects visceral endoderm but not definitive endoderm
+endoderm,3,ZBTB33,10,steady_state,1.00906867914499,-0.24224,No known role,,
+endoderm,3,ZFP42,10,closest,1.02085122477014,-0.2687,No known role,,
+endoderm,3,ZFP42,10,optimal_transport,1.01901519918539,-0.2687,No known role,,
+endoderm,3,ZFP42,10,random,1.00893981232576,-0.2687,No known role,,
+endoderm,3,ZFP42,10,steady_state,1.02827625710114,-0.2687,No known role,,
+endoderm,3,ZIC3,10,optimal_transport,1.06555350713098,-0.52179,Endoderm,PMID17267691,"ZIC3 represses endoderm differentiation, helping maintain pluripotency"
+endoderm,3,ZIC3,10,random,1.04890930736861,-0.52179,Endoderm,PMID17267691,"ZIC3 represses endoderm differentiation, helping maintain pluripotency"
+endoderm,3,ZNF143,10,closest,1.04781333093468,-0.42313,No known role,,
+endoderm,3,ZNF143,10,optimal_transport,1.06917243462102,-0.42313,No known role,,
+endoderm,3,ZNF143,10,steady_state,1.02820506120535,-0.42313,No known role,,
+endoderm,3,ZNF263,10,optimal_transport,1.03063611701979,0.10383,No known role,,
+endoderm,3,ZNF263,10,random,1.03079046973688,0.10383,No known role,,
+mesendoderm,2,ATF3,10,closest,1.52898046113044,-0.36557,No known role,,
+mesendoderm,2,ATF4,10,closest,-1.27276514927743,-0.38508,No known role,,
+mesendoderm,2,CREB3,10,closest,-1.02927928065154,0.045072,No known role,,
+mesendoderm,2,E2F6,10,closest,1.02092975345904,0.14649,No known role,,
+mesendoderm,2,MAX,10,closest,-1.99712377068494,0.66691,No known role,PMID30995470,"In a CRISPRi screen, SP1 KD cells reached an endoderm-like state with no effect on abundance, but showed perturbed expression."
+mesendoderm,2,POU5F1,10,optimal_transport,2.00351830699593,-0.70209,Endoderm,PMID21245162,"Key pluripotency regulator, but expression is not specific to pluripotent cells. In human cells in vitro, suppresses expression of genes characteristic of endoderm, including EOMES, GSC, SOX17, GATA4, and GATA6"
+mesendoderm,2,POU5F1,10,random,2.22377088729837,-0.70209,Endoderm,PMID21245162,"Key pluripotency regulator, but expression is not specific to pluripotent cells. In human cells in vitro, suppresses expression of genes characteristic of endoderm, including EOMES, GSC, SOX17, GATA4, and GATA6"
+mesendoderm,2,POU5F1,10,steady_state,2.12117585628318,-0.70209,Endoderm,PMID21245162,"Key pluripotency regulator, but expression is not specific to pluripotent cells. In human cells in vitro, suppresses expression of genes characteristic of endoderm, including EOMES, GSC, SOX17, GATA4, and GATA6"
+mesendoderm,2,PRDM1,10,closest,-1.71536963976655,0.333,No known role,,
+mesendoderm,2,SP1,10,closest,-1.18372455220851,-1.8727,No known role,PMID30995470,"In a CRISPRi screen, SP1 KD cells reached an endoderm-like state with no effect on abundance, but showed perturbed expression."
+mesendoderm,2,T,10,optimal_transport,-1.48831997582207,0.029852,Primitive streak,PMID14699590 PMID26015544,"T is not essential for endoderm formation but affects endoderm and related lineages. Homozygous LoF mouse and chick mutants have abnormal primitive streak morphology, cell migration defects, and missing mesodermal derivatives. LoF in human PSC directed differentiation causes decreased expression of endoderm markers including GSC, HHEX, LEFTY1, and GATA6."
+mesendoderm,2,T,10,random,-1.87723810597562,0.029852,Primitive streak,PMID14699590 PMID26015544,"T is not essential for endoderm formation but affects endoderm and related lineages. Homozygous LoF mouse and chick mutants have abnormal primitive streak morphology, cell migration defects, and missing mesodermal derivatives. LoF in human PSC directed differentiation causes decreased expression of endoderm markers including GSC, HHEX, LEFTY1, and GATA6."
+mesendoderm,2,T,10,steady_state,1.17009474167992,0.029852,Primitive streak,PMID14699590 PMID26015544,"T is not essential for endoderm formation but affects endoderm and related lineages. Homozygous LoF mouse and chick mutants have abnormal primitive streak morphology, cell migration defects, and missing mesodermal derivatives. LoF in human PSC directed differentiation causes decreased expression of endoderm markers including GSC, HHEX, LEFTY1, and GATA6."
