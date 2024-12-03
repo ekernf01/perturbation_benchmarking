@@ -11,9 +11,10 @@ library("rjson")
 setwd("/home/ekernf01/Desktop/jhu/research/projects/perturbation_prediction/cell_type_knowledge_transfer/perturbation_benchmarking/make_figures/")
 source("plotting_functions.R")
 
-# 1.2.2_14 is endoderm and it's complicated enough that the default evaluation code doesn't make biological sense. 
+# Definitive Endoderm
 {
   embeddings = load_embeddings("1.2.2_14")
+  # Demo plot of velocity
   ggplot(embeddings %>% subset(perturbation=="SOX17" & matching_method=="optimal_transport")) +
     ggtitle("Lineage relationships predicted by optimal transport") +
     geom_point(aes(x = train_viz1, y = train_viz2),
@@ -25,7 +26,7 @@ source("plotting_functions.R")
                  arrow = arrow(length=unit(0.30,"cm"), ends="last", type = "closed")) +
     theme_minimal() 
   ggsave("timeseries_plots/endoderm_viz_example_velocity.pdf", width = 8, height = 8)
-  
+  # Demo plot showing perturbation effects
   ggplot() +
     ggtitle("Predicted perturbation effects (SOX17 knockdown)") +
     geom_point(
@@ -44,7 +45,7 @@ source("plotting_functions.R")
     theme_minimal() + 
     facet_wrap(~matching_method)
   ggsave("timeseries_plots/endoderm_viz_example_SOX17.pdf", width = 8, height = 8)
-  
+  # Compare perturbation scores versus CRISPR screen
   overall_scores = embeddings %>%
     group_by(cell_type, timepoint, perturbation, prediction_timescale, matching_method) %>%
     summarize(
@@ -56,8 +57,28 @@ source("plotting_functions.R")
         mean(gecko.pos.lfc)
       ))
     ) %>%
-    subset(cell_type != "pluripotent")
-  outliers = overall_scores %>% 
+    group_by(cell_type, prediction_timescale, matching_method) %>%
+    mutate( perturbation_score_rank = rank(-abs(perturbation_score)) ) %>%
+    mutate( top_30 = ifelse(perturbation_score_rank<=30, "top 30 predictions", "other") ) %>%
+    subset(cell_type != "pluripotent") 
+  
+  ggplot(overall_scores) + 
+    facet_grid(prediction_timescale~cell_type, scale = "free_x") +
+    geom_hline(yintercept=0) +
+    geom_vline(xintercept=0) +
+    geom_point(aes(perturbation_score, li_et_al_biggest_effect, color = matching_method, alpha = top_30)) + 
+    ggrepel::geom_label_repel(
+      data=subset(overall_scores, perturbation_score_rank<=5) %>% 
+        subset(!duplicated(perturbation)), 
+      mapping = aes(perturbation_score, li_et_al_biggest_effect, label = perturbation)
+    ) +
+    ylab("Largest gRNA abundance effect in Li et al.")
+
+  overall_scores %>% 
+    subset(perturbation_score_rank<=30) %>% 
+    write.csv("timeseries_plots/definitive_endoderm_ps_vs_screen_top_30.csv")
+    
+  table_to_report %>%
     subset(prediction_timescale==10) %>%
     group_by(cell_type, perturbation, matching_method) %>%
     summarize(
@@ -66,9 +87,9 @@ source("plotting_functions.R")
     ) %>% 
     group_by(cell_type, matching_method) %>%
     mutate(is_outlier = 
-      rank(-abs(perturbation_score)) <= 10 
+             rank(-abs(perturbation_score)) <= 30
     ) %>% 
-    subset(is_outlier)
+    write.csv("timeseries_plots/endoderm_ps_vs_screen_top_30.csv")
     
   ggplot() + 
     geom_hline(yintercept = 0) + 
@@ -95,29 +116,51 @@ source("plotting_functions.R")
                  arrow = arrow(length=unit(0.30,"cm"), ends="last", type = "open")) +
     theme_minimal() 
   
+  embeddings[["super_cell_type"]] = ifelse( 
+    embeddings[["cell_type"]] %in% c(
+      "Erythroids",
+      "Megakaryocytes",
+      "MEP"    
+    ),
+    "ME",
+    "GM"
+  )
   overall_scores = embeddings %>% 
-    group_by(cell_type, timepoint, perturbation, prediction_timescale, matching_method) %>%
+    group_by(super_cell_type, perturbation, prediction_timescale, matching_method) %>%
     summarize(
-      perturbation_score = mean(perturbation_score), 
+      perturbation_score = mean(perturbation_score, na.rm = T), 
       lit_review = unique(Annotation_summary)
-    ) 
+    ) %>%   
+    ungroup() %>%
+    tidyr::pivot_wider(names_from = "super_cell_type", values_from = "perturbation_score") 
+  
   outliers = overall_scores %>% 
-    group_by(cell_type, matching_method) %>%
-    mutate(is_outlier = 
-             rank(-abs(perturbation_score)) <= 10 
-    ) %>% 
-    subset(is_outlier) %>% 
-    tidyr::pivot_wider(names_from = "cell_type", values_from = "perturbation_score")
+    group_by(matching_method) %>%
+    mutate(is_outlier = rank(-abs(GM)) <= 10 | rank(-abs(ME)) <= 10 ) %>% 
+    subset(is_outlier)
   
   overall_scores %>% 
-    tidyr::pivot_wider(names_from = "cell_type", values_from = "perturbation_score") %>%
-    subset(!is.na(GMP)) %>%
-    subset(!is.na(MEP)) %>%
-    subset(!is.na(lit_review)) %>%
     ggplot() + 
-    geom_point(aes(x = GMP, y = MEP, color = lit_review)) + 
-    ggrepel::geom_label_repel(aes(x = GMP, y = MEP, label = perturbation), data = outliers) 
+    geom_point(aes(x = GM, y = ME, color = lit_review)) +
+    scale_color_manual(values = c(
+      "GM"="green", 
+      "ME"="red", 
+      "GM & ME, stemness"="yellow", 
+      "No known role"= "black", 
+      "Not reviewed" = "gray", 
+      "Simulated control" = "blue")
+      ) +
+    ggrepel::geom_text_repel(aes(x = GM, y = ME, label = perturbation), data = outliers) + 
+    facet_wrap(~matching_method, scales = "free")
   ggsave("timeseries_plots/mouse_blood_ps_vs_screen.pdf", width = 12, height = 8)
+  
+  table_to_report = overall_scores %>% 
+    group_by(matching_method) %>%
+    mutate(is_outlier = rank(-abs(GM)) <= 30 | rank(-abs(ME)) <= 30 ) %>% 
+    subset(is_outlier) 
+  table_to_report %>% subset(is_outlier, select = c("perturbation", "lit_review")) %>% distinct() %>% extract2(2) %>% table
+  table_to_report %>% 
+    write.csv("timeseries_plots/mouse_blood_ps_vs_screen_top_30.csv")
 }
 
 {
@@ -140,6 +183,13 @@ source("plotting_functions.R")
   ggplot(overall_scores) + 
     geom_point(aes(x = notochord, y = `mesodermal progenitor cells (contains PSM)`, color = timepoint))
   ggsave("timeseries_plots/axial_mesoderm_ps_vs_screen.pdf", width = 12, height = 8)
+  table_to_report = overall_scores %>% 
+    group_by(matching_method) %>%
+    mutate(is_outlier = rank(-abs(`mesodermal progenitor cells (contains PSM)`)) <= 30 | rank(-abs(notochord)) <= 30 ) %>% 
+    subset(is_outlier) 
+  table_to_report %>% subset(is_outlier, select = c("perturbation", "lit_review")) %>% distinct() %>% table
+  table_to_report %>% 
+    write.csv("timeseries_plots/mouse_blood_ps_vs_screen_top_30.csv")
 }
 
 # Numbers 16-21 are other datasets that are simpler to deal with. 
