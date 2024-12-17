@@ -22,33 +22,27 @@
 
         "docker____ekernf01/ggrn_docker_backend_celloracle",
         "docker____ekernf01/ggrn_docker_backend_timeseries_baseline",
-        "docker____ekernf01/ggrn_docker_backend_prescient", 
-        
-        "RidgeCV"
+        "docker____ekernf01/ggrn_docker_backend_prescient"
     ],
     "prediction_timescale": [
         "1", "1", "1", 
         "1", "1", 
-        "1,2,3,5",  "1,2,3,4",  "1,2,3,4", 
-        "1"
+        "1,2,3,5",  "1,2,3,4",  "1,2,3,4"
     ],
     "feature_extraction": [
         "mrna", "mrna", "mrna",
         "mrna", "mrna",
-        "mrna", "mrna", "mrna",
-        "geneformer_hyperparam_finetune"
+        "mrna", "mrna", "mrna"
     ],
     "predict_self": [
         false, false, false, 
         false, false, 
-        false, false, false, 
-        true
+        false, false, false
     ],
     "kwargs": [
         {}, {}, {}, 
         {}, { "minimum_expression": 0.05 }, 
-        {}, {}, {}, 
-        {}
+        {}, {}, {}
     ],
     "matching_method": "steady_state",
     "perturbation_dataset": "definitive_endoderm",

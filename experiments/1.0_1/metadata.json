@@ -25,6 +25,7 @@
     "facet_by": null,
     "color_by": "type_of_split",
     "factor_varied": "regression_method",
+    "visualization_embedding": "X_umap",
     "baseline_condition": 0,
     "merge_replicates": true,
     "perturbation_dataset": "nakatake",
