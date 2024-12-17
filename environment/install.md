@@ -23,14 +23,14 @@ Some notes:
 
 ### Exact install
 
-To reproduce our computing environment exactly, you can start with a bash shell on a clean linux box (we have tested Rocky Linux release 8.8, Ubuntu 20.04, and Ubuntu 22.04). Use the commands in [install.sh](https://github.com/ekernf01/perturbation_benchmarking/blob/main/environment/install.sh). This will install mamba and many python packages, and it will download all our data (20Gb) from Zenodo. The one missing piece is that this doesn't try to install docker or singularity. If you want access to containerized methods via ggrn, you need to install Docker yourself.
+To reproduce our computing environment exactly, you can start with a bash shell on a clean linux box (we have tested Rocky Linux release 8.8, Ubuntu 20.04, and Ubuntu 22.04). Use the commands in [install.sh](https://github.com/ekernf01/perturbation_benchmarking/blob/main/environment/install.sh). This will install mamba and many python packages, and it will download all our data (20Gb) from Zenodo. 
 
 ```bash
 git clone https://github.com/ekernf01/perturbation_benchmarking
 source perturbation_benchmarking/environment/install.sh
 ```
 
-Now, install and configure docker. This is optional; you can run many of our experiments without it. I cannot support you in this step; if it doesn't work, you will need to go to the official Docker instructions or another source. But this worked for me on an Amazon EC2 running Ubuntu 22.04.
+Our install script doesn't try to install docker or singularity. If you want access to containerized methods via ggrn, you need to install Docker yourself. We cannot support you in this step; if it doesn't work, you will need to go to the official Docker instructions or another source. But this worked for me on an Amazon EC2 running Ubuntu 22.04.
 
 ```bash
 sudo apt-get update

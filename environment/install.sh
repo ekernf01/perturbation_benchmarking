@@ -36,6 +36,7 @@ pip install pot==0.9.3 --no-deps
 pip install wot==1.0.8.post2 --no-deps
 
 # We need a specific version of Geneformer. We use `git lfs pull` because we need certain model files locally. 
+sudo apt install git-lfs
 echo "Cloning geneformer -- this could take a long time."
 git lfs install
 git clone https://huggingface.co/ctheodoris/Geneformer
