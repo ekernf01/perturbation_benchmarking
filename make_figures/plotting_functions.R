@@ -195,11 +195,17 @@ load_embeddings = function(experiment_name){
   conditions = read.csv(paste0("../experiments/", experiment_name, "/outputs/conditions.csv"))
   embeddings = as.list(conditions$condition) %>% setNames(conditions$condition)
   for (i in conditions$condition){
-    embeddings[[as.character(i)]] = 
-      conditions %>% 
-      subset(condition==i) %>%
-      select(-prediction_timescale) %>%
-      cbind(read.csv(paste0("../experiments/", experiment_name, "/outputs/screen/projection_train/", i, ".csv.gz")))
+    embeddings[[as.character(i)]] = data.frame()
+    try(
+      {
+        embeddings[[as.character(i)]] = 
+          conditions %>% 
+          subset(condition==i) %>%
+          select(-prediction_timescale) %>%
+          cbind(read.csv(paste0("../experiments/", experiment_name, "/outputs/screen/projection_train/", i, ".csv.gz")))
+      }, 
+      silent = T
+    )
   }
   embeddings %<>% data.table::rbindlist()
   return(embeddings)
