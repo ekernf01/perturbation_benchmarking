@@ -26,15 +26,11 @@
         "docker____ekernf01/ggrn_docker_backend_rnaforecaster"
     ],
     "prediction_timescale": [
-        "1", "1", "1", 
+        "1", "1", "1,2,3,10", 
         "1", "1", 
         "1,2,3,5",  "1,2,3,4",  "1,2,3,4",  "1,2,3,4"
     ],
-    "feature_extraction": [
-        "mrna", "mrna", "mrna",
-        "mrna", "mrna",
-        "mrna", "mrna", "mrna", "mrna"
-    ],
+    "cell_type_sharing_strategy": "distinct",
     "predict_self": [
         false, false, false, 
         false, false, 
@@ -45,7 +41,7 @@
         {}, { "minimum_expression": 0.05 }, 
         {}, {}, {}, {}
     ],
-    "matching_method": "steady_state",
+    "matching_method": "optimal_transport",
     "perturbation_dataset": "definitive_endoderm",
     "visualization_embedding": "X_pca", 
     "network_datasets": { 
