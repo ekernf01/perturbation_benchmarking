@@ -1,16 +1,17 @@
 {
     "unique_id": "1.5.1_2",
     "nickname": "timeseries pilot",
-    "is_active": false,
-    "readme": "Accidental dupe of 1.5.1_3",
+    "readme": "Direct comparison of published timeseries methods",
     "question": "1.5.1",
     "refers_to": "1.5.1_0",
-    "perturbation_dataset": "saunders_axial_mesoderm",
-    "visualization_embedding": "X_umap", 
+    "perturbation_dataset": "paul2",
+    "visualization_embedding": "X_draw_graph_fa", 
     "eligible_regulators": "tf",
-    "species": "zebrafish",
+    "species": "mouse",
+    "matching_method": "user",
+    "matching_method_for_evaluation": "user",
     "network_datasets": { 
-        "celloracle_zebrafish": { "do_aggregate_subnets": true }
+        "celloracle_mouse_atac_atlas": { "do_aggregate_subnets": true }
     }
 }
 
