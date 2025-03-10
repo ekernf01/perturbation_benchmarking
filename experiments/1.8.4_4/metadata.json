@@ -1,0 +1,11 @@
+{
+    "unique_id": "1.8.4_4",
+    "nickname": "base_network",
+    "readme": "Network experiment but with a different data split.",
+    "question": "1.4.3",
+    "is_active": true,
+    "refers_to": "1.4.3_1", 
+    "type_of_split": "stratified", 
+    "perturbation_dataset": "replogle2_tf_only", 
+    "merge_replicates": false
+}
