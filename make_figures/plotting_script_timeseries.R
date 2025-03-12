@@ -12,6 +12,7 @@
   
   setwd("/home/ekernf01/Desktop/jhu/research/projects/perturbation_prediction/cell_type_knowledge_transfer/perturbation_benchmarking/make_figures/")
   source("plotting_functions.R")
+  METRICS = c(METRICS, "distance_in_pca")
 }
 
 # ===================== Figure 1, perturbation scores and lit reviews ====================================
@@ -19,7 +20,12 @@
 {
   embeddings = load_embeddings("1.2.2_14")
   lit_review = read.csv("../../perturbation_data/perturbations/definitive_endoderm/lit_review.csv")
-  embeddings %<>% merge(lit_review, by = "perturbation", all.x = T)
+  lit_review %<>% rename(cell_type = Cell.type.affected)
+  lit_review %<>% mutate(cell_type = gsub("primitive streak", "mesendoderm", tolower(cell_type)))
+  lit_review %<>% tidyr::complete(perturbation, cell_type, fill = list(effect_direction="none"))
+  embeddings %<>% merge(lit_review, by = c("perturbation", "cell_type"), all.x = T)
+  embeddings %<>% mutate(Included.in.literature.review. = ifelse(is.na(Included.in.literature.review.), "no", Included.in.literature.review.))
+  embeddings %<>% mutate(effect_direction = ifelse(is.na(effect_direction), "none", effect_direction))
   # Demo plot of velocity
   ggplot(embeddings %>% subset(perturbation=="SOX17" & matching_method=="optimal_transport")) +
     ggtitle("Lineage relationships predicted by optimal transport") +
@@ -63,7 +69,7 @@
         mean(gecko.pos.lfc)
       )),
       Included.in.literature.review. = unique(Included.in.literature.review.), 
-      Cell.type.affected = unique(Cell.type.affected),
+      effect_direction = unique(effect_direction),
       PMID = unique(PMID),
       Notes = unique(Notes)
     ) %>%
@@ -102,52 +108,63 @@
   
   
   # Perturbation scores versus each other
-  prettify = function(x) x %>% gsub("-1", "-", .) %>% gsub("1", "+", .) %>% gsub("0", "none", .)
-  genes_in_order = overall_scores %>% 
-    subset(perturbation_score_rank<=30) %>% 
-    group_by(perturbation) %>%
-    summarise(rank_by = sum(sign(perturbation_score))) %>%
-    dplyr::arrange(rank_by) %>%
-    extract2("perturbation")
-  overall_scores %>% 
+  prettify = function(x) x %>% gsub("-1", "LoF inhibits differentiation", .) %>% gsub("1", "LoF promotes differentiation", .) %>% gsub("0", "none", .)
+  # Ordering heatmaps is always a nightmare.
+  # This makes a rough ordering according to th lit review results. 
+  heatmap_data = overall_scores %>% 
     subset(perturbation_score_rank<=30) %>% 
     mutate(predicted_effect = prettify(sign(perturbation_score))) %>%
-    mutate(perturbation=factor(perturbation, levels = genes_in_order)) %>%
     mutate(method = matching_method %>% gsub("_", " ", .)) %>%
     extract(c("method", "cell_type", "perturbation", "predicted_effect")) %>% 
     ungroup() %>%
     tidyr::complete(method, perturbation, cell_type, fill = list(predicted_effect="none")) %>%
-    ggplot() + 
+    merge(lit_review, by = c("cell_type", "perturbation"), all.x = T, all.y = F)
+  genes_in_order = heatmap_data %>% 
+    dplyr::arrange(effect_direction) %>%
+    extract2("perturbation") %>%
+    unique()
+  heatmap_data %<>% 
+    mutate(perturbation=factor(perturbation, levels = genes_in_order)) %>%
+    mutate(predicted_effect = gsub("none", "Not in top 30", predicted_effect))
+  ggplot(heatmap_data) + 
     geom_tile(aes(x = method, y = perturbation, fill = predicted_effect)) + 
-    scale_fill_manual(values = c("-"="blue", "+"="yellow", "none" = "gray"), na.value = "gray") +
+    geom_tile(aes(x = " Literature review", y = perturbation, fill = effect_direction)) + 
+    scale_fill_manual(
+      values = c(
+        "none" = "gray30",
+        "Not in top 30" = "gray", 
+        "GoF promotes differentiation" = "blue", 
+        "LoF inhibits differentiation" = "blue",
+        "LoF affects expression state" = "cyan",
+        "LoF promotes differentiation" = "yellow"
+      ), 
+      na.value = "black"
+    ) +
     facet_wrap(~cell_type) + 
-    theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
-  ggsave("timeseries_plots/definitive_endoderm_discordance_top_30.pdf", width = 4, height = 7)
+    labs(fill = "Direction of effect") +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) + 
+    coord_fixed() + 
+    ggtitle("Literature review of top 30 \npredictions for each model")
+  ggsave("timeseries_plots/definitive_endoderm_discordance_top_30.pdf", width = 5, height = 7)
   
   
   # perturbation scores versus lit review
-  overall_scores %>% 
-    subset(perturbation_score_rank<=30) %>% 
+  heatmap_data %>% 
     write.csv("timeseries_plots/definitive_endoderm_ps_vs_screen_top_30.csv")
-  overall_scores %>% 
-    subset(perturbation_score_rank<=30, select = c("perturbation", "Cell.type.affected")) %>%
-    distinct() %>%
-    extract2("Cell.type.affected") %>%
+  heatmap_data %>% 
+    subset(T, select = c("cell_type", "effect_direction")) %>%
     table() %>%
     write.csv("timeseries_plots/definitive_endoderm_ps_vs_screen_top_30_unique.csv")
-  overall_scores %>% 
-    subset(perturbation_score_rank<=30) %>% 
-    extract(c("matching_method", "Cell.type.affected", "cell_type", "prediction_timescale")) %>%
+  heatmap_data %>% 
     mutate(prediction_for = paste0("Prediction about:\n", cell_type)) %>%
-    rename(known_role = Cell.type.affected) %>%
-    mutate(known_role = ifelse(is.na(known_role), "Not reviewed", known_role)) %>%
-    mutate(known_role = forcats::fct_relevel(known_role, "Not reviewed", after = 0)) %>%
-    mutate(known_role = forcats::fct_relevel(known_role, "No known role", after = 0)) %>%
-    table() %>%
-    as.data.frame() %>%
+    subset(predicted_effect!="none") %>%
+    mutate(accuracy = "Incorrect (no effect)") %>%
+    mutate(accuracy = ifelse(effect_direction != "none",           "Incorrect (wrong direction)", accuracy)) %>%
+    mutate(accuracy = ifelse(effect_direction == predicted_effect, "Correct",         accuracy)) %>%
+    mutate(accuracy = forcats::fct_relevel(accuracy, rev(sort(unique(accuracy)))[c(1,3,2)])) %>%
     ggplot() + 
-    geom_bar(aes(x=matching_method,y=Freq, fill = known_role), stat="identity") + 
-    scale_fill_manual(values = c("Endoderm"="yellow", "Primitive streak"="orange", "No known role"="black", "Not reviewed"="grey45")) +
+    geom_bar(aes(x=method, fill = accuracy)) + 
+    scale_fill_manual(values = c( "Correct"="green", "Incorrect (wrong direction)" = "red", "Incorrect (no effect)"="gray")) +
     facet_grid(prediction_for~"") + 
     theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
     ylab("Number of genes") +
@@ -346,40 +363,45 @@
   ggsave('timeseries_plots/matching.svg', plot, width = 8, height = 8)
 }
 # published methods
+dir.create("timeseries_plots/published_methods")
 {
-  METRICS = c(METRICS, "distance_in_pca")
-  X = collect_experiments(paste0("1.5.1_", 0:1)) %>% make_the_usual_labels_nice
+  X = collect_experiments(paste0("1.5.1_", 0:2)) %>% make_the_usual_labels_nice
   X %<>%
-    group_by(regression_method, perturbation_dataset) %>%
+    group_by(regression_method, perturbation_dataset, prediction_timescale) %>%
     summarise(across(METRICS, mean, na.rm = T))
   X %<>% tidyr::pivot_longer(cols = all_of(METRICS), names_to = "metric")
   X[["metric"]] %<>% gsub("_", " ", .)
   X[["metric"]] %<>% factor(levels = gsub("_", " ", METRICS))
   plot = ggplot(X) +
-    geom_bar(aes(x = regression_method, y = value, fill = regression_method), position = "dodge", stat = "identity") +
+    geom_bar(aes(x = regression_method, y = value, fill = factor(as.character(prediction_timescale), levels = c(0:5, 10)), group = prediction_timescale), position = "dodge", stat = "identity") +
     facet_grid(metric~perturbation_dataset, scales = "free") +
     theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))  +
     ylab("") + 
-    geom_hline(yintercept=0)
+    geom_hline(yintercept=0) + 
+    labs(fill="Simulation\nduration") + 
+    scale_fill_manual(values = viridis::viridis(6), guide = "legend")
   print(plot)
-  ggsave('timeseries_plots/matching.svg', plot, width = 8, height = 8)
+  ggsave('timeseries_plots/published_methods/matching.svg', plot, width = 8, height = 8)
 }
 
 
 # =========================== Figure 3, perturbation scores and lit reviews for published methods ==========
 # Definitive Endoderm
 {
-  embeddings = load_embeddings("1.5.1_0")
+  embeddings = load_embeddings("1.5.1_0") %>% make_the_usual_labels_nice()
   lit_review = read.csv("../../perturbation_data/perturbations/definitive_endoderm/lit_review.csv")
-  embeddings %<>% merge(lit_review, by = "perturbation", all.x = T)
-  embeddings$regression_method %<>% gsub("docker____ekernf01/ggrn_docker_backend_", "", .)
-  embeddings$regression_method %<>% gsub("dictys", "dictys_dynamics", .)
-  embeddings$regression_method %<>% gsub("sckinetics", "sckinetics_dynamics", .)
+  lit_review %<>% rename(cell_type = Cell.type.affected)
+  lit_review %<>% mutate(cell_type = gsub("primitive streak", "mesendoderm", tolower(cell_type)))
+  lit_review %<>% tidyr::complete(perturbation, cell_type, fill = list(effect_direction="none"))
+  embeddings %<>% merge(lit_review, by = c("perturbation", "cell_type"), all.x = T)
+  embeddings %<>% mutate(Included.in.literature.review. = ifelse(is.na(Included.in.literature.review.), "no", Included.in.literature.review.))
+  embeddings %<>% mutate(effect_direction = ifelse(is.na(effect_direction), "none", effect_direction))
+  
   # Compare perturbation scores versus CRISPR screen
   overall_scores = embeddings %>%
-    group_by(cell_type, perturbation, regression_method) %>%
+    group_by(cell_type, perturbation, prediction_timescale, regression_method) %>%
     summarize(
-      perturbation_score = mean(perturbation_score, na.rm = T), 
+      perturbation_score = mean(perturbation_score), 
       li_et_al_biggest_effect = maxabs(c(
         mean(brunello.neg.lfc),
         mean(brunello.pos.lfc),
@@ -387,51 +409,17 @@
         mean(gecko.pos.lfc)
       )),
       Included.in.literature.review. = unique(Included.in.literature.review.), 
-      Cell.type.affected = unique(Cell.type.affected),
+      effect_direction = unique(effect_direction),
       PMID = unique(PMID),
       Notes = unique(Notes)
     ) %>%
-    group_by(cell_type, regression_method) %>%
+    group_by(cell_type, prediction_timescale, regression_method) %>%
     mutate( perturbation_score_rank = rank(-abs(perturbation_score)) ) %>%
     mutate( top_30 = ifelse(perturbation_score_rank<=30, "top 30 predictions", "other") ) %>%
     subset(cell_type != "pluripotent") 
   
-  # perturbation scores overall distribution
-  overall_scores %>% 
-    ggplot() + 
-    stat_ecdf(aes(x = perturbation_score)) + 
-    facet_grid(regression_method~cell_type) + 
-    labs(fill = "Exact zero", y = "Cumulative density") + 
-    geom_vline(xintercept = 0, color = "red") + 
-    theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
-  ggsave("timeseries_plots/published_methods_definitive_endoderm_ps_distribution.pdf", width = 3, height = 6)
-  
-  
-  # Perturbation scores versus each other
-  prettify = function(x) x %>% gsub("-1", "-", .) %>% gsub("1", "+", .) %>% gsub("0", "none", .)
-  genes_in_order = overall_scores %>% 
-    subset(perturbation_score_rank<=30) %>% 
-    group_by(perturbation) %>%
-    summarise(rank_by = sum(sign(perturbation_score))) %>%
-    dplyr::arrange(rank_by) %>%
-    extract2("perturbation")
-  overall_scores %>% 
-    subset(perturbation_score_rank<=30) %>% 
-    mutate(predicted_effect = prettify(sign(perturbation_score))) %>%
-    mutate(perturbation=factor(perturbation, levels = genes_in_order)) %>%
-    extract(c("regression_method", "cell_type", "perturbation", "predicted_effect")) %>% 
-    ungroup() %>%
-    tidyr::complete(regression_method, perturbation, cell_type, fill = list(predicted_effect="none")) %>%
-    ggplot() + 
-    geom_tile(aes(x = regression_method, y = perturbation, fill = predicted_effect)) + 
-    scale_fill_manual(values = c("-"="blue", "+"="yellow", "none" = "gray"), na.value = "gray") +
-    facet_wrap(~cell_type) + 
-    theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
-  ggsave("timeseries_plots/published_methods_definitive_endoderm_discordance_top_30.pdf", width = 4, height = 7)
-  
-  
   # perturbation scores versus CRISPR screen
-  ggplot(subset(overall_scores)) + 
+  ggplot(overall_scores) + 
     facet_grid(~cell_type, scale = "free_x") +
     geom_hline(yintercept=0) +
     geom_vline(xintercept=0) +
@@ -447,36 +435,88 @@
     ylab("Log fold change in gRNA abundance \n(Largest magnitude from Li et al. 2019 genome-wide screen)") + 
     ggtitle("Predicted and observed effects on endoderm differentiation",
             subtitle = "Labels are shown for the largest absolute values on the x axis.")
-  ggsave("timeseries_plots/published_methods_definitive_endoderm_ps_vs_screen.pdf", width = 8, height = 6)
+  ggsave("timeseries_plots/published_methods/definitive_endoderm_ps_vs_screen.pdf", width = 8, height = 6)
+  
+  # perturbation scores overall distribution
+  overall_scores %>% 
+    ggplot() + 
+    stat_ecdf(aes(x = perturbation_score, color = factor(as.character(prediction_timescale), levels = c(1:5, 10)), group = prediction_timescale)) + 
+    facet_grid(regression_method~cell_type) + 
+    labs(y = "Cumulative density") + 
+    geom_vline(xintercept = 0, color = "red") + 
+    theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) + 
+    labs(color="Simulation\nduration") + 
+    scale_color_manual(values = viridis::viridis(6), guide = "legend")
+  ggsave("timeseries_plots/published_methods/definitive_endoderm_ps_distribution.pdf", width = 3, height = 6)
+  
+  
+  # Perturbation scores versus each other
+  prettify = function(x) x %>% gsub("-1", "LoF inhibits differentiation", .) %>% gsub("1", "LoF promotes differentiation", .) %>% gsub("0", "none", .)
+  # Ordering heatmaps is always a nightmare.
+  # This makes a rough ordering according to th lit review results. 
+  heatmap_data = overall_scores %>% 
+    subset(perturbation_score_rank<=30) %>% 
+    mutate(predicted_effect = prettify(sign(perturbation_score))) %>%
+    mutate(method = regression_method %>% gsub("_", " ", .)) %>%
+    mutate(method = interaction(regression_method, prediction_timescale)) %>%
+    extract(c("method", "regression_method", "prediction_timescale", "cell_type", "perturbation", "predicted_effect", "prediction_timescale")) %>% 
+    ungroup() %>%
+    tidyr::complete(method, perturbation, cell_type, fill = list(predicted_effect="none")) %>%
+    merge(lit_review, by = c("cell_type", "perturbation"), all.x = T, all.y = F)
+  genes_in_order = heatmap_data %>% 
+    dplyr::arrange(effect_direction) %>%
+    extract2("perturbation") %>%
+    unique()
+  heatmap_data %<>% 
+    mutate(perturbation=factor(perturbation, levels = genes_in_order)) %>%
+    mutate(predicted_effect = gsub("none", "Not in top 30", predicted_effect))
+  ggplot(heatmap_data) + 
+    geom_tile(aes(x = method, y = perturbation, fill = predicted_effect)) + 
+    geom_tile(aes(x = " Literature review", y = perturbation, fill = effect_direction)) + 
+    scale_fill_manual(
+      values = c(
+        "none" = "gray30",
+        "Not in top 30" = "gray", 
+        "GoF promotes differentiation" = "blue", 
+        "LoF inhibits differentiation" = "blue",
+        "LoF affects expression state" = "cyan",
+        "LoF promotes differentiation" = "yellow"
+      ), 
+      na.value = "black"
+    ) +
+    facet_wrap(~cell_type) + 
+    labs(fill = "Direction of effect", x = "Method and prediction timescale") +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) + 
+    coord_fixed() + 
+    ggtitle("Literature review of top 30 \npredictions for each model")
+  ggsave("timeseries_plots/published_methods/definitive_endoderm_discordance_top_30.pdf", width = 5, height = 7)
+  
   
   # perturbation scores versus lit review
-  overall_scores %>% 
-    subset(perturbation_score_rank<=30) %>% 
-    write.csv("timeseries_plots/published_methods_definitive_endoderm_ps_vs_screen_top_30.csv")
-  overall_scores %>% 
-    subset(perturbation_score_rank<=30, select = c("perturbation", "Cell.type.affected")) %>%
-    distinct() %>%
-    extract2("Cell.type.affected") %>%
+  heatmap_data %>% 
+    write.csv("timeseries_plots/published_methods/definitive_endoderm_ps_vs_screen_top_30.csv")
+  heatmap_data %>% 
+    subset(T, select = c("cell_type", "effect_direction")) %>%
     table() %>%
-    write.csv("timeseries_plots/published_methods_definitive_endoderm_ps_vs_screen_top_30_unique.csv")
-  overall_scores %>% 
-    subset(perturbation_score_rank<=30) %>% 
-    extract(c("regression_method", "Cell.type.affected", "cell_type")) %>%
+    write.csv("timeseries_plots/published_methods/definitive_endoderm_ps_vs_screen_top_30_unique.csv")
+  heatmap_data %>% 
     mutate(prediction_for = paste0("Prediction about:\n", cell_type)) %>%
-    rename(known_role = Cell.type.affected) %>%
-    mutate(known_role = ifelse(is.na(known_role), "Not reviewed", known_role)) %>%
-    mutate(known_role = forcats::fct_relevel(known_role, "Not reviewed", after = 0)) %>%
-    mutate(known_role = forcats::fct_relevel(known_role, "No known role", after = 0)) %>%
-    table() %>%
-    as.data.frame() %>%
+    subset(predicted_effect!="none") %>%
+    subset(predicted_effect!="Not in top 30") %>%
+    subset(!is.na(predicted_effect)) %>%
+    mutate(accuracy = "Incorrect\n(no effect)") %>%
+    mutate(accuracy = ifelse(effect_direction != "none",           "Incorrect\n(wrong direction)", accuracy)) %>%
+    mutate(accuracy = ifelse(effect_direction == predicted_effect, "Correct",                     accuracy)) %>%
+    mutate(accuracy = forcats::fct_relevel(accuracy, rev(sort(unique(accuracy)))[c(1,3,2)])) %>%
+    mutate(method = factor(method, levels = sort(as.character(unique(method))))) %>%
     ggplot() + 
-    geom_bar(aes(x=regression_method,y=Freq, fill = known_role), stat="identity") + 
-    scale_fill_manual(values = c("Endoderm"="yellow", "Primitive streak"="orange", "No known role"="black", "Not reviewed"="grey45")) +
-    facet_grid(prediction_for~"") + 
+    geom_bar(aes(x=as.character(prediction_timescale), fill = accuracy)) + 
+    scale_fill_manual(values = c( "Correct"="green", "Incorrect\n(wrong direction)" = "red", "Incorrect\n(no effect)"="gray")) +
+    facet_grid(prediction_for~regression_method, scale = "free") + 
     theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
-    ylab("Number of genes") +
+    labs(y="Number of genes", x = "Simulation duration") +
     ggtitle("Literature review of top 30 \npredictions for each model")
-  ggsave("timeseries_plots/published_methods_definitive_endoderm_lit_review_top_30.pdf", width = 4, height = 6)
+  ggsave("timeseries_plots/published_methods/definitive_endoderm_lit_review_top_30.pdf", width = 10, height = 4)
 }
 
 # Paul et al. 2015 myelopoiesis data
@@ -532,20 +572,20 @@
     scale_fill_manual(values = c("-"="blue", "+"="yellow", "none" = "gray"), na.value = "gray") +
     facet_wrap(~cell_type) + 
     theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
-  ggsave("timeseries_plots/published_methods_paul_discordance_top_30.pdf", width = 4, height = 7)
+  ggsave("timeseries_plots/published_methods/paul_discordance_top_30.pdf", width = 4, height = 7)
   
   # Predictions vs lit review
   overall_scores %>% 
     subset(GM_abs_rank<=30|ME_abs_rank<=30) %>% 
     subset(abs(GM)>0|abs(ME)>0) %>% 
-    write.csv("timeseries_plots/published_methods_paul_ps_vs_screen_top_30.csv")
+    write.csv("timeseries_plots/published_methods/paul_ps_vs_screen_top_30.csv")
   overall_scores %>% 
     subset(abs(GM)>0|abs(ME)>0) %>% 
     subset(GM_abs_rank<=30|ME_abs_rank<=30, select = c("perturbation", "lit_review", "included_co")) %>%
     distinct() %>%
     extract(c("lit_review", "included_co")) %>%
     table() %>%
-    write.csv("timeseries_plots/published_methods_paul_ps_vs_screen_top_30_unique.csv")
+    write.csv("timeseries_plots/published_methods/paul_ps_vs_screen_top_30_unique.csv")
   overall_scores %>% 
     subset(GM_abs_rank<=30|ME_abs_rank<=30) %>% 
     subset(abs(GM)>0|abs(ME)>0) %>% 
@@ -557,10 +597,10 @@
     extract(c("lit_review", "regression_method", "cell_type")) %>%
     rename(known_role = lit_review) %>%
     mutate(known_role = ifelse(is.na(known_role), "Not reviewed", known_role)) %>%
-    mutate(known_role = forcats::fct_relevel(known_role, "Not reviewed", after = 0)) %>%
-    mutate(known_role = forcats::fct_relevel(known_role, "No known role", after = 0)) %>%
     table() %>%
     as.data.frame() %>%
+    mutate(known_role = forcats::fct_relevel(known_role, "Not reviewed", after = 0)) %>%
+    mutate(known_role = forcats::fct_relevel(known_role, "No known role", after = 0)) %>%
     ggplot() + 
     geom_bar(aes(x=regression_method,y=Freq, fill = known_role), stat="identity") + 
     scale_fill_manual(values = c(
@@ -576,17 +616,15 @@
     theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
     ylab("Number of genes") +
     ggtitle("Literature review of top 30 \npredictions for each model")
-  ggsave("timeseries_plots/published_methods_paul_lit_review_top_30.pdf", width = 4, height = 6)
+  ggsave("timeseries_plots/published_methods/paul_lit_review_top_30.pdf", width = 4, height = 6)
 }
 
 # =========================== Figure 5: cell type-specific networks ===============================
 {
   X = collect_experiments(paste0("1.4.1_", 0:4))
-  X %<>% subset(is_timescale_strict)
   X[X[["pearson_top_20"]]!=0, ]
   X %<>% add_network_cell_type_metadata
   X %<>% make_the_usual_labels_nice
-  X %<>% subset(is_timescale_strict)
   X %<>% subset(prediction_timescale==10)
   X$pearson %<>% tidyr::replace_na(0)
   X$pearson_top_20 %<>% tidyr::replace_na(0)
@@ -594,8 +632,8 @@
   X$pearson_top_200 %<>% tidyr::replace_na(0)
   X %<>%
     group_by(prediction_timescale, perturbation_dataset, network_datasets, network_source, network_tissue, network_pretty, network_cell_type_matches ) %>%
-    summarise(across(DEFAULT_METRICS, mean, na.rm = T))
-  X %<>% tidyr::pivot_longer(cols = all_of(DEFAULT_METRICS), names_to = "metric")
+    summarise(across(METRICS, mean, na.rm = T))
+  X %<>% tidyr::pivot_longer(cols = all_of(METRICS), names_to = "metric")
   X[["metric"]] %<>% gsub("_", " ", .)
   X[["metric"]] %<>% factor(levels = gtools::mixedsort(unique(X[["metric"]])))
   X %<>% subset(network_source != "humanbase")

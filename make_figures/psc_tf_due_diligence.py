@@ -5,6 +5,9 @@ import pereggrn_perturbations
 from pereggrn import experimenter
 from scipy.stats import rankdata
 pereggrn_perturbations.set_data_path("../../perturbation_data/perturbations")
+
+# This scripe cross-references TF perturbation responses with known targets from Boyer et al. 2005. 
+
 distance_to_targets = pd.read_csv("boyer2005targets.csv")[["GENE", "SOX2", "NANOG", "E2F4"]]
 distance_to_targets = 
 predictions = sc.read_h5ad("../experiments/1.0_1/outputs/predictions/7.h5ad") # condition 7 is LassoCV
