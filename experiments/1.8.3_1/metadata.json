@@ -1,0 +1,24 @@
+{
+    "unique_id": "1.8.3_1",
+    "nickname": "base_network",
+    "readme": "Variable gene selection is a common first step for GRN analysis or perturbation prediction demos. However, some models, such as scFoundation and GeneFormer, require all genes as input. This experiment tests how gene selection affects apparent performance for a simple network-based model.",
+    "question": "1.8.3",
+    "is_active": true,
+    "factor_varied": "network_datasets",
+    "data_split_seed": [0],
+    "color_by": "type_of_split",
+    "type_of_split": ["interventional"],
+    "facet_by": null,
+    "merge_replicates": true,
+    "regression_method": "RidgeCV",
+    "perturbation_dataset": "nakatake",
+    "eligible_regulators": "human_tfs",
+    "num_genes": [500, 1000, 2000, 5000, 10000],
+    "network_prior": "restrictive",
+    "network_datasets": {
+        "empty":     { "do_aggregate_subnets": true }, 
+        "dense":     { "do_aggregate_subnets": true },    
+        "celloracle_human":      { "do_aggregate_subnets": true }        
+    }
+}
+
