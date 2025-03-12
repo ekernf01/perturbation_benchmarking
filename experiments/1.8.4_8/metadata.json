@@ -1,6 +1,6 @@
 {
     "unique_id": "1.8.4_8",
-    "nickname": "base_network",
+    "nickname": "stratified_split",
     "readme": "Network experiment but with a different data split.",
     "question": "1.4.3",
     "is_active": true,

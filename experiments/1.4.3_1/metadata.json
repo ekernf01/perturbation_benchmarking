@@ -14,6 +14,7 @@
     "perturbation_dataset": "nakatake",
     "eligible_regulators": "human_tfs",
     "num_genes": 10000,
+    "visualization_embedding": "X_umap",
     "network_prior": "restrictive",
     "network_datasets": {
         "empty":     { "do_aggregate_subnets": true }, 

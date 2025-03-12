@@ -1,0 +1,9 @@
+{
+    "unique_id": "1.8.3_5",
+    "nickname": "gene_selection",
+    "readme": "Gene-selection experiment but with a different dataset.",
+    "question": "1.8.3",
+    "is_active": true,
+    "refers_to": "1.8.3_1", 
+    "perturbation_dataset": "replogle2_tf_only" 
+}
