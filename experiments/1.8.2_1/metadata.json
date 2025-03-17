@@ -4,7 +4,7 @@
     "readme": "Averaging within each perturbation reduces noise and focuses on biological variation due to perturbations. However, it hides potentially useful variation from sample to sample. This experiment tests whether one approach or the other tends yields better expression forecasting results.",
     "question": "1.8.3",
     "is_active": true,
-    "factor_varied": "merge_replicates",
+    "factor_varied": "network_datasets",
     "data_split_seed": [0],
     "color_by": "type_of_split",
     "type_of_split": ["interventional"],
