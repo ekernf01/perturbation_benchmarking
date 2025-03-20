@@ -3,6 +3,9 @@ library(dplyr)
 library(stringr)
 library(arrow)
 library(magrittr)
+library(gtools)
+library(tidyr)
+library(svglite)
 library(rjson)
 setwd("/home/ekernf01/Desktop/jhu/research/projects/perturbation_prediction/cell_type_knowledge_transfer/perturbation_benchmarking/make_figures/")
 source("plotting_functions.R")
@@ -18,7 +21,6 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
   X %>% 
     subset( x=="mean") %>% 
     ggplot() + 
-    # geom_jitter(aes(y = spearman, x = perturbation_dataset), alpha = 0.2) + 
     geom_boxplot(aes(y = spearman, x = perturbation_dataset), alpha = 1,
                  color = "black",
                  fill = NA,
@@ -32,7 +34,7 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
       axis.text.y = element_text(color = "black")
     )  + 
     xlab("")
-  ggsave('plots/fig_basics_correlation.pdf', width = 5, height = 4) 
+  ggsave('plots/fig_basics_correlation.svg', width = 5, height = 4) 
   X %<>% distill_results(    
     facet1 = "perturbation_dataset", 
     facet2 = "factor_varied", 
@@ -47,7 +49,7 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
     geom_vline(aes(xintercept = x), data = data.frame(x = 3.5, facet2 = factor("regression method", levels = levels(X$factor_varied)))) + 
     geom_vline(aes(xintercept = x), data = data.frame(x = 2.5, facet2 = factor("network datasets", levels = levels(X$factor_varied))))
   
-  ggsave('plots/fig_basics_supp.pdf', width = 9, height = 14)
+  ggsave('plots/fig_basics_supp.svg', width = 9, height = 14)
   # not stratified by dataset
   X %>% 
     # group_by(x, factor_varied, metric) %>%
@@ -65,7 +67,7 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
       axis.text.y = element_text(color = "black")
     ) + 
     facet_grid(metric~factor_varied, scales = "free")
-  ggsave('plots/fig_basics.pdf', width = 8, height = 14)
+  ggsave('plots/fig_basics.svg', width = 8, height = 14)
 }
 
 # Supplemental tables: stratifying performance by target gene or by perturbed gene
@@ -119,7 +121,7 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
     theme(axis.text.x = element_text(color = "black", angle = 90, vjust = 0.5, hjust = 1)) + 
     geom_hline(yintercept=0, color = "red") + 
     labs(color = "Quintile")
-  ggsave("plots/fig_basics_stratify_targets.pdf", width = 10, height = 10)
+  ggsave("plots/fig_basics_stratify_targets.svg", width = 10, height = 10)
   dim(aggregated) %>% write.csv('plots/fig_basics_stratify_targets_num_groups.csv')
 }
 
@@ -188,13 +190,13 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
     heatmap_all_metrics(
       facet2 = "data_split_seed", 
       scales = "fixed", 
-      cap = 5, 
+      cap = 1, 
       baseline_condition = "dense"
     )
   g +
     geom_vline(data = g$data %>% subset(x==gsub("\\s", " ", facet1)), color = "red", aes(xintercept = x) ) + 
     coord_fixed()
-  ggsave('plots/fig_basics_simulation.pdf', width = 10, height = 8)
+  ggsave('plots/fig_basics_simulation.svg', width = 10, height = 8)
 }
 
 # Published methods
@@ -258,7 +260,7 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
       scales = "fixed", 
       do_wrap = T
     ) + coord_fixed()
-  ggsave(filename = paste0("plots/fig_all_published.pdf"), width = 7, height = 8)
+  ggsave(filename = paste0("plots/fig_all_published.svg"), width = 7, height = 8)
   # Not grouped by dataset
   X %>% 
     subset(starting_expression=="control") %>%
@@ -284,7 +286,7 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
     ) + 
     scale_fill_gradient2() +
     facet_wrap(~metric)
-  ggsave(filename = paste0("plots/fig_all_published_simple.pdf"), width = 6, height = 5)
+  ggsave(filename = paste0("plots/fig_all_published_simple.svg"), width = 6, height = 5)
   
   X %>% 
     subset(regression_method!="GEARS") %>%
@@ -314,18 +316,112 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
   X = collect_experiments(
     experiments = 
       c(
-        "1.8.3_1"
+        "1.8.3_1",
+        "1.8.3_2",
+        "1.8.3_3",
+        "1.8.3_5",
+        "1.8.3_6",
+        "1.8.3_7",
+        "1.8.3_8",
+        "1.8.3_9"
       )
   )
   X %<>% make_the_usual_labels_nice()
   X %<>% distill_results(    
     facet1 = "perturbation_dataset", 
-    facet2 = "factor_varied", 
-    compare_across_rows = T
+    facet2 = "num_genes", 
+    compare_across_rows = T, 
+    baseline_condition = "empty"
   )
-  heatmap_all_metrics(
-    X, 
+  X %>%
+    mutate(metric = factor(metric, levels = gsub("_", " ", METRICS))) %>%
+    ggplot() +
+    geom_boxplot(aes(x = x, y = pmin(pmax(scaled_value, -100), 100))) + 
+    labs(
+      x = "", 
+      y = "Percent change vs baseline\nOriented so higher is better\nCapped at ±100%",
+    ) +
+    geom_hline(aes(yintercept = 0), colour = "red") +
+    theme(
+      axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, color = "black"),
+      axis.text.y = element_text(color = "black")
+    ) + 
+    facet_grid(metric~num_genes, scales = "free")
+  ggsave('plots/num_genes.svg', width = 5, height = 8)
+}
+
+# Gene selection
+{
+  X = collect_experiments(
+    experiments = 
+      c(
+        "1.8.4_1",
+        "1.8.4_2",
+        "1.8.4_3",
+        "1.8.4_5",
+        "1.8.4_6",
+        "1.8.4_7",
+        "1.8.4_8",
+        "1.8.4_9"
+      )
+  )
+  X %<>% make_the_usual_labels_nice()
+  X %<>% distill_results(    
     facet1 = "perturbation_dataset", 
-    facet2 = "factor_varied"
-  )  
+    facet2 = "network_datasets", 
+    compare_across_rows = T, 
+    baseline_condition = "empty"
+  )
+  X %>%
+    mutate(metric = factor(metric, levels = gsub("_", " ", METRICS))) %>%
+    ggplot() +
+    geom_boxplot(aes(x = x, y = pmin(pmax(scaled_value, -100), 100))) + 
+    labs(
+      x = "", 
+      y = "Percent change vs baseline\nOriented so higher is better\nCapped at ±100%",
+    ) +
+    geom_hline(aes(yintercept = 0), colour = "red") +
+    theme(
+      axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, color = "black"),
+      axis.text.y = element_text(color = "black")
+    ) + 
+    facet_grid(metric~"", scales = "free")
+  ggsave('plots/stratified_split.pdf', width = 5, height = 8)
+}
+
+# Replicate merging
+{
+  X = collect_experiments(
+    experiments = 
+      c(
+        "1.8.2_1",
+        "1.8.2_2",
+        "1.8.2_4",
+        "1.8.2_5",
+        "1.8.2_7"
+      )
+  )
+  X$merge_replicates = c("Not merged", "Replicates merged")[X$merge_replicates + 1]
+  X %<>% make_the_usual_labels_nice()
+  X %<>% distill_results(    
+    facet1 = "perturbation_dataset", 
+    facet2 = "merge_replicates", 
+    compare_across_rows = T, 
+    baseline_condition = "empty"
+  )
+  X %>%
+    mutate(metric = factor(metric, levels = gsub("_", " ", METRICS))) %>%
+    ggplot() +
+    geom_boxplot(aes(x = x, y = pmin(pmax(scaled_value, -100), 100))) + 
+    labs(
+      x = "", 
+      y = "Percent change vs baseline\nOriented so higher is better\nCapped at ±100%",
+    ) +
+    geom_hline(aes(yintercept = 0), colour = "red") +
+    theme(
+      axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, color = "black"),
+      axis.text.y = element_text(color = "black")
+    ) + 
+    facet_grid(metric~merge_replicates, scales = "free")
+  ggsave('plots/preprocessing_replicates.svg', width = 4, height = 8)
 }

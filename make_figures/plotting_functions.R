@@ -237,11 +237,22 @@ collect_experiments = function(
       if (is.null(X[[experiment]][["louvain"]])){
         X[[experiment]][["louvain"]] = 0
       }
-      X[[experiment]][["refers_to"]] %<>% as.character
-      X[[experiment]][["question"]] %<>% as.character
-      X[[experiment]][["chr"]] %<>% as.character
-      X[[experiment]][["transcript"]] %<>% as.character
-      X[[experiment]][["louvain"]] %<>% as.character
+      for(n in c("refers_to", "question", "chr", "transcript", "louvain", "visualization_embedding")){
+        X[[experiment]][[n]] %<>% as.character
+      }
+      for(n in c("highly_variable", "highly_variable_rank", "means", "variances", "variances_norm",
+                 "expression_level_after_perturbation",
+                 "n_exons", "tx_start", "tx_end", "bp", 
+                 "mu_syn", "mu_mis", "mu_lof",
+                 "n_cnv", "exp_cnv", "cnv_z", 
+                 "n_syn", "n_mis", "n_lof", 
+                 "exp_syn", "exp_mis", "exp_lof", 
+                 "syn_z", "mis_z", "lof_z", "pLI")){
+        X[[experiment]][[n]] %<>% as.numeric
+      }
+      for( degree in grep("degree", colnames(X[[experiment]]), value = T)){
+        X[[experiment]][[degree]] %<>% as.numeric()
+      }
     })
   }
   X <- bind_rows(X)
