@@ -1,9 +1,9 @@
 {
-    "unique_id": "1.8.2_3",
+    "unique_id": "1.8.2_4",
     "nickname": "how_much_averaging",
     "readme": "Replicate-averaging experiment but with a different dataset.",
     "question": "1.8.2",
     "is_active": true,
     "refers_to": "1.8.2_1", 
-    "perturbation_dataset": "frangieh_IFNg_v2" 
+    "perturbation_dataset": "dixit" 
 }
