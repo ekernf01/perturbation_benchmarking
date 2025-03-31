@@ -5,7 +5,7 @@ This repo contains benchmark experiments to evaluate various strategies for pred
 ![image](https://github.com/ekernf01/perturbation_benchmarking/assets/5271803/ae7a5c86-dca6-49be-b048-743f8e110a18)
 
 - For context and key results, see our [preprint](https://www.biorxiv.org/content/10.1101/2023.07.28.551039v2). 
-- Install everything using [these instructions](https://github.com/ekernf01/perturbation_benchmarking/blob/main/environment/install.md)
+- Install everything using [these instructions](https://github.com/ekernf01/perturbation_benchmarking/blob/main/environment/install.md).
 - To repeat our experiments or run your own, see the [pereggrn](https://github.com/ekernf01/pereggrn) benchmarking software ([tutorial](https://github.com/ekernf01/pereggrn/blob/main/docs/tutorial.md), how to [add your own method](https://github.com/ekernf01/pereggrn/blob/main/docs/how_to.md#how-to-evaluate-a-new-method)).
 - If there's something you cannot find, go ahead and file a github issue -- with your input, we hope to improve the project.
 
@@ -13,7 +13,7 @@ This repo contains benchmark experiments to evaluate various strategies for pred
 
 This project is tightly coupled with our collections of data, our GGRN package for dynamic models of gene regulatory networks, and our PEREGGRN package containing benchmarking infrastructure. 
 
-- Install everything using [these instructions](https://github.com/ekernf01/perturbation_benchmarking/blob/main/environment/install.md)
+- Install everything using [these instructions](https://github.com/ekernf01/perturbation_benchmarking/blob/main/environment/install.md).
 - Perturbation data, the network collection, and some accessory data (e.g. a list of TF's) are on Zenodo with DOI `10.5281/zenodo.15115945`.
     - Our code expects each of those three folders to be unzipped and placed adjacent to this repo.
     - Use our [perturbation loader](https://github.com/ekernf01/pereggrn_perturbations) and [network loader](https://github.com/ekernf01/pereggrn_networks) to easily access and validate data from Python.
