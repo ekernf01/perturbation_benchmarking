@@ -39,10 +39,9 @@ DATASET_ORDER = [
   "frangieh IFNg v3"
 ]
 
-# This analysis omits the adamson, dixit, and norman because in the current form of the data, I cannot find distinct replicates or gRNA's. 
-# And re-doing the preprocessing is not feasible at this point in the project. 
-datasets_used = [d for d in DATASET_ORDER if d in [ # this eccentric code keeps the datasets in a consistent order across figures.
-    "nakatake", 
+# this eccentric code keeps the datasets in a consistent order across figures.
+datasets_used = [d for d in DATASET_ORDER if d in [ 
+    "nakatake",
     "replogle1",
     "replogle2",
     "replogle2\ntf only",
@@ -52,18 +51,38 @@ datasets_used = [d for d in DATASET_ORDER if d in [ # this eccentric code keeps 
     "joung",
     "freimer",
     "frangieh IFNg v3",
+    "norman",
+    "adamson",
+    "dixit",
 ]]
 
+# See GEARS paper fig. S11
+# I used this interactively, but it is not used in the final version of the paper.
+norman_blacklist = {
+    "IKZF3", 
+    "PRDM1",
+    "PTPN1",
+    "C3orf72",
+    "NIT1",
+    "RREB1",
+    "CDKN1C",
+    "CNN1",
+    "PTPN13",
+    "JUN",
+    "ZBTB1",
+}
 
 # This is for enrichment analysis of genes with high logFC between controls and the average of the rest of the data.
 os.makedirs("control_vs_all_perts", exist_ok=True)
 for dataset in datasets_used:    
+    print(f"Processing dataset: {dataset}")
     adata = pereggrn_perturbations.load_perturbation(re.sub("\n| ", "_", dataset))
     controls = adata.obs_names[adata.obs["is_control"]]
     treateds = adata.obs_names[~adata.obs["is_control"]]
     lfc = adata[treateds, :].X.mean(axis=0) - adata[controls, :].X.mean(axis=0)
+    lfc = np.array(lfc).flatten()
     lfc = pd.DataFrame({"lfc": lfc, "gene": adata.var_names}).sort_values("lfc")
-    lfc.head(100).to_csv(f"control_vs_all_perts/top_genes_{dataset}.csv")
+    lfc.head(100).to_csv(f"control_vs_all_perts/bottom_genes_{dataset}.csv")
     lfc.tail(100).to_csv(f"control_vs_all_perts/top_genes_{dataset}.csv")
 
 # This is for a figure testing if independent control-treatment pairs have consistent log fold changes when the treatment is the same.
