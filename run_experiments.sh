@@ -17,6 +17,6 @@ do
 less experiments/${experiment}/err.txt
 less experiments/${experiment}/stdout.txt
 "
-    pereggrn --experiment_name $experiment --amount_to_do missing_models \
+    pereggrn --experiment_name $experiment --amount_to_do missing_models --verbosity 2 \
         > experiments/$experiment/stdout.txt 2> experiments/$experiment/err.txt
 done
