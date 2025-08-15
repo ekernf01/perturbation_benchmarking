@@ -1,18 +1,17 @@
 # environment setup
 {
+  library("viridis")
+  library("gtools")
   library("ggplot2")
   library("dplyr")
   library("stringr")
   library("arrow")
   library("magrittr")
   library("rjson")
-  # # Versions of AnnDataR and hdf5r we used:
-  # remotes::install_version("hdf5r", "1.3.11")
-  # devtools::install_github("scverse/anndataR", ref = "dbc6897")
-  
+  library("ggrepel")
   setwd("/home/ekernf01/Desktop/jhu/research/projects/perturbation_prediction/cell_type_knowledge_transfer/perturbation_benchmarking/make_figures/")
   source("plotting_functions.R")
-  METRICS = c(METRICS, "distance_in_pca")
+  METRICS = "pearson"
 }
 
 # ===================== Figure 1, perturbation scores and lit reviews ====================================
@@ -131,7 +130,7 @@
     geom_tile(aes(x = " Literature review", y = perturbation, fill = effect_direction)) + 
     scale_fill_manual(
       values = c(
-        "none" = "gray30",
+        "none" = "red",
         "Not in top 30" = "gray", 
         "GoF promotes differentiation" = "blue", 
         "LoF inhibits differentiation" = "blue",
@@ -311,41 +310,11 @@
   
 }
 
-{
-  # Saunders zebrafish axial mesoderm -- currently not used in figure
-  embeddings = load_embeddings("1.2.2_18")
-  ggplot(embeddings %>% subset(perturbation=='control' & prediction_timescale==1)) +
-    geom_point(aes(x = train_viz1, y = train_viz2, color = cell_type)) + 
-    geom_segment(aes(x = progenitor_viz1 , y = progenitor_viz2,
-                     xend = train_viz1, yend = train_viz2),
-                 color = "blue",
-                 alpha = 0.05,
-                 arrow = arrow(length=unit(0.30,"cm"), ends="last", type = "closed")) +
-    theme_minimal()
-  overall_scores = embeddings %>% 
-    group_by(cell_type, timepoint, perturbation, prediction_timescale, matching_method) %>%
-    summarize(
-      perturbation_score = mean(perturbation_score), 
-      lit_review = unique(Reference..Pubmed.ID.)
-    ) %>%
-    tidyr::pivot_wider(names_from = "cell_type", values_from = "perturbation_score")
-  ggplot(overall_scores) + 
-    geom_point(aes(x = notochord, y = `mesodermal progenitor cells (contains PSM)`, color = timepoint))
-  ggsave("timeseries_plots/axial_mesoderm_ps_vs_screen.pdf", width = 12, height = 8)
-  table_to_report = overall_scores %>% 
-    group_by(matching_method) %>%
-    mutate(is_outlier = rank(-abs(`mesodermal progenitor cells (contains PSM)`)) <= 30 | rank(-abs(notochord)) <= 30 ) %>% 
-    subset(is_outlier) 
-  table_to_report %>% subset(is_outlier, select = c("perturbation", "lit_review")) %>% distinct() %>% table
-  table_to_report %>% 
-    write.csv("timeseries_plots/mouse_blood_ps_vs_screen_top_30.csv")
-}
 
 # ======================== Figures 2 and 4: evaluation of log FC =====================================
 # timescale experiments
 {
-  METRICS = c(METRICS, "distance_in_pca")
-  X = collect_experiments(paste0("1.2.2_", 16:21)) %>% make_the_usual_labels_nice
+  X = collect_experiments(paste0("1.2.2_", c(16:17))) %>% make_the_usual_labels_nice
   X %<>%
     group_by(prediction_timescale, perturbation_dataset, matching_method) %>%
     summarise(across(METRICS, mean))
@@ -354,7 +323,7 @@
   X[["metric"]] %<>% factor(levels = gsub("_", " ", METRICS))
   X[["prediction_timescale"]] %<>% as.character()
   X[["prediction_timescale"]] %<>% factor(levels = gtools::mixedsort(unique(X[["prediction_timescale"]])))
-  plot = ggplot(X) +
+  plot = ggplot(X) + 
     geom_bar(aes(x = prediction_timescale, y = value, fill = matching_method), position = "dodge", stat = "identity") +
     facet_grid(metric~perturbation_dataset, scales = "free") +
     theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))  +
@@ -389,6 +358,21 @@ dir.create("timeseries_plots/published_methods")
 # Definitive Endoderm
 {
   embeddings = load_embeddings("1.5.1_0") %>% make_the_usual_labels_nice()
+  relevant_columns = c("cell_type",
+                       "perturbation", 
+                       "prediction_timescale",
+                       "regression_method",
+                       "perturbation_score",
+                       "brunello.neg.lfc",
+                       "brunello.pos.lfc",
+                       "gecko.neg.lfc",
+                       "gecko.pos.lfc",
+                       "Included.in.literature.review.",
+                       "effect_direction",
+                       "PMID" ,
+                       "Notes"
+  )
+  embeddings = as.data.frame(embeddings)[relevant_columns]
   lit_review = read.csv("../../perturbation_data/perturbations/definitive_endoderm/lit_review.csv")
   lit_review %<>% rename(cell_type = Cell.type.affected)
   lit_review %<>% mutate(cell_type = gsub("primitive streak", "mesendoderm", tolower(cell_type)))
@@ -450,7 +434,34 @@ dir.create("timeseries_plots/published_methods")
   ggsave("timeseries_plots/published_methods/definitive_endoderm_ps_distribution.pdf", width = 3, height = 6)
   
   
-  # Perturbation scores versus each other
+  # Compare top perturbation scores versus each other
+  # First, add an extra baseline from differential expression.
+  # This fit awkwardly into the code because there is no gene expression prediction involved, so the normal eval code doesn't apply.
+  {
+    differential_expression = rbind(
+      read.csv("timeseries_plots/top30_differential_expression_endoderm.csv")    %>% mutate(cell_type = "endoderm", perturbation_score_rank = rank(logfoldchanges)),
+      read.csv("timeseries_plots/top30_differential_expression_mesendoderm.csv") %>% mutate(cell_type = "mesendoderm", perturbation_score_rank = rank(logfoldchanges))
+    ) %>% rename( 
+      perturbation =  names, 
+    ) %>% mutate(
+      perturbation_score = -logfoldchanges,
+      prediction_timescale = 1, 
+      regression_method = "differential expression", 
+      top_30 = "yes",
+      li_et_al_biggest_effect = NA
+    ) %>% dplyr::select(
+      cell_type, perturbation, perturbation_score, prediction_timescale, regression_method, li_et_al_biggest_effect, top_30, perturbation_score_rank
+    )
+    lit_review = read.csv("../../perturbation_data/perturbations/definitive_endoderm/lit_review.csv")
+    lit_review %<>% rename(cell_type = Cell.type.affected)
+    lit_review %<>% mutate(cell_type = gsub("primitive streak", "mesendoderm", tolower(cell_type)))
+    lit_review %<>% tidyr::complete(perturbation, cell_type, fill = list(effect_direction="none"))
+    differential_expression %<>% merge(lit_review, by = c("perturbation", "cell_type"), all.x = T)
+    differential_expression %<>% mutate(Included.in.literature.review. = ifelse(is.na(Included.in.literature.review.), "no", Included.in.literature.review.))
+    overall_scores = rbind(overall_scores, differential_expression[colnames(overall_scores)])
+  }
+  
+  # Now, some code to make the heatmap and dress it up. 
   prettify = function(x) x %>% gsub("-1", "LoF inhibits differentiation", .) %>% gsub("1", "LoF promotes differentiation", .) %>% gsub("0", "none", .)
   # Ordering heatmaps is always a nightmare.
   # This makes a rough ordering according to th lit review results. 
@@ -459,7 +470,7 @@ dir.create("timeseries_plots/published_methods")
     mutate(predicted_effect = prettify(sign(perturbation_score))) %>%
     mutate(method = regression_method %>% gsub("_", " ", .)) %>%
     mutate(method = interaction(regression_method, prediction_timescale)) %>%
-    extract(c("method", "regression_method", "prediction_timescale", "cell_type", "perturbation", "predicted_effect", "prediction_timescale")) %>% 
+    extract(c("method", "regression_method", "prediction_timescale", "cell_type", "perturbation", "predicted_effect")) %>% 
     ungroup() %>%
     tidyr::complete(method, perturbation, cell_type, fill = list(predicted_effect="none")) %>%
     merge(lit_review, by = c("cell_type", "perturbation"), all.x = T, all.y = F)
@@ -525,7 +536,6 @@ dir.create("timeseries_plots/published_methods")
   embeddings$regression_method %<>% gsub("docker____ekernf01/ggrn_docker_backend_", "", .)
   embeddings$regression_method %<>% gsub("dictys", "dictys_dynamics", .)
   embeddings$regression_method %<>% gsub("sckinetics", "sckinetics_dynamics", .)
-  
   embeddings[embeddings$perturbation=="control","Annotation_summary"] = "Simulated control" 
   embeddings[["super_cell_type"]] = ifelse( 
     embeddings[["cell_type"]] %in% c(
@@ -536,7 +546,38 @@ dir.create("timeseries_plots/published_methods")
     "ME",
     "GM"
   )
-  overall_scores = embeddings %>% 
+  
+  # Compare top perturbation scores versus each other
+  # First, add an extra baseline from differential expression.
+  # This fit awkwardly into the code because there is no gene expression prediction involved, so the normal eval code doesn't apply.
+  {
+    differential_expression = rbind(
+      read.csv("timeseries_plots/top30_differential_expression_paul_ME.csv") %>% mutate(super_cell_type = "ME"),
+      read.csv("timeseries_plots/top30_differential_expression_paul_GM.csv") %>% mutate(super_cell_type = "GM"),
+      read.csv("timeseries_plots/top30_differential_expression_paul_DC.csv") %>% mutate(super_cell_type = "DC")
+    ) %>% rename( 
+      perturbation =  names, 
+    ) %>% mutate(
+      perturbation_score = -logfoldchanges,
+      regression_method = "differential expression", 
+    ) %>% dplyr::select(
+      super_cell_type, perturbation, perturbation_score, regression_method
+    ) %>% tidyr::pivot_wider(
+      values_from = "perturbation_score",
+      names_from = "super_cell_type", 
+      id_cols = c("perturbation", "regression_method")
+    )
+    lit_review = read.csv("../../perturbation_data/perturbations/paul1/screen.csv")
+    differential_expression %<>% merge(lit_review, by = "perturbation", all.x = T, all.y = F)
+    differential_expression %<>% mutate(lit_review = Annotation_summary, included_co = Included.in.CellOracle.lit.review.)
+    differential_expression %<>% select(c(
+      "perturbation" ,     "regression_method" , "lit_review"   ,     "included_co" ,      "GM"      ,          "ME"                   
+      ))
+    # This gets added into "overall_scores" shortly below. 
+  }
+  
+  
+  overall_scores = embeddings %>%
     group_by(super_cell_type, perturbation, regression_method) %>%
     summarize(
       perturbation_score = mean(perturbation_score, na.rm = T), 
@@ -546,6 +587,7 @@ dir.create("timeseries_plots/published_methods")
     ungroup() %>%
     tidyr::pivot_wider(names_from = "super_cell_type", values_from = "perturbation_score") %>% 
     group_by(regression_method) %>%
+    rbind(differential_expression) %>% # This is where we add in the differential expression baseline
     mutate(GM_abs_rank = rank(-abs(GM)), ME_abs_rank = rank(-abs(ME)) ) 
   
   # Direction of predicted effect
