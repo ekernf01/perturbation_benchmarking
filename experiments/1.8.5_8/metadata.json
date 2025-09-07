@@ -1,0 +1,17 @@
+{
+    "unique_id": "1.8.5_8",
+    "nickname": "split_seed_sensitivity",
+    "readme": "Network experiment but with a different data split.",
+    "question": "1.4.3",
+    "is_active": true,
+    "refers_to": "1.4.3_1", 
+    "data_split_seed": [1,2,3], 
+    "perturbation_dataset": "replogle1", 
+    "merge_replicates": false,
+    "network_prior": "restrictive",
+    "network_datasets": {
+        "empty":     { "do_aggregate_subnets": true }, 
+        "dense":     { "do_aggregate_subnets": true },    
+        "celloracle_human":      { "do_aggregate_subnets": true }        
+    }
+}
