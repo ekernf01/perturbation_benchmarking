@@ -15,6 +15,25 @@
 }
 
 # ===================== Figure 1, perturbation scores and lit reviews ====================================
+# timescale experiments
+{
+  X = collect_experiments(experiments = paste0("1.2.2_", c(14:17))) %>% make_the_usual_labels_nice
+  X %<>%
+    group_by(prediction_timescale, perturbation_dataset, matching_method) %>%
+    summarise(across(METRICS, mean, na.rm = T))
+  X %<>% tidyr::pivot_longer(cols = all_of(METRICS), names_to = "metric")
+  X[["metric"]] %<>% gsub("_", " ", .)
+  X[["metric"]] %<>% factor(levels = gsub("_", " ", METRICS))
+  X[["prediction_timescale"]] %<>% as.character()
+  X[["prediction_timescale"]] %<>% factor(levels = gtools::mixedsort(unique(X[["prediction_timescale"]])))
+  plot = ggplot(X) + 
+    geom_bar(aes(x = prediction_timescale, y = value, fill = matching_method), position = "dodge", stat = "identity") +
+    facet_grid(1~perturbation_dataset, scales = "free") +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))  +
+    ylab("Pearson correlation between predicted\nand observed differential expression")
+  print(plot)
+  ggsave('timeseries_plots/matching.svg', plot, width = 8, height = 3)
+}
 # Definitive Endoderm
 {
   embeddings = load_embeddings("1.2.2_14")
@@ -93,7 +112,7 @@
     ylab("Log fold change in gRNA abundance \n(Largest magnitude from Li et al. 2019 genome-wide screen)") + 
     ggtitle("Predicted and observed effects on endoderm differentiation",
             subtitle = "Labels are shown for the largest absolute values on the x axis.")
-  ggsave("timeseries_plots/definitive_endoderm_ps_vs_screen.pdf", width = 8, height = 6)
+  ggsave("timeseries_plots/definitive_endoderm_ps_vs_screen.pdf", width = 8, height = 3)
   
   # perturbation scores overall distribution
   overall_scores %>% 
@@ -211,7 +230,7 @@
     mutate(ME = prettify(sign(ME))) %>%
     tidyr::pivot_longer(cols = c("GM", "ME"), names_to = "cell_type", values_to = "predicted_effect") %>%
     mutate(method = matching_method %>% gsub("_", " ", .)) %>%
-    extract(c("method", "cell_type", "perturbation", "predicted_effect")) %>% 
+    extract(c("method", "cell_type", "perturbation", "predicted_effect", "lit_review")) %>% 
     tidyr::complete(method, perturbation, cell_type, fill = list(predicted_effect="none")) %>%
     ggplot() + 
     geom_tile(aes(x = method, y = perturbation, fill = predicted_effect)) + 
@@ -307,31 +326,10 @@
     xlab("") + 
     facet_wrap(~screened_by_surdziel, scale = "free_y") 
   ggsave("timeseries_plots/thp1_screen_vs_top_30.pdf", width = 5, height = 8)
-  
 }
 
 
-# ======================== Figures 2 and 4: evaluation of log FC =====================================
-# timescale experiments
-{
-  X = collect_experiments(paste0("1.2.2_", c(16:17))) %>% make_the_usual_labels_nice
-  X %<>%
-    group_by(prediction_timescale, perturbation_dataset, matching_method) %>%
-    summarise(across(METRICS, mean))
-  X %<>% tidyr::pivot_longer(cols = all_of(METRICS), names_to = "metric")
-  X[["metric"]] %<>% gsub("_", " ", .)
-  X[["metric"]] %<>% factor(levels = gsub("_", " ", METRICS))
-  X[["prediction_timescale"]] %<>% as.character()
-  X[["prediction_timescale"]] %<>% factor(levels = gtools::mixedsort(unique(X[["prediction_timescale"]])))
-  plot = ggplot(X) + 
-    geom_bar(aes(x = prediction_timescale, y = value, fill = matching_method), position = "dodge", stat = "identity") +
-    facet_grid(metric~perturbation_dataset, scales = "free") +
-    theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))  +
-    ylab("")
-  print(plot)
-  ggsave('timeseries_plots/matching.svg', plot, width = 8, height = 8)
-}
-# published methods
+# =========================== Figure 3, perturbation scores and lit reviews for published methods ==========
 dir.create("timeseries_plots/published_methods")
 {
   X = collect_experiments(paste0("1.5.1_", 0:2)) %>% make_the_usual_labels_nice
@@ -350,11 +348,9 @@ dir.create("timeseries_plots/published_methods")
     labs(fill="Simulation\nduration") + 
     scale_fill_manual(values = viridis::viridis(6), guide = "legend")
   print(plot)
-  ggsave('timeseries_plots/published_methods/matching.svg', plot, width = 8, height = 8)
+  ggsave('timeseries_plots/published_methods/matching.svg', plot, width = 8, height = 4)
 }
 
-
-# =========================== Figure 3, perturbation scores and lit reviews for published methods ==========
 # Definitive Endoderm
 {
   embeddings = load_embeddings("1.5.1_0") %>% make_the_usual_labels_nice()
@@ -366,11 +362,7 @@ dir.create("timeseries_plots/published_methods")
                        "brunello.neg.lfc",
                        "brunello.pos.lfc",
                        "gecko.neg.lfc",
-                       "gecko.pos.lfc",
-                       "Included.in.literature.review.",
-                       "effect_direction",
-                       "PMID" ,
-                       "Notes"
+                       "gecko.pos.lfc"
   )
   embeddings = as.data.frame(embeddings)[relevant_columns]
   lit_review = read.csv("../../perturbation_data/perturbations/definitive_endoderm/lit_review.csv")
@@ -419,7 +411,7 @@ dir.create("timeseries_plots/published_methods")
     ylab("Log fold change in gRNA abundance \n(Largest magnitude from Li et al. 2019 genome-wide screen)") + 
     ggtitle("Predicted and observed effects on endoderm differentiation",
             subtitle = "Labels are shown for the largest absolute values on the x axis.")
-  ggsave("timeseries_plots/published_methods/definitive_endoderm_ps_vs_screen.pdf", width = 8, height = 6)
+  ggsave("timeseries_plots/published_methods/definitive_endoderm_ps_vs_screen.pdf", width = 8, height = 3)
   
   # perturbation scores overall distribution
   overall_scores %>% 
@@ -500,7 +492,7 @@ dir.create("timeseries_plots/published_methods")
     theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) + 
     coord_fixed() + 
     ggtitle("Literature review of top 30 \npredictions for each model")
-  ggsave("timeseries_plots/published_methods/definitive_endoderm_discordance_top_30.pdf", width = 5, height = 7)
+  ggsave("timeseries_plots/published_methods/definitive_endoderm_discordance_top_30.pdf", width = 12, height = 12)
   
   
   # perturbation scores versus lit review
@@ -642,15 +634,19 @@ dir.create("timeseries_plots/published_methods")
     table() %>%
     as.data.frame() %>%
     mutate(known_role = forcats::fct_relevel(known_role, "Not reviewed", after = 0)) %>%
-    mutate(known_role = forcats::fct_relevel(known_role, "No known role", after = 0)) %>%
+    mutate(known_role = forcats::fct_relevel(known_role, "no known effect", after = 0)) %>%
     ggplot() + 
     geom_bar(aes(x=regression_method,y=Freq, fill = known_role), stat="identity") + 
     scale_fill_manual(values = c(
+      "GM & DC"       = "cyan",      
+      "GM & ME & DC" = "brown",
       "GM"="green",
       "ME"="red",
-      "GM & ME, stemness"="yellow",
+      "Stemness" = "orange",
       "DC" = "blue",
-      "No known role"= "black",
+      "ME & DC" = "purple",
+      "no known effect"= "black",
+      "unclear"= "gray",
       "Not reviewed" = "gray")
     ) +
     labs(fill="Known roles") +

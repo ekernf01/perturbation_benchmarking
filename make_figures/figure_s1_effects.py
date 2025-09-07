@@ -91,7 +91,7 @@ chart = alt.Chart(effects).transform_density(
 ).mark_area(opacity=0.75).encode(
     x=alt.X('logFC:Q', title='logFC'), 
     y=alt.Y('density:Q', title='Density'),
-    color=alt.Color('dataset:N', scale=alt.Scale(domain=DATASET_ORDER, scheme = "category20"))  # replace with your desired order
+    color=alt.Color('dataset:N', scale=alt.Scale(domain=DATASET_ORDER, scheme = "dark2"))  # replace with your desired order
 ).properties(
     width=200,
     height=60
@@ -108,7 +108,7 @@ chart.save('plots/fig_effects.svg')
 chart = alt.Chart(effects).mark_circle(size=10).encode(
     x=alt.X('logFC:Q', title='logFC of perturbed gene\'s RNA'), 
     y=alt.Y('logFCMean:Q', title='Mean absolute logFC, all genes'),
-    color=alt.Color('dataset:N', scale=alt.Scale(domain=DATASET_ORDER, scheme = "category20"))  # replace with your desired order
+    color=alt.Color('dataset:N', scale=alt.Scale(domain=DATASET_ORDER, scheme = "dark2"))  # replace with your desired order
 ).properties(
     width=200,
     height=100

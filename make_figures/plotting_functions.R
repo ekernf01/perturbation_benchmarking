@@ -35,6 +35,7 @@ DATASET_ORDER = c(
   "definitive\nendoderm",
   "definitive endoderm",
   "paul",
+  "fantom4",
   "saunders",
   "saunders_endoderm",
   "saunders_blood",
@@ -233,12 +234,17 @@ collect_experiments = function(
       if (is.null(X[[experiment]][["cell_type"]])){
         X[[experiment]][["cell_type"]] = 0
       }
-      X[[experiment]][["cell_type"]] %<>% as.character
       if (is.null(X[[experiment]][["louvain"]])){
         X[[experiment]][["louvain"]] = 0
       }
-      for(n in c("refers_to", "question", "chr", "transcript", "louvain", "visualization_embedding")){
-        X[[experiment]][[n]] %<>% as.character
+      for(n in c("refers_to", "question", "chr", "transcript", "louvain", "visualization_embedding",
+                 "cell_type",
+                 "feature_extraction",
+                 "perturbed_gene_is_measured"
+                 )){
+        try({
+          X[[experiment]][[n]] %<>% as.character
+        }, silent = T)
       }
       for(n in c("highly_variable", "highly_variable_rank", "means", "variances", "variances_norm",
                  "expression_level_after_perturbation",
@@ -247,8 +253,14 @@ collect_experiments = function(
                  "n_cnv", "exp_cnv", "cnv_z", 
                  "n_syn", "n_mis", "n_lof", 
                  "exp_syn", "exp_mis", "exp_lof", 
-                 "syn_z", "mis_z", "lof_z", "pLI")){
-        X[[experiment]][[n]] %<>% as.numeric
+                 "syn_z", "mis_z", "lof_z", "pLI", 
+                 "spearman", "pearson", "pearson_top_20", "pearson_top_100", "pearson_top_200",
+                 "pvalue_targets_vs_non_targets", "fc_targets_vs_non_targets", "Unnamed: 0", 
+                 "timepoint_original", "timepoint_consecutive", "takedown_timepoint_consecutive",
+                 "prediction_timescale_steps", "control_subtype", "low_dimensional_value")){
+        try({
+          X[[experiment]][[n]] %<>% as.numeric
+        }, silent = T)
       }
       for( degree in grep("degree", colnames(X[[experiment]]), value = T)){
         X[[experiment]][[degree]] %<>% as.numeric()
