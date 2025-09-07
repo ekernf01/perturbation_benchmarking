@@ -5,6 +5,6 @@
     "question": "1.2.2",
     "is_active": true,
     "refers_to": "1.2.2_1",
-    "perturbation_dataset": "replogle1"
+    "perturbation_dataset": "replogle"
 
 }

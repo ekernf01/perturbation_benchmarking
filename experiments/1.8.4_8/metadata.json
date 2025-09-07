@@ -6,6 +6,6 @@
     "is_active": true,
     "refers_to": "1.4.3_1", 
     "type_of_split": "stratified", 
-    "perturbation_dataset": "replogle1", 
+    "perturbation_dataset": "replogle", 
     "merge_replicates": false
 }

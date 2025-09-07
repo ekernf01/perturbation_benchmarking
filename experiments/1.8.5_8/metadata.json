@@ -6,7 +6,7 @@
     "is_active": true,
     "refers_to": "1.4.3_1", 
     "data_split_seed": [1,2,3], 
-    "perturbation_dataset": "replogle1", 
+    "perturbation_dataset": "replogle", 
     "merge_replicates": false,
     "network_prior": "restrictive",
     "network_datasets": {

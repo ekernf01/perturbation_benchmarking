@@ -4,6 +4,6 @@
     "readme": "Like 1.0_1 but replogle instead of nakatake.",
     "refers_to": "1.0_1",
     "is_active": true,
-    "perturbation_dataset": "replogle1"
+    "perturbation_dataset": "replogle"
 }
 

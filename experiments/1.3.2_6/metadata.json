@@ -4,7 +4,7 @@
     "readme": "This experiment uses the same logic as experiment <refers_to>, with different networks and perturbation data.",
     "refers_to": "1.3.2_1",
     "is_active": true,
-    "perturbation_dataset": "replogle1",
+    "perturbation_dataset": "replogle",
     "merge_replicates": true,
     "network_datasets": {
         "empty": {},
