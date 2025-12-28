@@ -389,6 +389,48 @@ main_experiments = c(  "1.0_1",   "1.0_2",   "1.0_3",   "1.0_5",   "1.0_6",   "1
   ggsave('plots/stratified_split.pdf', width = 5, height = 8)
 }
 
+
+# Gene selection
+{
+  X = collect_experiments(
+    experiments = 
+      c(
+        "1.8.5_1",
+        "1.8.5_2",
+        "1.8.5_3",
+        "1.8.5_5",
+        "1.8.5_6",
+        "1.8.5_7",
+        "1.8.5_8",
+        "1.8.5_9"
+      )
+  )
+  X %<>% make_the_usual_labels_nice()
+  X %<>% distill_results( 
+    facet1 = "perturbation_dataset", 
+    facet2 = "data_split_seed", 
+    compare_across_rows = T, 
+    baseline_condition = "empty"
+  )
+  X %>% subset(x!="empty") %>%
+    mutate(metric = factor(metric, levels = gsub("_", " ", METRICS))) %>%
+    ggplot() +
+    geom_line(aes(x = data_split_seed, color = x, y = pmin(pmax(scaled_value, -100), 100))) + 
+    labs(
+      x = "Data split seed", 
+      y = "Percent change vs baseline\nOriented so higher is better\nCapped at ±100%", 
+      color = "Network"
+    ) +
+    scale_x_continuous(breaks = 1:3) +
+    geom_hline(aes(yintercept = 0), colour = "black") +
+    theme(
+      axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, color = "black"),
+      axis.text.y = element_text(color = "black")
+    ) + 
+    facet_grid(metric~perturbation_dataset, scales = "free") 
+  ggsave('plots/data_split_seed.pdf', width = 8, height = 10)
+}
+
 # Replicate merging
 {
   X = collect_experiments(

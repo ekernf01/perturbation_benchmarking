@@ -240,7 +240,7 @@ collect_experiments = function(
       for(n in c("refers_to", "question", "chr", "transcript", "louvain", "visualization_embedding",
                  "cell_type",
                  "feature_extraction",
-                 "perturbed_gene_is_measured"
+                 "perturbed_gene_is_measured", "cell_type_correct"
                  )){
         try({
           X[[experiment]][[n]] %<>% as.character
@@ -254,7 +254,7 @@ collect_experiments = function(
                  "n_syn", "n_mis", "n_lof", 
                  "exp_syn", "exp_mis", "exp_lof", 
                  "syn_z", "mis_z", "lof_z", "pLI", 
-                 "spearman", "pearson", "pearson_top_20", "pearson_top_100", "pearson_top_200",
+                 "spearman", "pearson", "pearson_top_20", "pearson_top_100", "pearson_top_200", "cell_type_correct",
                  "pvalue_targets_vs_non_targets", "fc_targets_vs_non_targets", "Unnamed: 0", 
                  "timepoint_original", "timepoint_consecutive", "takedown_timepoint_consecutive",
                  "prediction_timescale_steps", "control_subtype", "low_dimensional_value")){
@@ -472,6 +472,8 @@ do_subnetworks_match = function(
   return(F)
 }
 
+# This function does the ugly manual matching work to harmonize the original sources' description of
+# cell types included in the perturbation data and the gene networks. 
 add_network_cell_type_metadata = function(
     X,   
     single_networks = c("celloracle_human",  
