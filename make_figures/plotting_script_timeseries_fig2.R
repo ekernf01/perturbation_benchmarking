@@ -26,15 +26,16 @@ dir.create("timeseries_plots/published_methods")
   X[["metric"]] %<>% gsub("_", " ", .)
   X[["metric"]] %<>% factor(levels = gsub("_", " ", METRICS))
   plot = ggplot(X) +
-    geom_bar(aes(x = regression_method, y = value, fill = factor(as.character(prediction_timescale), levels = c(0:5, 10)), group = prediction_timescale), position = "dodge", stat = "identity") +
-    facet_grid(metric~perturbation_dataset, scales = "free") +
+    geom_bar(aes(x = gsub("_", " ", regression_method), y = value, fill = factor(as.character(prediction_timescale), levels = c(0:5, 10)), group = prediction_timescale), position = "dodge", stat = "identity") +
+    facet_grid(~perturbation_dataset, scales = "free") +
     theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))  +
-    ylab("") + 
+    ylab("Pearson correlation between\npredicted and observed log FC") + 
+    xlab("") +
     geom_hline(yintercept=0) + 
     labs(fill="Simulation\nduration") + 
     scale_fill_manual(values = viridis::viridis(6), guide = "legend")
   print(plot)
-  ggsave('timeseries_plots/published_methods/pearson.svg', plot, width = 8, height = 4)
+  ggsave('timeseries_plots/published_methods/pearson.svg', plot, width = 6, height = 3)
 }
 
 # Definitive Endoderm, effects on cell type 
@@ -70,7 +71,7 @@ dir.create("timeseries_plots/published_methods")
         mean(gecko.neg.lfc),
         mean(gecko.pos.lfc)
       )),
-      Included.in.literature.review. = unique(Included.in.literature.review.), 
+      Included.in.literature.review. = unique(Included.in.literature.review), 
       effect_direction = unique(effect_direction),
       PMID = unique(PMID),
       Notes = unique(Notes)
@@ -135,7 +136,7 @@ dir.create("timeseries_plots/published_methods")
     lit_review %<>% mutate(cell_type = gsub("primitive streak", "mesendoderm", tolower(cell_type)))
     lit_review %<>% tidyr::complete(perturbation, cell_type, fill = list(effect_direction="none"))
     differential_expression %<>% merge(lit_review, by = c("perturbation", "cell_type"), all.x = T)
-    differential_expression %<>% mutate(Included.in.literature.review. = ifelse(is.na(Included.in.literature.review.), "no", Included.in.literature.review.))
+    differential_expression %<>% mutate(Included.in.literature.review. = ifelse(is.na(Included.in.literature.review), "no", Included.in.literature.review))
     overall_scores = rbind(overall_scores, differential_expression[colnames(overall_scores)])
   }
   
